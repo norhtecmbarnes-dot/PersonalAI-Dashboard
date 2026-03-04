@@ -97,14 +97,27 @@ You can also just send me a message and I'll respond using AI!`;
     if (text.startsWith('/search ')) {
       console.log('[Telegram Polling] Handling /search command');
       const query = text.replace('/search ', '').trim();
-      const results = await performWebSearch(query);
       
-      const formattedResults = results.slice(0, 5).map((r, i) => 
-        `${i + 1}. *${r.title}*\n   ${r.url}\n   ${r.excerpt?.slice(0, 100)}...`
-      ).join('\n\n');
+      try {
+        const results = await performWebSearch(query);
+        
+        if (results.length === 0) {
+          await telegramService.sendMessage(chatId, 'No search results found. Try a different query.', 'Markdown');
+          return;
+        }
+        
+        const formattedResults = results.slice(0, 5).map((r, i) => 
+          `${i + 1}. *${r.title}*\n   ${r.url}\n   ${r.excerpt?.slice(0, 100)}...`
+        ).join('\n\n');
 
-      const response = `*Search Results for:* "${query}"\n\n${formattedResults}`;
-      await telegramService.sendMessage(chatId, response, 'Markdown');
+        const response = `*Search Results for:* "${query}"\n\n${formattedResults}`;
+        await telegramService.sendMessage(chatId, response, 'Markdown');
+      } catch (error) {
+        console.error('[Telegram Polling] Search error:', error);
+        // If search fails (no API key), just do a simple chat response
+        const aiResponse = await getAIResponse(`Search for: ${query}`);
+        await telegramService.sendMessage(chatId, `I couldn't search the web (no search API configured), but here's what I know:\n\n${aiResponse}`, 'Markdown');
+      }
       return;
     }
 
