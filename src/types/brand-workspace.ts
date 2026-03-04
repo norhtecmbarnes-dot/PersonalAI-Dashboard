@@ -70,7 +70,7 @@ export interface Project {
 
 export interface ChatSession {
   id: string;
-  projectId: string;
+  projectId?: string;
   brandId: string;
   title?: string;
   messages: ChatMessage[];

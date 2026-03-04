@@ -53,14 +53,88 @@ export async function POST(request: NextRequest) {
       case 'chat': {
         const { projectId, brandId, message, sessionId, model } = data;
 
-        const project = await brandWorkspace.getProjectById(projectId);
-        if (!project) {
-          return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+        if (!brandId) {
+          return NextResponse.json({ error: 'Brand ID is required' }, { status: 400 });
         }
 
         const brand = await brandWorkspace.getBrandById(brandId);
         if (!brand) {
           return NextResponse.json({ error: 'Brand not found' }, { status: 404 });
+        }
+
+        // Handle brand-level chat (no project)
+        if (!projectId) {
+          let session = sessionId 
+            ? await brandWorkspace.getChatSessionById(sessionId)
+            : null;
+
+          if (!session) {
+            session = await brandWorkspace.createChatSession(null, brandId, `Brand Chat - ${brand.name} - ${new Date().toLocaleDateString()}`);
+          }
+
+          const currentSessionId = session.id;
+          const userMessage: Omit<ChatMessage, 'id' | 'timestamp'> = {
+            role: 'user',
+            content: message,
+          };
+          session = await brandWorkspace.addMessageToSession(currentSessionId, userMessage);
+
+          if (!session) {
+            throw new Error('Failed to add message to session');
+          }
+
+          // Build context from brand documents only (no project documents)
+          const context = await brandWorkspace.buildContextForChat(brandId, null);
+
+          const systemPrompt = buildSystemPrompt(context.systemPrompt, null, brand);
+
+          const conversationHistory = session.messages.map(m => ({
+            role: m.role as 'user' | 'assistant' | 'system',
+            content: m.content,
+          }));
+
+          const response = await fetch(new URL('/api/chat', request.url).origin + '/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              model: model || brand.settings?.defaultModel || 'ollama/qwen2.5-coder',
+              message,
+              conversationHistory: [
+                { role: 'system' as const, content: systemPrompt },
+                ...conversationHistory,
+              ],
+              systemPrompt,
+            }),
+          });
+
+          if (!response.ok) {
+            throw new Error('Failed to get AI response');
+          }
+
+          const responseData = await response.json();
+          const assistantContent = responseData.message || responseData.response || 'I apologize, but I was unable to generate a response.';
+
+          const assistantMessage: Omit<ChatMessage, 'id' | 'timestamp'> = {
+            role: 'assistant',
+            content: assistantContent,
+            metadata: {
+              model: model || brand.settings?.defaultModel,
+              documentsReferenced: context.documents.slice(0, 5).map(d => d.id),
+            },
+          };
+          const updatedSession = await brandWorkspace.addMessageToSession(currentSessionId, assistantMessage);
+
+          return NextResponse.json({
+            success: true,
+            session: updatedSession,
+            message: updatedSession?.messages[updatedSession.messages.length - 1],
+          });
+        }
+
+        // Project-level chat (existing code)
+        const project = await brandWorkspace.getProjectById(projectId);
+        if (!project) {
+          return NextResponse.json({ error: 'Project not found' }, { status: 404 });
         }
 
         let session = sessionId 

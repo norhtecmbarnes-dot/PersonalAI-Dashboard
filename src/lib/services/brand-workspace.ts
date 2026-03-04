@@ -361,14 +361,14 @@ class BrandWorkspaceService {
     return true;
   }
 
-  async createChatSession(projectId: string, brandId: string, title?: string): Promise<ChatSession> {
+  async createChatSession(projectId: string | null, brandId: string, title?: string): Promise<ChatSession> {
     await this.initialize();
     const id = generateId();
     const now = Date.now();
 
     const session: ChatSession = {
       id,
-      projectId,
+      projectId: projectId || undefined,
       brandId,
       title: title || `Chat ${new Date().toLocaleDateString()}`,
       messages: [],
@@ -386,7 +386,7 @@ class BrandWorkspaceService {
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
-        projectId,
+        projectId || null,
         brandId,
         session.title,
         JSON.stringify(session.messages),
@@ -399,12 +399,19 @@ class BrandWorkspaceService {
     return session;
   }
 
-  async getChatSessions(projectId: string): Promise<ChatSession[]> {
+  async getChatSessions(projectId?: string): Promise<ChatSession[]> {
     await this.initialize();
-    const rows = await sqlDatabase.all(
-      'SELECT * FROM chat_sessions WHERE project_id = ? ORDER BY updated_at DESC',
-      [projectId]
-    );
+    let rows;
+    if (projectId) {
+      rows = await sqlDatabase.all(
+        'SELECT * FROM chat_sessions WHERE project_id = ? ORDER BY updated_at DESC',
+        [projectId]
+      );
+    } else {
+      rows = await sqlDatabase.all(
+        'SELECT * FROM chat_sessions WHERE project_id IS NULL ORDER BY updated_at DESC'
+      );
+    }
     return rows.map(this.mapRowToChatSession);
   }
 
