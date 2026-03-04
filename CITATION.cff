@@ -1,0 +1,18 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "OpenAI Dashboard: Privacy-First AI Assistant"
+authors:
+  - name: "OpenAI Dashboard Contributors"
+repository-code: "https://github.com/norhtecmbarnes/personala-dashboard"
+license: MIT
+version: 0.1.0
+date-released: 2026-03-05
+
+preferred-citation:
+  type: software
+title: "PersonalAI Dashboard: Privacy-First AI Assistant"
+  authors:
+    - name: "OpenAI Dashboard Contributors"
+  year: 2026
+  url: "https://github.com/norhtecmbarnes/personala-dashboard"
