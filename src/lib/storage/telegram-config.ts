@@ -92,7 +92,14 @@ export function verifyTelegramToken(botToken: string): Promise<{ id: number; use
   return new Promise((resolve, reject) => {
     const url = `https://api.telegram.org/bot${botToken}/getMe`;
     
-    https.get(url, (res) => {
+    const options = {
+      timeout: 10000, // 10 second timeout
+      headers: {
+        'User-Agent': 'PersonalAI-Dashboard/1.0'
+      }
+    };
+    
+    const req = https.get(url, options, (res) => {
       let data = '';
       res.on('data', (chunk) => { data += chunk; });
       res.on('end', () => {
@@ -104,11 +111,25 @@ export function verifyTelegramToken(botToken: string): Promise<{ id: number; use
             reject(new Error(json.description || 'Invalid token'));
           }
         } catch (e) {
-          reject(e);
+          reject(new Error('Failed to parse Telegram response'));
         }
       });
-    }).on('error', (e) => {
-      reject(e);
+    });
+    
+    req.on('error', (e) => {
+      console.error('[Telegram] Connection error:', e.message);
+      if (e.message.includes('ECONNRESET')) {
+        reject(new Error('Connection reset. Please check your internet connection and try again.'));
+      } else if (e.message.includes('ETIMEDOUT')) {
+        reject(new Error('Connection timed out. Telegram API may be slow or unreachable.'));
+      } else {
+        reject(new Error(`Network error: ${e.message}`));
+      }
+    });
+    
+    req.on('timeout', () => {
+      req.destroy();
+      reject(new Error('Connection timed out after 10 seconds'));
     });
   });
 }
