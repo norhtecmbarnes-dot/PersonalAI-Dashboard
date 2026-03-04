@@ -73,24 +73,29 @@ export interface GenerateFromPromptParams {
   type: 'word' | 'slide' | 'cell';
   title?: string;
   rawContent?: string;
+  model?: string;
 }
 
 export async function generateDocumentFromPrompt(params: GenerateFromPromptParams): Promise<GeneratedDocument> {
-  const { prompt, type, title = 'Untitled', rawContent } = params;
+  const { prompt, type, title = 'Untitled', rawContent, model } = params;
 
   const systemPrompt = DOCUMENT_PROMPTS[type];
   
   // Combine prompt with raw content if provided
   const userPrompt = rawContent 
-    ? `Here is the raw content to transform into a ${type === 'word' ? 'document' : type === 'slide' ? 'presentation' : 'spreadsheet'}:\n\n${rawContent}\n\n${prompt}`
+    ? `Here is the raw content to transform into a ${type === 'word' ? 'document' : type === 'slide' ? 'presentation' : 'spreadsheet'}:
+
+${rawContent}
+
+${prompt}`
     : prompt;
 
-  console.log(`[Document AI] Generating ${type} from prompt...`);
+  console.log(`[Document AI] Generating ${type} from prompt using model: ${model || 'default'}...`);
 
   let result;
   try {
     result = await chatCompletion({
-      model: 'glm-4.7-flash',
+      model: model || 'glm-4.7-flash',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt }
@@ -98,7 +103,7 @@ export async function generateDocumentFromPrompt(params: GenerateFromPromptParam
     });
   } catch (error) {
     console.error('[Document AI] chatCompletion error:', error);
-    throw new Error(`AI model failed to respond: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw error;
   }
 
   if (!result) {

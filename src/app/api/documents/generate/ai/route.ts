@@ -5,10 +5,10 @@ import { brandWorkspace } from '@/lib/services/brand-workspace';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { type, title, prompt, rawContent, brandId } = body;
+    const { type, title, prompt, rawContent, brandId, model } = body;
 
     // Log only essential request info, not full content
-    console.log('[Document AI] Request:', { type, title: title?.substring(0, 30) });
+    console.log('[Document AI] Request:', { type, title: title?.substring(0, 30), model: model || 'default' });
 
     if (!type || !['word', 'cell', 'slide'].includes(type)) {
       return NextResponse.json(
@@ -79,6 +79,7 @@ export async function POST(request: NextRequest) {
       title,
       prompt: finalPrompt,
       rawContent: brandContext ? (rawContent || '') + brandContext : rawContent,
+      model: model || undefined,
     });
 
     console.log(`[Document AI] Successfully generated ${result.filename}, size: ${result.buffer.length} bytes`);
