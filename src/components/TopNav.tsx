@@ -19,14 +19,13 @@ export function TopNav() {
             </Link>
           </div>
           
-          <div className="flex items-center gap-1 overflow-x-auto">
+           <div className="flex items-center gap-1 overflow-x-auto">
             <NavLink href="/calendar">Calendar</NavLink>
             <NavLink href="/tasks">Tasks</NavLink>
             <NavLink href="/notes">Notes</NavLink>
             <NavLink href="/writing">Writing</NavLink>
             <NavLink href="/office">Office</NavLink>
             <NavLink href="/database/forms">Forms</NavLink>
-            <NavLink href="/sam">SAM.gov</NavLink>
             <NavLink href="/brand-workspace">Brands</NavLink>
             <NavLink href="/memory">Memory</NavLink>
             <NavLink href="/canvas">Canvas</NavLink>
