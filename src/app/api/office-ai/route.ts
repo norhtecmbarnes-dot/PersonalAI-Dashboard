@@ -155,7 +155,7 @@ export async function POST(request: NextRequest) {
           }
 
           const result = await streamChatCompletion({
-            model: 'glm-4.7-flash',
+            model: selectedModel,
             messages: [
               { role: 'system', content: memoryContext + '\n\nYou are a data analyst expert.' },
               { role: 'user', content: SPREADSHEET_ANALYZE_PROMPT.replace('{data}', spreadsheetData) }
@@ -177,7 +177,7 @@ export async function POST(request: NextRequest) {
           }
 
           const result = await streamChatCompletion({
-            model: 'glm-4.7-flash',
+            model: selectedModel,
             messages: [
               { role: 'system', content: 'You are a spreadsheet formula expert. Provide ONLY the formula, no explanations.' },
               { role: 'user', content: SPREADSHEET_FORMULA_PROMPT
@@ -201,7 +201,7 @@ export async function POST(request: NextRequest) {
           }
 
           const result = await streamChatCompletion({
-            model: 'glm-4.7-flash',
+            model: selectedModel,
             messages: [
               { role: 'system', content: 'You are a data cleaning expert. Output ONLY the cleaned CSV data.' },
               { role: 'user', content: SPREADSHEET_CLEAN_PROMPT
@@ -225,7 +225,7 @@ export async function POST(request: NextRequest) {
           }
 
           const result = await streamChatCompletion({
-            model: 'glm-4.7-flash',
+            model: selectedModel,
             messages: [
               { role: 'system', content: 'You are a data visualization expert. Respond ONLY with valid JSON.' },
               { role: 'user', content: SPREADSHEET_CHART_PROMPT
@@ -257,7 +257,7 @@ export async function POST(request: NextRequest) {
           }
 
           const result = await streamChatCompletion({
-            model: 'glm-5:cloud',
+            model: selectedModel,
             messages: [
               { role: 'system', content: memoryContext + '\n\nYou are a forecasting expert.' },
               { role: 'user', content: SPREADSHEET_PREDICT_PROMPT
@@ -287,7 +287,7 @@ Number of rows: ${rows || 10}
 Output as CSV with headers. No explanations, just the data.`;
 
           const result = await streamChatCompletion({
-            model: 'glm-4.7-flash',
+            model: selectedModel,
             messages: [
               { role: 'system', content: 'You are a data generator. Output ONLY valid CSV data.' },
               { role: 'user', content: genPrompt }
@@ -326,7 +326,7 @@ Output as CSV with headers. No explanations, just the data.`;
           }
 
           const result = await streamChatCompletion({
-            model: 'glm-4.7-flash',
+            model: selectedModel,
             messages: [
               { role: 'system', content: 'You are a presentation expert. Create impactful bullet points.' },
               { role: 'user', content: PRESENTATION_BULLETS_PROMPT
@@ -355,7 +355,7 @@ Output as CSV with headers. No explanations, just the data.`;
           }
 
           const result = await streamChatCompletion({
-            model: 'glm-4.7-flash',
+            model: selectedModel,
             messages: [
               { role: 'system', content: 'You are a presentation coach. Create helpful speaker notes.' },
               { role: 'user', content: PRESENTATION_SPEAKER_NOTES_PROMPT
@@ -379,7 +379,7 @@ Output as CSV with headers. No explanations, just the data.`;
           }
 
           const result = await streamChatCompletion({
-            model: 'glm-4.7-flash',
+            model: selectedModel,
             messages: [
               { role: 'system', content: memoryContext + '\n\nYou are a presentation designer.' },
               { role: 'user', content: PRESENTATION_OUTLINE_PROMPT
@@ -405,7 +405,7 @@ Output as CSV with headers. No explanations, just the data.`;
           }
 
           const result = await streamChatCompletion({
-            model: 'glm-4.7-flash',
+            model: selectedModel,
             messages: [
               { role: 'system', content: 'You are a presentation improvement expert.' },
               { role: 'user', content: PRESENTATION_IMPROVE_PROMPT
@@ -429,7 +429,7 @@ Output as CSV with headers. No explanations, just the data.`;
           }
 
           const result = await streamChatCompletion({
-            model: 'glm-4.7-flash',
+            model: selectedModel,
             messages: [
               { role: 'system', content: 'You are a presentation summarizer.' },
               { role: 'user', content: PRESENTATION_SUMMARY_PROMPT.replace('{slides}', slides) }
@@ -451,7 +451,7 @@ Output as CSV with headers. No explanations, just the data.`;
           }
 
           const result = await streamChatCompletion({
-            model: 'glm-4.7-flash',
+            model: selectedModel,
             messages: [
               { role: 'system', content: 'You are a presentation creator. Create detailed slide content from outlines.' },
               { role: 'user', content: `Create detailed presentation slides from this outline:
