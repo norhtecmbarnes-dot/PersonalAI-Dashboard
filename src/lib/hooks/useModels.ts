@@ -90,11 +90,11 @@ export function useModels() {
 
   // Find the best available model based on size/capability
   const findBestModel = (modelList: ModelInfo[]): string => {
-    // Priority order for best models
+    // Priority order for best models - prefer smaller, faster models
     const priorityModels = [
-      'qwen3.5:27b',
+      'qwen3.5:2b',      // Ultra-lightweight, fast, default preference
+      'qwen3.5:27b',     // Larger but more capable
       'qwen2.5:14b',
-      'qwen3.5:2b',
       'llama3.2',
       'llama3.2:3b',
       'glm-5:cloud',
