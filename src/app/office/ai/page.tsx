@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { ModelSelector } from '@/components/ModelSelector';
 
 type SpreadsheetAction = 'analyze' | 'formula' | 'clean' | 'chart' | 'predict' | 'generate-data';
 type PresentationAction = 'bullets' | 'speaker-notes' | 'outline' | 'improve' | 'summary' | 'create-from-outline';
@@ -11,6 +12,7 @@ export default function OfficeAIPage() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
+  const [selectedModel, setSelectedModel] = useState<string>('');
 
   // Spreadsheet state
   const [spreadsheetAction, setSpreadsheetAction] = useState<SpreadsheetAction>('analyze');
@@ -91,7 +93,12 @@ export default function OfficeAIPage() {
       const response = await fetch('/api/office-ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: 'spreadsheet', action: spreadsheetAction, data }),
+        body: JSON.stringify({ 
+          type: 'spreadsheet', 
+          action: spreadsheetAction, 
+          data,
+          model: selectedModel || undefined
+        }),
       });
 
       const json = await response.json();
@@ -156,7 +163,8 @@ export default function OfficeAIPage() {
           type: 'presentation', 
           action: presentationAction, 
           data,
-          styling 
+          styling,
+          model: selectedModel || undefined
         }),
       });
 
@@ -182,13 +190,20 @@ export default function OfficeAIPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
       <div className="max-w-6xl mx-auto">
-        {/* Header */}
+        {/* Header */
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-3xl font-bold text-white">Office AI Tools</h1>
             <p className="text-slate-400 mt-1">AI-powered features for spreadsheets and presentations</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
+            <ModelSelector
+              value={selectedModel}
+              onChange={setSelectedModel}
+              label="AI Model"
+              showHealth={true}
+              className="w-64"
+            />
             <Link href="/office" className="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600">
               Documents
             </Link>

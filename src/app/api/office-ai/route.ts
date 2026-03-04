@@ -130,7 +130,12 @@ Provide:
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { type, action, data } = body;
+    const { type, action, data, model } = body;
+
+    // Use provided model or default to glm-4.7-flash
+    const selectedModel = model || 'glm-4.7-flash';
+
+    console.log('[Office AI] Request:', { type, action, model: selectedModel });
 
     // Get memory context for personalization
     let memoryContext = '';
