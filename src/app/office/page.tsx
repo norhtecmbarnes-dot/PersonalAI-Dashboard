@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { ModelSelector } from '@/components/ModelSelector';
 
 type DocumentType = 'word' | 'excel' | 'powerpoint';
 type GenerationMode = 'ai' | 'raw';
@@ -31,6 +32,7 @@ export default function OfficePage() {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [prompt, setPrompt] = useState('');
+  const [selectedModel, setSelectedModel] = useState<string>('');
   const [state, setState] = useState<GenerationState>({
     loading: false,
     error: null,
@@ -135,6 +137,7 @@ export default function OfficePage() {
         title,
         prompt: mode === 'ai' ? prompt : undefined,
         rawContent: mode === 'raw' ? content : undefined,
+        model: selectedModel || undefined,
       };
 
       if (selectedBrand) {
@@ -230,6 +233,17 @@ export default function OfficePage() {
             )}
           </div>
         )}
+
+        {/* Model Selection */}
+        <div className="mb-6">
+          <ModelSelector
+            value={selectedModel}
+            onChange={setSelectedModel}
+            label="AI Model"
+            showHealth={true}
+            className="w-full"
+          />
+        </div>
 
         {/* Mode Selection */}
         <div className="flex gap-4 mb-6">
