@@ -76,13 +76,14 @@ export function useModels() {
     } catch (err) {
       console.error('Error loading models:', err);
       setError(err instanceof Error ? err.message : 'Failed to load models');
-      // Fallback models
+      // Fallback models - prefer 7-9B range
       setModels([
-        { id: 'ollama/llama3.2', name: 'llama3.2', provider: 'ollama', description: 'Default fallback model' },
-        { id: 'ollama/qwen2.5-coder', name: 'qwen2.5-coder', provider: 'ollama', description: 'Coding specialist' },
-        { id: 'ollama/deepseek-r1', name: 'deepseek-r1', provider: 'ollama', description: 'Reasoning model' },
+        { id: 'ollama/qwen2.5:7b', name: 'qwen2.5:7b', provider: 'ollama', description: '7B - good balance of speed and capability' },
+        { id: 'ollama/llama3.1:8b', name: 'llama3.1:8b', provider: 'ollama', description: '8B - excellent middle ground' },
+        { id: 'ollama/gemma2:9b', name: 'gemma2:9b', provider: 'ollama', description: '9B - great performance' },
+        { id: 'ollama/llama3.2', name: 'llama3.2', provider: 'ollama', description: '3B - lightweight fallback' },
       ]);
-      setSelectedModel('ollama/llama3.2');
+      setSelectedModel('ollama/qwen2.5:7b');
     } finally {
       setLoading(false);
     }
@@ -90,13 +91,15 @@ export function useModels() {
 
   // Find the best available model based on size/capability
   const findBestModel = (modelList: ModelInfo[]): string => {
-    // Priority order for best models - prefer smaller, faster models
+    // Priority order - prefer 7-9B range for good balance of speed/capability
     const priorityModels = [
-      'qwen3.5:2b',      // Ultra-lightweight, fast, default preference
-      'qwen3.5:27b',     // Larger but more capable
-      'qwen2.5:14b',
-      'llama3.2',
-      'llama3.2:3b',
+      'qwen2.5:7b',      // 7B - good balance, near 9B performance
+      'qwen2.5-coder:7b', // 7B coding model
+      'gemma2:9b',       // 9B - excellent balance
+      'llama3.2',        // 3B - lightweight fallback
+      'llama3.1:8b',     // 8B - good middle ground
+      'qwen3.5:2b',      // 2B - ultra-lightweight
+      'qwen3.5:27b',     // 27B - only if nothing else available
       'glm-5:cloud',
       'kimi-k2.5:cloud',
     ];
@@ -106,7 +109,8 @@ export function useModels() {
       const found = modelList.find(m => 
         m.name === priority || 
         m.id.endsWith(priority) ||
-        m.id.includes(priority)
+        m.id.includes(priority.replace(/:/g, '')) ||
+        m.id.includes(priority.split(':')[0])
       );
       if (found) {
         return found.id;

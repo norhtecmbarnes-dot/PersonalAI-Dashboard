@@ -3323,7 +3323,7 @@ export class SQLDatabase {
 
   // Model preferences
   getDefaultModel(): string {
-    return this.getSetting('default_model') || 'ollama/qwen3.5:2b';
+    return this.getSetting('default_model') || 'ollama/qwen2.5:7b';
   }
 
   setDefaultModel(modelId: string): void {
@@ -3337,7 +3337,7 @@ export class SQLDatabase {
     cloudForChat: boolean;
   } {
     return {
-      defaultModel: this.getSetting('default_model') || 'ollama/qwen3.5:2b',
+      defaultModel: this.getSetting('default_model') || 'ollama/qwen2.5:7b',
       autoRoute: this.getSetting('auto_route_models') === 'true',
       preferLocal: this.getSetting('prefer_local_models') !== 'false',
       cloudForChat: this.getSetting('cloud_for_chat') === 'true',
