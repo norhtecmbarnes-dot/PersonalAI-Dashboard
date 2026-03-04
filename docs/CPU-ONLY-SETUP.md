@@ -50,6 +50,43 @@ Ollama offers a cloud API service that lets you run models on their servers. You
 - **Paid Plans**: Available if you need higher limits
 - **Much cheaper** than OpenAI, Anthropic, etc.
 
+### Ollama Cloud Free Tokens
+
+Ollama Cloud provides a **generous free tier** that you can use alongside your local CPU models:
+
+#### **What's Included in Free Tier:**
+- ✅ **Free tokens** every month
+- ✅ **Access to all models** in Ollama's library
+- ✅ **No credit card** required to start
+- ✅ **Rate limits** apply (sufficient for personal use)
+
+#### **How Free Tokens Work:**
+- You get a monthly allocation of free tokens
+- Use them for any model size (2B to 70B+)
+- Tokens reset monthly
+- No subscription required to use free tier
+
+#### **Best Strategy: Combine Free Cloud + Local CPU**
+
+**For Everyday Tasks:**
+- Use local 2B-7B models (unlimited, private)
+
+**For Occasional Heavy Tasks:**
+- Use Ollama Cloud free tokens (larger models, better quality)
+- Complex document analysis
+- Long-form content generation
+- When you need GPT-4 level performance
+
+**Example Monthly Usage:**
+```
+Daily chat → Local qwen3.5:2b (FREE, unlimited)
+Weekly reports → Ollama Cloud qwen3.5:32b (FREE tokens)
+Coding tasks → Local qwen2.5-coder:7b (FREE, unlimited)
+Research → Ollama Cloud llama3.1:70b (FREE tokens)
+```
+
+**Total Cost: $0.00** 🎉
+
 ### Available Models on Ollama Cloud
 
 Ollama Cloud supports most models in their library, including:
@@ -60,6 +97,146 @@ Ollama Cloud supports most models in their library, including:
 - ✅ **Phi-3** (Mini, Small, Medium)
 - ✅ **Mistral** (7B)
 - ✅ **DeepSeek** (R1)
+- ✅ **And more** - Any model Ollama supports
+
+---
+
+## Available Models You Can Download
+
+### Complete Model List for CPU Users
+
+Here are all the models available through Ollama that work well on CPU:
+
+#### **Ultra-Lightweight Models (2B-3B)** ⭐ Best for CPU
+
+| Model | Parameters | Speed | Quality | Best For |
+|-------|------------|-------|---------|----------|
+| **qwen3.5:2b** | 2B | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ | Chat, writing, basic tasks |
+| **qwen3.5:3b** | 3B | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | General purpose, better reasoning |
+| **llama3.2:3b** | 3B | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | Chat, instructions |
+| **llama3.2:1b** | 1B | ⭐⭐⭐⭐⭐ | ⭐⭐ | Ultra-fast, simple tasks |
+| **gemma2:2b** | 2B | ⭐⭐⭐⭐ | ⭐⭐⭐ | Google's efficient model |
+| **phi3:mini** | 3.8B | ⭐⭐⭐⭐ | ⭐⭐⭐ | Microsoft's model |
+
+**Installation:**
+```bash
+ollama pull qwen3.5:2b
+ollama pull qwen3.5:3b
+ollama pull llama3.2:3b
+ollama pull gemma2:2b
+```
+
+#### **Lightweight Models (7B-9B)** ⚖️ Good Balance
+
+| Model | Parameters | Speed | Quality | Best For |
+|-------|------------|-------|---------|----------|
+| **qwen2.5:7b** | 7B | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | Coding, analysis, complex tasks |
+| **llama3.1:8b** | 8B | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | General purpose, reasoning |
+| **gemma2:9b** | 9B | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | High quality, slower |
+| **mistral:7b** | 7B | ⭐⭐⭐ | ⭐⭐⭐⭐ | French/English, coding |
+| **deepseek-r1:7b** | 7B | ⭐⭐ | ⭐⭐⭐⭐⭐ | Reasoning, math, science |
+
+**Installation:**
+```bash
+ollama pull qwen2.5:7b
+ollama pull llama3.1:8b
+ollama pull gemma2:9b
+ollama pull mistral:7b
+```
+
+#### **Qwen Model Series** 🏆 Recommended for CPU
+
+The **Qwen (Tongyi Qianwen)** series by Alibaba Cloud is excellent for CPU usage:
+
+- **Qwen 2.5 Series:**
+  - `qwen2.5:0.5b` - Ultra-tiny (0.5B) - Very fast
+  - `qwen2.5:1.5b` - Small (1.5B) - Good for simple tasks
+  - `qwen2.5:7b` - Medium (7B) - Best balance for CPU
+  - `qwen2.5:14b` - Large (14B) - Slower on CPU
+  - `qwen2.5:32b` - Extra large (32B) - Not recommended for CPU
+
+- **Qwen 2.5 Coder Series:**
+  - `qwen2.5-coder:1.5b` - Coding-focused, small
+  - `qwen2.5-coder:7b` - Coding-focused, best balance
+  - `qwen2.5-coder:14b` - Coding-focused, larger
+
+- **Qwen 3.5 Series:**
+  - `qwen3.5:2b` - ⭐ **Top recommendation** - Near GPT-4 mini performance
+  - `qwen3.5:3b` - Better reasoning
+  - `qwen3.5:7b` - More capable, still CPU-friendly
+
+**Download Qwen models:**
+```bash
+# Recommended for CPU - start with these:
+ollama pull qwen3.5:2b          # Best overall for CPU
+ollama pull qwen2.5-coder:7b    # Best for coding
+ollama pull qwen2.5:7b            # Best for general tasks
+```
+
+---
+
+## Recommended Strategy: CPU + Ollama Cloud Hybrid
+
+### The Best Approach for Most Users
+
+**Why not just use Ollama Cloud for everything?**
+- ✅ Free tokens available
+- ✅ Fast (runs on cloud GPUs)
+- ❌ Requires internet
+- ❌ Data goes to cloud
+- ❌ Rate limits apply
+
+**Why not just use local CPU models?**
+- ✅ 100% private
+- ✅ Works offline
+- ✅ No rate limits
+- ❌ Slower than cloud
+- ❌ Limited to smaller models
+
+### Hybrid Approach (Recommended) 🎯
+
+**Use BOTH methods together:**
+
+1. **Keep small models locally (2B-7B)** for everyday tasks
+   - Fast enough for chat
+   - Complete privacy
+   - Works offline
+
+2. **Use Ollama Cloud API** for occasional large model tasks
+   - When you need better quality
+   - Complex reasoning
+   - Large document processing
+
+3. **Free Ollama Cloud tokens** supplement local models
+   - Use free tier for occasional cloud tasks
+   - No subscription required
+   - Best of both worlds
+
+### Example Hybrid Setup
+
+**Local Models (Download these):**
+```bash
+# Essential models for CPU
+ollama pull qwen3.5:2b          # Fast chat
+ollama pull qwen2.5-coder:7b    # Coding tasks
+ollama pull llama3.2:3b          # Backup option
+```
+
+**Ollama Cloud (Free tier):**
+- Sign up at https://ollama.com
+- Add API key to `.env.local`
+- Use for: complex analysis, large documents, when you need more power
+
+### Cost Comparison
+
+| Approach | Cost | Speed | Privacy | Quality |
+|----------|------|-------|---------|---------|
+| CPU-Only (2B-7B) | **FREE** | Moderate | ⭐⭐⭐⭐⭐ | Good |
+| Ollama Cloud | **FREE tier** | Fast | ☁️ Cloud | Excellent |
+| Hybrid | **FREE** | Variable | Mixed | Excellent |
+| OpenAI/Claude | **$20+/month** | Fast | ☁️ Cloud | Excellent |
+
+**Recommendation:** Start with the **Hybrid approach** - it's completely FREE and gives you the best of both worlds!
 
 ---
 
