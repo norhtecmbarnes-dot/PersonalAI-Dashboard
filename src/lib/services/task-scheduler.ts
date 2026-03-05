@@ -321,11 +321,6 @@ class TaskScheduler {
         default:
           throw new Error(`Unknown task type: ${task.taskType}`);
       }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      return { success: false, error: errorMessage };
-    }
-  }
 
       // Save result for viewing
       sqlDatabase.recordTaskRun(task.id, result.success, result.result, result.error);
@@ -627,12 +622,17 @@ Return JSON array: [{"category": "user|decision|knowledge", "content": "...", "i
         if (jsonMatch) {
           const memories = JSON.parse(jsonMatch[0]);
           for (const memory of memories.slice(0, 5)) {
-            await sqlDatabase.addMemory({
-              content: memory.content,
-              category: memory.category || 'knowledge',
-              importance: memory.importance || 5,
-              source: 'memory_capture',
-            });
+            await sqlDatabase.run(`
+              INSERT INTO memory (id, content, category, importance, source, created_at)
+              VALUES (?, ?, ?, ?, ?, ?)
+            `, [
+              Date.now().toString(36) + Math.random().toString(36).substr(2, 9),
+              memory.content,
+              memory.category || 'knowledge',
+              memory.importance || 5,
+              'memory_capture',
+              Date.now()
+            ]);
           }
         }
       } catch (e) {
@@ -655,7 +655,6 @@ Return JSON array: [{"category": "user|decision|knowledge", "content": "...", "i
   private async executeMemoryArchiveTask(task: ScheduledTask): Promise<TaskExecutionResult> {
     try {
       const { sqlDatabase } = await import('@/lib/database/sqlite');
-      const { memoryArchiver } = await import('@/lib/memory/memory-archiver');
       
       // Archive memories older than 30 days with low importance
       const cutoffDate = Date.now() - (30 * 24 * 60 * 60 * 1000);
@@ -671,11 +670,17 @@ Return JSON array: [{"category": "user|decision|knowledge", "content": "...", "i
         return { success: true, result: 'No memories to archive' };
       }
       
-      // Archive memories
+      // Archive memories by marking them as archived
       let archivedCount = 0;
       for (const memory of oldMemories) {
         try {
-          await memoryArchiver.archiveMemory(memory.id);
+          await sqlDatabase.run(`
+            UPDATE memory 
+            SET category = 'archived', 
+                importance = 1,
+                updated_at = ?
+            WHERE id = ?
+          `, [Date.now(), memory.id]);
           archivedCount++;
         } catch (e) {
           console.log('[MemoryArchive] Failed to archive:', memory.id, e);
