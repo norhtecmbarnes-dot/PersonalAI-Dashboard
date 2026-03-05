@@ -111,6 +111,10 @@ function getMistralKey(): string | undefined {
   return CACHED_KEYS.mistral || process.env.MISTRAL_API_KEY;
 }
 
+function getOllamaKey(): string | undefined {
+  return process.env.OLLAMA_API_KEY;
+}
+
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000;
 const REQUEST_TIMEOUT = 30000;
@@ -704,11 +708,18 @@ export async function chatCompletion(params: {
             body.tools = params.tools;
         }
 
+        const ollamaKey = getOllamaKey();
+        const headers: Record<string, string> = {
+            'Content-Type': 'application/json',
+        };
+        
+        if (ollamaKey) {
+            headers['Authorization'] = `Bearer ${ollamaKey}`;
+        }
+
         const response = await fetchWithRetry(`${OLLAMA_API_URL}/chat`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers,
             body: JSON.stringify(body),
         });
 
@@ -794,11 +805,18 @@ export async function streamChatCompletion(params: {
 
     // Default: Try Ollama with streaming
     try {
+        const ollamaKey = getOllamaKey();
+        const headers: Record<string, string> = {
+            'Content-Type': 'application/json',
+        };
+        
+        if (ollamaKey) {
+            headers['Authorization'] = `Bearer ${ollamaKey}`;
+        }
+
         const response = await fetchWithRetry(`${OLLAMA_API_URL}/chat`, {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
+            headers,
             body: JSON.stringify({
                 model: ollamaModel,
                 messages: params.messages,
@@ -889,8 +907,16 @@ const EXTERNAL_MODELS: ExternalModel[] = [
 
 export async function getOllamaModels(): Promise<OllamaModel[]> {
     try {
+        const ollamaKey = getOllamaKey();
+        const headers: Record<string, string> = {};
+        
+        if (ollamaKey) {
+            headers['Authorization'] = `Bearer ${ollamaKey}`;
+        }
+        
         const response = await fetchWithRetry(`${OLLAMA_API_URL}/tags`, {
             method: 'GET',
+            headers,
         }, 2); // Fewer retries for model listing
 
         if (!response.ok) {
@@ -924,8 +950,16 @@ export function getExternalModels(): ExternalModel[] {
 
 export async function listModels(): Promise<string[]> {
     try {
+        const ollamaKey = getOllamaKey();
+        const headers: Record<string, string> = {};
+        
+        if (ollamaKey) {
+            headers['Authorization'] = `Bearer ${ollamaKey}`;
+        }
+        
         const response = await fetchWithRetry(`${OLLAMA_API_URL}/tags`, {
             method: 'GET',
+            headers,
         }, 2); // Fewer retries for model listing
 
         if (!response.ok) {
@@ -968,8 +1002,16 @@ export async function listModels(): Promise<string[]> {
 
 export async function checkOllamaHealth(): Promise<boolean> {
     try {
+        const ollamaKey = getOllamaKey();
+        const headers: Record<string, string> = {};
+        
+        if (ollamaKey) {
+            headers['Authorization'] = `Bearer ${ollamaKey}`;
+        }
+        
         const response = await fetch(`${OLLAMA_API_URL}/tags`, {
             method: 'GET',
+            headers,
         });
         return response.ok;
     } catch (error) {
