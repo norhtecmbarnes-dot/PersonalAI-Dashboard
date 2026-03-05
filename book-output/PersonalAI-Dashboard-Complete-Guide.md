@@ -8,6 +8,31 @@
 
 ---
 
+## License
+
+**This book is FREE and OPEN to everyone.**
+
+Licensed under **Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)**
+
+### You are FREE to:
+- ✅ **Read** — Download and enjoy for free
+- ✅ **Share** — Copy and redistribute to anyone
+- ✅ **Remix** — Create translations, adaptations, or derivative works
+- ✅ **Commercialize** — Use for commercial projects
+- ✅ **Build Upon** — Extend, modify, and improve
+
+### Under these conditions:
+- **Attribution** — Credit "Michael C. Barnes" and link to this book
+- **ShareAlike** — If you remix, use the same CC BY-SA 4.0 license
+- **No Additional Restrictions** — Don't add legal or technical barriers
+
+**Full license:** https://creativecommons.org/licenses/by-sa/4.0/
+
+**Why This License?**  
+Knowledge should be free. This book teaches you to build AI systems that empower individuals, not just corporations. By making it open, we ensure anyone can learn, adapt, and teach others.
+
+---
+
 ## Table of Contents
 
 # Building Your AI Dashboard: The Complete Beginner's Guide
