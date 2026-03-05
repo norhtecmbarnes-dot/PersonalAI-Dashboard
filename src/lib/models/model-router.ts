@@ -327,23 +327,28 @@ class ModelRouter {
   getChatModel(): ModelInfo {
     this.recordActivity();
     
-    // Get all available local capable models
-    const localCapable = this.models.filter(m => 
-      m.provider === 'ollama' && 
-      (m.tier === 'local-capable' || m.tier === 'local-fast') &&
-      m.available
-    );
-    
-    if (localCapable.length > 0) {
-      // Sort by size (largest first) to get the most capable model
-      localCapable.sort((a, b) => this.getModelSize(b.id) - this.getModelSize(a.id));
-      const selected = localCapable[0];
-      console.log(`[ModelRouter] Using local model ${selected.id} for chat`);
-      return selected;
+    // Prefer qwen2.5:14b for chat - good balance of speed and capability
+    const preferredModel = this.models.find(m => m.id === 'qwen2.5:14b' && m.available);
+    if (preferredModel) {
+      console.log(`[ModelRouter] Using qwen2.5:14b for chat (fast & capable)`);
+      return preferredModel;
     }
     
-    // Fallback
-    return this.models.find(m => m.id === 'glm-4.7-flash') || this.models[0];
+    // Fallback to glm-4.7-flash for speed
+    const glmFlash = this.models.find(m => m.id === 'glm-4.7-flash' && m.available);
+    if (glmFlash) {
+      console.log(`[ModelRouter] Using glm-4.7-flash for chat (fast)`);
+      return glmFlash;
+    }
+    
+    // Last resort: use first available ollama model
+    const anyOllama = this.models.find(m => m.provider === 'ollama' && m.available);
+    if (anyOllama) {
+      console.log(`[ModelRouter] Using ${anyOllama.id} for chat (fallback)`);
+      return anyOllama;
+    }
+    
+    return this.models[0];
   }
 
   /**
@@ -389,16 +394,38 @@ class ModelRouter {
   }
 
   /**
+   * Get fast model for quick responses
+   * Uses qwen2.5:14b or glm-4.7-flash for speed
+   */
+  getFastModel(): ModelInfo {
+    // Prefer qwen2.5:14b for good speed/quality balance
+    const qwen14b = this.models.find(m => m.id === 'qwen2.5:14b' && m.available);
+    if (qwen14b) {
+      console.log(`[ModelRouter] Using qwen2.5:14b for fast response`);
+      return qwen14b;
+    }
+    
+    // Fallback to glm-4.7-flash
+    const glmFlash = this.models.find(m => m.id === 'glm-4.7-flash' && m.available);
+    if (glmFlash) {
+      console.log(`[ModelRouter] Using glm-4.7-flash for fast response`);
+      return glmFlash;
+    }
+    
+    // Last resort
+    return this.models.find(m => m.provider === 'ollama' && m.available) || this.models[0];
+  }
+
+  /**
    * Get model for complex analysis
    */
   getAnalysisModel(): ModelInfo {
-    // Complex analysis uses cloud if budget allows
-    if (this.budget.remaining > this.budget.dailyLimit * 0.3) {
-      return this.models.find(m => m.id === 'glm-5:cloud') ||
-             this.models.find(m => m.id === 'qwen3.5:27b')!;
+    // Use qwen2.5:14b for analysis - good balance of speed and capability
+    const qwen14b = this.models.find(m => m.id === 'qwen2.5:14b' && m.available);
+    if (qwen14b) {
+      return qwen14b;
     }
-    return this.models.find(m => m.id === 'qwen3.5:27b') ||
-           this.models.find(m => m.id === 'qwen2.5:14b')!;
+    return this.models.find(m => m.id === 'glm-4.7-flash') || this.models[0];
   }
 
   /**
