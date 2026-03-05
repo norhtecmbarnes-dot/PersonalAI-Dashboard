@@ -408,16 +408,26 @@ export default function BrandWorkspacePage() {
                 </div>
                 <div className="space-y-2">
                   {brands.map(brand => (
-                    <button
-                      key={brand.id}
-                      onClick={() => selectBrand(brand)}
-                      className="w-full text-left p-3 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
-                    >
-                      <div className="font-medium">{brand.name}</div>
-                      {brand.industry && (
-                        <div className="text-sm text-gray-400">{brand.industry}</div>
-                      )}
-                    </button>
+                    <div key={brand.id} className="w-full">
+                      <button
+                        onClick={() => selectBrand(brand)}
+                        className="w-full text-left p-3 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+                      >
+                        <div className="font-medium">{brand.name}</div>
+                        {brand.industry && (
+                          <div className="text-sm text-gray-400">{brand.industry}</div>
+                        )}
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSelectedBrand(brand);
+                          startBrandChat();
+                        }}
+                        className="w-full mt-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm flex items-center justify-center gap-2"
+                      >
+                        💬 Chat with {brand.name}
+                      </button>
+                    </div>
                   ))}
                   {brands.length === 0 && (
                     <p className="text-gray-500 text-sm text-center py-4">
