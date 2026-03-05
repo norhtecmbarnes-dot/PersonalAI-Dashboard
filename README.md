@@ -173,7 +173,7 @@ git push origin feature/your-feature
 
 This project includes a complete book that teaches you how to build AI applications:
 
-📚 **[OpenAI Dashboard: The Complete Guide](book/)**
+📚 **[PersonalAI Dashboard: The Complete Guide](book/)**
 
 Available formats:
 - Markdown (source)
@@ -226,7 +226,7 @@ If you use this project in your work, please cite:
 </p>
 
 <p align="center">
-  <a href="https://github.com/yourusername/openai-dashboard/stargazers">
+  <a href="https://github.com/norhtecmbarnes-dot/PersonalAI-Dashboard/stargazers">
     ⭐ Star us on GitHub!
   </a>
 </p>

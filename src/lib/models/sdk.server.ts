@@ -977,7 +977,7 @@ export async function listModels(): Promise<string[]> {
     } catch (error) {
         console.error('List models error:', error instanceof Error ? error.message : 'Unknown error');
         const defaultModels = [
-            'ollama/qwen2.5-coder',
+            'ollama/qwen2.5:14b',
             'ollama/llama3.2', 
             'ollama/deepseek-r1',
             'ollama/llama3.1',
