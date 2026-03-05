@@ -846,6 +846,42 @@ export class SQLDatabase {
         updated_at INTEGER NOT NULL
       )
     `);
+
+    // Memory table (persistent memory system)
+    db.run(`
+      CREATE TABLE IF NOT EXISTS memory (
+        id TEXT PRIMARY KEY,
+        category TEXT NOT NULL,
+        key TEXT,
+        content TEXT NOT NULL,
+        source TEXT,
+        importance INTEGER DEFAULT 5,
+        embedding TEXT,
+        metadata TEXT,
+        access_count INTEGER DEFAULT 0,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      )
+    `);
+
+    db.run(`CREATE INDEX IF NOT EXISTS idx_memory_category ON memory(category)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_memory_source ON memory(source)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_memory_created ON memory(created_at)`);
+
+    // Chat Messages table (for memory capture)
+    db.run(`
+      CREATE TABLE IF NOT EXISTS chat_messages (
+        id TEXT PRIMARY KEY,
+        role TEXT NOT NULL,
+        content TEXT NOT NULL,
+        session_id TEXT,
+        timestamp INTEGER NOT NULL,
+        metadata TEXT
+      )
+    `);
+
+    db.run(`CREATE INDEX IF NOT EXISTS idx_chat_messages_timestamp ON chat_messages(timestamp)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_chat_messages_session ON chat_messages(session_id)`);
     
     db.run(`CREATE INDEX IF NOT EXISTS idx_custom_tools_name ON custom_tools(name)`);
     db.run(`CREATE INDEX IF NOT EXISTS idx_custom_tools_enabled ON custom_tools(enabled)`);
