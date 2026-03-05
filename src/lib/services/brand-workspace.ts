@@ -361,7 +361,7 @@ class BrandWorkspaceService {
     return true;
   }
 
-  async createChatSession(projectId: string | null, brandId: string, title?: string): Promise<ChatSession> {
+  async createChatSession(projectId: string | null | undefined, brandId: string, title?: string): Promise<ChatSession> {
     await this.initialize();
     const id = generateId();
     const now = Date.now();

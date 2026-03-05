@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
             : null;
 
           if (!session) {
-            session = await brandWorkspace.createChatSession(null, brandId, `Brand Chat - ${brand.name} - ${new Date().toLocaleDateString()}`);
+            session = await brandWorkspace.createChatSession(undefined, brandId, `Brand Chat - ${brand.name} - ${new Date().toLocaleDateString()}`);
           }
 
           const currentSessionId = session.id;
@@ -84,9 +84,9 @@ export async function POST(request: NextRequest) {
           }
 
           // Build context from brand documents only (no project documents)
-          const context = await brandWorkspace.buildContextForChat(brandId, null);
+          const context = await brandWorkspace.buildContextForChat(brandId, undefined);
 
-          const systemPrompt = buildSystemPrompt(context.systemPrompt, null, brand);
+          const systemPrompt = buildSystemPrompt(context.systemPrompt, undefined, brand);
 
           const conversationHistory = session.messages.map(m => ({
             role: m.role as 'user' | 'assistant' | 'system',
