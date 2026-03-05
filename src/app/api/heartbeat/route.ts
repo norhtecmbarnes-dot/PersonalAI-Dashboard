@@ -12,7 +12,7 @@ export async function GET(request: Request) {
   const healthCheck = {
     timestamp: Date.now(),
     status: 'healthy',
-    model: 'ollama/qwen2.5-coder',
+    model: 'ollama/qwen2.5:14b',
   };
 
   try {

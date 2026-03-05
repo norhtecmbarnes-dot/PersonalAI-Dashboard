@@ -103,7 +103,7 @@ Keep it under 200 words. Be professional but friendly.`;
 
   try {
     const result = await streamChatCompletion({
-      model: 'ollama/qwen2.5-coder',
+      model: 'ollama/qwen2.5:14b',
       messages: [{ role: 'user', content: prompt }],
     });
 

@@ -97,7 +97,7 @@ export async function POST(request: NextRequest) {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              model: model || brand.settings?.defaultModel || 'ollama/qwen2.5-coder',
+              model: model || brand.settings?.defaultModel || 'ollama/qwen2.5:14b',
               message,
               conversationHistory: [
                 { role: 'system' as const, content: systemPrompt },
@@ -169,7 +169,7 @@ export async function POST(request: NextRequest) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            model: model || brand.settings?.defaultModel || 'ollama/qwen2.5-coder',
+            model: model || brand.settings?.defaultModel || 'ollama/qwen2.5:14b',
             message,
             conversationHistory: [
               { role: 'system' as const, content: systemPrompt },
@@ -228,7 +228,7 @@ export async function POST(request: NextRequest) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            model: brand.settings?.defaultModel || 'ollama/qwen2.5-coder',
+            model: brand.settings?.defaultModel || 'ollama/qwen2.5:14b',
             message: prompt,
             systemPrompt: `You are a professional ${outputType} writer for ${brand.name}. Generate a comprehensive, well-formatted ${outputType} in markdown format. Use the brand voice and include all relevant information from the provided context.`,
           }),

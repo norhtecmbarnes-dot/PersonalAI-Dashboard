@@ -290,7 +290,7 @@ class ConfigManager {
           models.push(
             'ollama/qwen3.5:2b',  // Ultra-lightweight, CPU-friendly, near GPT-4 mini performance
             'ollama/llama3.2',     // Reliable fallback
-            'ollama/qwen2.5-coder', // Good coding model
+            'ollama/qwen2.5:14b', // Good coding model
             'ollama/deepseek-r1'   // Reasoning model
           );
         }
@@ -300,7 +300,7 @@ class ConfigManager {
         models.push(
           'ollama/qwen3.5:2b',  // Ultra-lightweight, CPU-friendly, near GPT-4 mini performance
           'ollama/llama3.2',     // Reliable fallback
-          'ollama/qwen2.5-coder', // Good coding model
+          'ollama/qwen2.5:14b', // Good coding model
           'ollama/deepseek-r1'   // Reasoning model
         );
       }

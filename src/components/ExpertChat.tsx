@@ -107,7 +107,7 @@ async function callAIModel(prompt: string, systemPrompt: string): Promise<string
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: 'ollama/qwen2.5-coder',
+        model: 'ollama/qwen2.5:14b',
         message: prompt,
         systemPrompt
       })

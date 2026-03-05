@@ -105,7 +105,7 @@ Return ONLY valid JSON with:
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'ollama/qwen2.5-coder',
+          model: 'ollama/qwen2.5:14b',
           message: prompt,
         }),
       });
@@ -148,7 +148,7 @@ Consider:
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'ollama/qwen2.5-coder',
+          model: 'ollama/qwen2.5:14b',
           message: prompt,
         }),
       });

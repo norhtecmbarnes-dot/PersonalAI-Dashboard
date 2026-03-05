@@ -144,7 +144,7 @@ Return ONLY valid JSON, no other text. Use null for missing values.`;
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'ollama/qwen2.5-coder',
+          model: 'ollama/qwen2.5:14b',
           message: prompt,
         }),
       });
