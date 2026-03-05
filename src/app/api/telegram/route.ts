@@ -149,7 +149,7 @@ async function getAIResponse(message: string): Promise<string> {
     
     // The SDK will handle routing to the appropriate provider (Ollama, GLM, OpenRouter, etc.)
     const result = await streamChatCompletion({
-      model: model || 'ollama/qwen2.5:14b', // Final fallback
+      model: model || 'ollama/qwen3.5:9b', // Final fallback
       messages: [
         { role: 'user', content: message }
       ],

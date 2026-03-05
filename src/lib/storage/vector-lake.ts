@@ -90,7 +90,7 @@ Return ONLY a JSON array of strings, nothing else. Example: ["term1", "term2", "
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'ollama/qwen2.5:14b',
+          model: 'ollama/qwen3.5:9b',
           message: prompt,
         }),
       });
@@ -172,7 +172,7 @@ Return ONLY a JSON object with this structure, or empty arrays if nothing found:
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'ollama/qwen2.5:14b',
+          model: 'ollama/qwen3.5:9b',
           message: prompt,
         }),
       });

@@ -187,7 +187,7 @@ export default function OnlyOfficeConfigPage() {
       {
         "name": "AI Dashboard",
         "url": "${aiUrl || 'http://your-server:3000/api/onlyoffice/ai'}",
-        "models": ["glm-4.7-flash", "glm-5:cloud", "qwen2.5:14b"]
+        "models": ["glm-4.7-flash", "glm-5:cloud", "qwen3.5:9b"]
       }
     ]
   }
@@ -207,7 +207,7 @@ export default function OnlyOfficeConfigPage() {
   "baseUrl": "${aiUrl || 'http://your-server:3000/api/onlyoffice/ai'}",
   "models": [
     { "id": "glm-4.7-flash", "name": "GLM-4.7 Flash" },
-    { "id": "qwen2.5:14b", "name": "Qwen 2.5 14B" }
+    { "id": "qwen3.5:9b", "name": "Qwen 3.5 9B" }
   ],
   "capabilities": ["chat", "completion", "summarization", "translation"]
 }`}

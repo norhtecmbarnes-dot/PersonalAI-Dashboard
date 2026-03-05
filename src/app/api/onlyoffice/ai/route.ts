@@ -168,7 +168,7 @@ export async function GET(request: NextRequest) {
         owned_by: 'zhipu',
       },
       {
-        id: 'qwen2.5:14b',
+        id: 'qwen3.5:9b',
         object: 'model',
         created: Date.now(),
         owned_by: 'ollama',

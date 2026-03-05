@@ -23,12 +23,12 @@ const STORAGE_KEY = 'service_model_preferences_v2';
 export const SERVICE_DEFAULTS: Record<ServiceType, string> = {
   'chat': 'ollama/qwen3.5:2b',
   'brand-workspace': 'ollama/qwen3.5:2b',
-  'writing': 'ollama/qwen2.5:14b',
+  'writing': 'ollama/qwen3.5:9b',
   'canvas': 'ollama/qwen3.5:2b',
-  'office': 'ollama/qwen2.5:14b',
-  'intelligence': 'ollama/qwen2.5:14b',
+  'office': 'ollama/qwen3.5:9b',
+  'intelligence': 'ollama/qwen3.5:9b',
   'forms': 'ollama/qwen3.5:2b',
-  'documents': 'ollama/qwen2.5:14b',
+  'documents': 'ollama/qwen3.5:9b',
   'default': 'ollama/qwen3.5:2b',
 };
 

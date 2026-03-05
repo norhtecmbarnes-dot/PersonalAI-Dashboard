@@ -147,7 +147,7 @@ export async function listModels(): Promise<string[]> {
         return data.models?.map((model: { name: string }) => model.name) || [];
     } catch (error) {
         console.error('List models error:', error);
-        const defaultModels = ['glm-4.7-flash', 'glm-5:cloud', 'qwen2.5:14b'];
+        const defaultModels = ['glm-4.7-flash', 'glm-5:cloud', 'qwen3.5:9b'];
         return defaultModels;
     }
 }

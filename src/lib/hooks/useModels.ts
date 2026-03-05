@@ -84,7 +84,7 @@ export function useModels() {
         { id: 'ollama/qwen3.5:14b', name: 'qwen3.5:14b', provider: 'ollama', description: '14B - More capable reasoning' },
         { id: 'ollama/qwen3.5:32b', name: 'qwen3.5:32b', provider: 'ollama', description: '32B - Highly capable' },
         { id: 'ollama/qwen2.5:7b', name: 'qwen2.5:7b', provider: 'ollama', description: '7B - Good balance' },
-        { id: 'ollama/qwen2.5:14b', name: 'qwen2.5:14b', provider: 'ollama', description: '14.8B - Better reasoning' },
+        { id: 'ollama/qwen3.5:9b', name: 'qwen3.5:9b', provider: 'ollama', description: '9B - Better reasoning' },
         { id: 'ollama/qwen2.5-coder:7b', name: 'qwen2.5-coder:7b', provider: 'ollama', description: '7B - Code specialist' },
         { id: 'ollama/llama3.2', name: 'llama3.2', provider: 'ollama', description: '3B - Lightweight fallback' },
         { id: 'ollama/llama3.2:1b', name: 'llama3.2:1b', provider: 'ollama', description: '1B - Ultra lightweight' },

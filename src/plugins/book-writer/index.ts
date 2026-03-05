@@ -482,7 +482,7 @@ class BookWriterPlugin {
     return this.progress;
   }
 
-  async writeChapter(chapterNumber: number, model: string = 'ollama/qwen2.5:14b'): Promise<BookChapter | null> {
+  async writeChapter(chapterNumber: number, model: string = 'ollama/qwen3.5:9b'): Promise<BookChapter | null> {
     if (!this.progress || this.isWriting) return null;
     if (chapterNumber < 1 || chapterNumber > CHAPTER_OUTLINE.length) return null;
 

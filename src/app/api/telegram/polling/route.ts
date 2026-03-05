@@ -174,7 +174,7 @@ async function getAIResponse(message: string): Promise<string> {
     
     // Final fallback
     if (!model) {
-      model = 'ollama/qwen2.5:14b';
+      model = 'ollama/qwen3.5:9b';
       console.log('[Telegram Polling] Using fallback model:', model);
     }
     

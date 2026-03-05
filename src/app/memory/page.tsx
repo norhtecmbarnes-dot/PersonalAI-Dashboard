@@ -138,7 +138,7 @@ export default function MemoryPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: 'ollama/qwen2.5:14b',
+          model: 'ollama/qwen3.5:9b',
           message: `Contextualize and summarize this document content for the knowledge base. Extract key insights, important facts, and organize it clearly:
 
 Title: ${title}

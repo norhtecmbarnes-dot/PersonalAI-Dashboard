@@ -45,7 +45,7 @@ export default function Home() {
   const [models, setModels] = useState<string[]>([
     'glm-4.7-flash',
     'glm-5:cloud',
-    'qwen2.5:14b',
+    'qwen3.5:9b',
     'qwen3.5:27b',
   ]);
   const [ollamaHealthy, setOllamaHealthy] = useState(false);
@@ -287,7 +287,7 @@ export default function Home() {
       // Prioritize: largest local models first, then cloud models
       const preferredModels = [
         'qwen3.5:27b',    // Most capable local
-        'qwen2.5:14b',    // Second best local
+        'qwen3.5:9b',    // Second best local
         'glm-5:cloud',    // Cloud thinking
         'kimi-k2.5:cloud', // Cloud fast
       ];

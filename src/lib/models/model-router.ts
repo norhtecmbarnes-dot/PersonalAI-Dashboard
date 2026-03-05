@@ -390,7 +390,7 @@ class ModelRouter {
    */
   getDocumentModel(): ModelInfo {
     // Document processing can use local capable
-    return this.models.find(m => m.id === 'qwen2.5:14b') ||
+    return this.models.find(m => m.id === 'qwen3.5:9b') ||
            this.models.find(m => m.id === 'glm-4.7-flash')!;
   }
 

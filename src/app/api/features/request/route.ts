@@ -303,7 +303,7 @@ Return ONLY valid JSON, no explanation.`;
 
   try {
     const result = await streamChatCompletion({
-      model: 'ollama/qwen2.5:14b',
+      model: 'ollama/qwen3.5:9b',
       messages: [{ role: 'user', content: prompt }],
     });
 
