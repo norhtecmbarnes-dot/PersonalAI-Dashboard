@@ -251,11 +251,34 @@ export function NotesBoard({ onEditNote }: NotesBoardProps) {
               <div className={`absolute -top-1.5 left-1/2 transform -translate-x-1/2 w-4 h-4 rounded-full ${colorStyle.pin}`}
                    style={{ boxShadow: '0 1px 2px rgba(0,0,0,0.3)' }} />
               
-              {/* Header */}
+              {/* Header - Inline Editable Title */}
               <div className={`${colorStyle.border} border-b px-3 py-2 flex items-center justify-between`}>
-                <h3 className={`font-medium ${colorStyle.text} truncate text-sm`}>
-                  {note.title || 'Untitled'}
-                </h3>
+                <input
+                  type="text"
+                  value={note.title || 'Untitled'}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    const newTitle = e.target.value;
+                    setNotes(prev => prev.map(n =>
+                      n.id === note.id ? { ...n, title: newTitle } : n
+                    ));
+                  }}
+                  onBlur={async () => {
+                    const updatedNote = notes.find(n => n.id === note.id);
+                    if (updatedNote) {
+                      await fetch('/api/database', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          action: 'updateNote',
+                          data: { id: note.id, updates: { title: updatedNote.title } },
+                        }),
+                      });
+                    }
+                  }}
+                  className={`flex-1 font-medium ${colorStyle.text} bg-transparent border-none focus:outline-none text-sm mr-2`}
+                  onClick={(e) => e.stopPropagation()}
+                />
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -269,12 +292,43 @@ export function NotesBoard({ onEditNote }: NotesBoardProps) {
                 </button>
               </div>
               
-              {/* Content */}
-              <div className="p-3 overflow-hidden" style={{ height: 'calc(100% - 60px)' }}>
-                <p className={`${colorStyle.text} text-sm whitespace-pre-wrap line-clamp-6`}>
-                  {note.content}
-                </p>
-              </div>
+               {/* Content - Inline Editable */}
+               <div 
+                 className="p-3 overflow-hidden cursor-text" 
+                 style={{ height: 'calc(100% - 60px)' }}
+                 onClick={(e) => {
+                   e.stopPropagation();
+                   setSelectedNoteId(note.id);
+                 }}
+               >
+                 <textarea
+                   value={note.content}
+                   onChange={(e) => {
+                     e.stopPropagation();
+                     const newContent = e.target.value;
+                     setNotes(prev => prev.map(n =>
+                       n.id === note.id ? { ...n, content: newContent } : n
+                     ));
+                   }}
+                   onBlur={async () => {
+                     const updatedNote = notes.find(n => n.id === note.id);
+                     if (updatedNote) {
+                       await saveNotePosition(note.id, note.positionX, note.positionY, note.width, note.height);
+                       await fetch('/api/database', {
+                         method: 'POST',
+                         headers: { 'Content-Type': 'application/json' },
+                         body: JSON.stringify({
+                           action: 'updateNote',
+                           data: { id: note.id, updates: { content: updatedNote.content } },
+                         }),
+                       });
+                     }
+                   }}
+                   className={`w-full h-full bg-transparent ${colorStyle.text} text-sm resize-none focus:outline-none placeholder-gray-500/50`}
+                   placeholder="Start typing..."
+                   onClick={(e) => e.stopPropagation()}
+                 />
+               </div>
               
               {/* Footer - Category & Tags */}
               <div className={`absolute bottom-0 left-0 right-0 px-2 py-1 flex items-center gap-1 ${colorStyle.bg} border-t ${colorStyle.border}`}>
@@ -306,7 +360,7 @@ export function NotesBoard({ onEditNote }: NotesBoardProps) {
       
       {/* Instructions overlay */}
       <div className="absolute bottom-4 right-4 text-xs text-gray-500 bg-gray-900/80 px-3 py-2 rounded">
-        Drag to move • Double-click to edit • Resize from corner
+        Drag to move • Click to edit • Type directly on note
       </div>
     </div>
   );
