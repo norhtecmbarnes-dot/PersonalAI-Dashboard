@@ -144,13 +144,13 @@ export default function Home() {
     loadDocuments();
     loadSavedChats();
     
-    // Keep heartbeat running to keep task scheduler alive
-    // Call every 30 seconds to keep the scheduler running
+    // Reduce heartbeat frequency - only check every 5 minutes instead of 30 seconds
+    // The task scheduler runs independently and doesn't need constant checks
     const heartbeatInterval = setInterval(() => {
       fetch('/api/heartbeat').catch(err => {
         console.log('[Heartbeat] Background check failed:', err);
       });
-    }, 30000);
+    }, 300000); // 5 minutes instead of 30 seconds
     
     return () => {
       clearInterval(heartbeatInterval);
