@@ -161,9 +161,26 @@ The **Qwen (Tongyi Qianwen)** series by Alibaba Cloud is excellent for CPU usage
   - `qwen2.5-coder:14b` - Coding-focused, larger
 
 - **Qwen 3.5 Series:**
-  - `qwen3.5:2b` - ⭐ **Top recommendation** - Near GPT-4 mini performance
-  - `qwen3.5:3b` - Better reasoning
-  - `qwen3.5:7b` - More capable, still CPU-friendly
+  - `qwen3.5:2b` - ⭐ **Top recommendation** - Near GPT-4 mini performance, **multimodal (can analyze images)**
+  - `qwen3.5:3b` - Better reasoning, **multimodal (can analyze images)**
+  - `qwen3.5:7b` - More capable, still CPU-friendly, **multimodal (can analyze images)**
+  - `qwen3.5:14b` - Higher quality, **multimodal (can analyze images)**
+  - `qwen3.5:32b` - Best quality, **multimodal (can analyze images)**
+
+**🖼️ Multimodal Capability:** The Qwen 3.5 series models are **multimodal**, meaning they can process and understand images, not just text. You can upload images and ask the AI to:
+- Identify objects, people, or scenes in photos
+- Extract text from images (OCR)
+- Analyze charts, graphs, and diagrams
+- Describe what's happening in images
+- Answer questions about visual content
+
+**Example use cases:**
+- Upload a screenshot and ask "What error is shown here?"
+- Upload a chart and ask "What trends do you see?"
+- Upload a photo and ask "What's in this image?"
+- Upload a document scan and ask "Summarize this page"
+
+This makes Qwen 3.5 models excellent for tasks involving both text and images!
 
 **Download Qwen models:**
 ```bash
