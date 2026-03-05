@@ -83,9 +83,8 @@ export function useModels() {
         { id: 'ollama/qwen3.5:7b', name: 'qwen3.5:7b', provider: 'ollama', description: '7B - Excellent performance' },
         { id: 'ollama/qwen3.5:14b', name: 'qwen3.5:14b', provider: 'ollama', description: '14B - More capable reasoning' },
         { id: 'ollama/qwen3.5:32b', name: 'qwen3.5:32b', provider: 'ollama', description: '32B - Highly capable' },
-        { id: 'ollama/qwen2.5:7b', name: 'qwen2.5:7b', provider: 'ollama', description: '7B - Good balance' },
-        { id: 'ollama/qwen3.5:9b', name: 'qwen3.5:9b', provider: 'ollama', description: '9B - Better reasoning' },
-        { id: 'ollama/qwen2.5-coder:7b', name: 'qwen2.5-coder:7b', provider: 'ollama', description: '7B - Code specialist' },
+        { id: 'ollama/qwen3.5:9b', name: 'qwen3.5:9b', provider: 'ollama', description: '9B - Fast & capable multimodal' },
+        { id: 'ollama/qwen3-coder-next:latest', name: 'qwen3-coder-next', provider: 'ollama', description: '79.7B - Code specialist' },
         { id: 'ollama/llama3.2', name: 'llama3.2', provider: 'ollama', description: '3B - Lightweight fallback' },
         { id: 'ollama/llama3.2:1b', name: 'llama3.2:1b', provider: 'ollama', description: '1B - Ultra lightweight' },
         { id: 'ollama/llama3.1:8b', name: 'llama3.1:8b', provider: 'ollama', description: '8B - Good middle ground' },
@@ -149,15 +148,14 @@ export function useModels() {
 
   // Find the best available model based on size/capability
   const findBestModel = (modelList: ModelInfo[]): string => {
-    // Priority order - prefer 7-9B range for good balance of speed/capability
+    // Priority order - prefer qwen3.5:9b for best speed/capability balance
     const priorityModels = [
-      'qwen2.5:7b',      // 7B - good balance, near 9B performance
-      'qwen2.5-coder:7b', // 7B coding model
+      'qwen3.5:9b',      // 9B - excellent speed/capability balance
+      'qwen3.5:2b',      // 2B - ultra-lightweight
+      'qwen3.5:27b',     // 27B - only if nothing else available
       'gemma2:9b',       // 9B - excellent balance
       'llama3.2',        // 3B - lightweight fallback
       'llama3.1:8b',     // 8B - good middle ground
-      'qwen3.5:2b',      // 2B - ultra-lightweight
-      'qwen3.5:27b',     // 27B - only if nothing else available
       'glm-5:cloud',
       'kimi-k2.5:cloud',
     ];

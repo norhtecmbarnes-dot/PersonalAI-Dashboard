@@ -162,8 +162,8 @@ async function getAIResponse(message: string): Promise<string> {
       console.log('[Telegram Polling] Available Ollama models:', ollamaModels.length);
       
       if (ollamaModels.length > 0) {
-        // Prefer qwen2.5-coder if available, otherwise use first available
-        const preferredModel = ollamaModels.find(m => m.name.includes('qwen2.5-coder')) || ollamaModels[0];
+        // Prefer qwen3.5:9b if available, otherwise use first available
+        const preferredModel = ollamaModels.find(m => m.name.includes('qwen3.5:9b')) || ollamaModels[0];
         model = preferredModel.name.startsWith('ollama/') ? preferredModel.name : `ollama/${preferredModel.name}`;
         console.log('[Telegram Polling] Selected model:', model);
       } else {
