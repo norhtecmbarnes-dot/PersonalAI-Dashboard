@@ -2,11 +2,6 @@
 const nextConfig = {
   reactStrictMode: true,
   
-  // Enable experimental instrumentation
-  experimental: {
-    instrumentationHook: true,
-  },
-  
   // Handle font files for Turbopack
   turbopack: {
     rules: {
@@ -16,8 +11,6 @@ const nextConfig = {
       '*.eot': ['file-loader'],
     },
   },
-  
-
   
   // Webpack fallback for non-Turbopack builds
   webpack: (config) => {

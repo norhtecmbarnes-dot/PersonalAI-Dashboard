@@ -8,31 +8,6 @@
 
 ---
 
-## License
-
-**This book is FREE and OPEN to everyone.**
-
-Licensed under **Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)**
-
-### You are FREE to:
-- ✅ **Read** — Download and enjoy for free
-- ✅ **Share** — Copy and redistribute to anyone
-- ✅ **Remix** — Create translations, adaptations, or derivative works
-- ✅ **Commercialize** — Use for commercial projects
-- ✅ **Build Upon** — Extend, modify, and improve
-
-### Under these conditions:
-- **Attribution** — Credit "Michael C. Barnes" and link to this book
-- **ShareAlike** — If you remix, use the same CC BY-SA 4.0 license
-- **No Additional Restrictions** — Don't add legal or technical barriers
-
-**Full license:** https://creativecommons.org/licenses/by-sa/4.0/
-
-**Why This License?**  
-Knowledge should be free. This book teaches you to build AI systems that empower individuals, not just corporations. By making it open, we ensure anyone can learn, adapt, and teach others.
-
----
-
 ## Table of Contents
 
 # Building Your AI Dashboard: The Complete Beginner's Guide
@@ -1126,6 +1101,10 @@ Before we build anything, we need the right tools. Think of this like setting up
 - What **environment variables** are
 - Setting up your project folder
 - Verifying everything works
+- **What GitHub is and how to use it**
+- **Cloning and running this project's code**
+- **Setting up AI-assisted development** with OpenCode, GLM-5, and Kimi
+- **Why multiple AI models** can improve your code quality
 
 ---
 
@@ -1376,7 +1355,683 @@ Current directory: C:\Users\YourName\ai-dashboard
 
 ---
 
-## PROMPT YOU CAN USE
+## Step 8: Getting the Code from GitHub
+
+This book comes with a complete, working codebase you can download and run. Let's learn about **GitHub** and how to use it.
+
+### What is GitHub?
+
+**GitHub** is like Google Drive for code, but better:
+- Stores code online (cloud backup)
+- Tracks all changes (version control)
+- Lets many people collaborate
+- Shows issues and features (project management)
+- Free for open-source projects
+
+**Think of it as:**
+- A backup of your code
+- A history of every change
+- A way to share with others
+- A place to report bugs and request features
+
+### What is Git?
+
+**Git** is the tool that tracks changes. GitHub is the website that hosts Git repositories.
+
+**The Difference:**
+| Git | GitHub |
+|-----|--------|
+| The tool | The service |
+| Runs locally | Runs in the cloud |
+| Tracks changes | Hosts repositories |
+| Free software | Freemium service |
+
+You need both: Git for tracking, GitHub for sharing.
+
+---
+
+### Installing Git
+
+#### On Windows
+1. Go to: https://git-scm.com/download/win
+2. Download the installer
+3. Run it and click "Next" through all prompts
+4. Git Bash will be installed (a terminal for Git commands)
+
+#### On Mac
+1. Open Terminal
+2. Type: `git --version`
+3. If not installed, macOS will prompt you to install Xcode Tools
+4. Click "Install"
+
+#### On Linux (Ubuntu/Debian)
+```bash
+sudo apt update
+sudo apt install git
+```
+
+#### Verify Installation
+```bash
+git --version
+```
+You should see: `git version 2.x.x`
+
+---
+
+### Getting This Project's Code
+
+The complete code for this book is on GitHub. Here's how to get it:
+
+#### Option 1: Clone with Git (Recommended)
+
+```bash
+# Navigate to where you want the project
+cd ~/projects
+
+# Clone the repository
+git clone https://github.com/norhtecmbarnes/personalai-dashboard.git
+
+# Enter the project folder
+cd personalai-dashboard
+
+# Install dependencies
+npm install
+
+# Copy the example environment file
+cp .env.example .env.local
+
+# Start the development server
+npm run dev
+```
+
+**What Each Command Does:**
+- `git clone` — Downloads a copy of the entire project
+- `npm install` — Installs all required packages
+- `cp .env.example .env.local` — Creates your local settings file
+- `npm run dev` — Starts the development server
+
+#### Option 2: Download ZIP
+
+If you don't want to use Git:
+
+1. Go to: https://github.com/norhtecmbarnes/personalai-dashboard
+2. Click the green "Code" button
+3. Select "Download ZIP"
+4. Extract the ZIP file
+5. Open the folder in VS Code
+6. Open terminal and run:
+```bash
+npm install
+cp .env.example .env.local
+npm run dev
+```
+
+#### Option 3: GitHub Desktop
+
+If you prefer a graphical interface:
+
+1. Download GitHub Desktop: https://desktop.github.com
+2. Sign in with your GitHub account
+3. Click "Clone a repository from the Internet"
+4. Paste: `https://github.com/norhtecmbarnes/personalai-dashboard`
+5. Click "Clone"
+
+---
+
+### Understanding the Repository
+
+When you clone this project, you get:
+
+```
+personalai-dashboard/
+├── src/                  # Source code
+│   ├── app/             # Pages and API routes
+│   ├── lib/             # Core libraries
+│   └── components/      # UI components
+├── book/                # This book (lessons)
+├── docs/                # Documentation
+├── data/                # SQLite database (auto-created)
+├── public/              # Static files
+├── package.json         # Dependencies list
+├── .env.example         # Environment template
+├── README.md            # Project overview
+└── LICENSE              # MIT License
+```
+
+**Key Files to Know:**
+- `package.json` — Lists all packages needed
+- `.env.example` — Template for environment variables
+- `README.md` — Quick start guide
+- `src/app/` — Where pages live
+
+---
+
+### Setting Up Environment Variables
+
+This project needs some configuration. Copy the example file:
+
+```bash
+cp .env.example .env.local
+```
+
+Then edit `.env.local` with your settings:
+
+```bash
+# Open in your editor
+nano .env.local
+# Or in VS Code
+code .env.local
+```
+
+**What You'll Configure:**
+| Variable | What It Does | Required? |
+|----------|--------------|-----------|
+| `OLLAMA_API_URL` | Where Ollama runs | Yes (default works) |
+| `OLLAMA_API_KEY` | For Ollama Cloud web search | Optional |
+| `OPENROUTER_API_KEY` | Cloud model access | Optional |
+| `GLM_API_KEY` | GLM model access | Optional |
+| `DEEPSEEK_API_KEY` | DeepSeek model access | Optional |
+
+**For local-only (free) use:**
+You don't need any API keys! Just use local models with Ollama.
+
+**For cloud models:**
+1. Get an API key from the provider (OpenRouter, GLM, etc.)
+2. Add it to your `.env.local` file
+3. Restart the dev server
+
+---
+
+### Installing Dependencies
+
+The `npm install` command downloads all required packages:
+
+```bash
+npm install
+```
+
+**What It Does:**
+1. Reads `package.json` 
+2. Downloads all packages listed
+3. Creates `node_modules/` folder
+4. Creates `package-lock.json` (exact versions)
+
+**If You Get Errors:**
+- Make sure Node.js is installed
+- Try: `npm cache clean --force`
+- Delete `node_modules` and `package-lock.json`, then run `npm install` again
+
+---
+
+### Running the Development Server
+
+```bash
+npm run dev
+```
+
+**What Happens:**
+1. Next.js starts a local server
+2. Opens at: http://localhost:3000
+3. Watches for file changes
+4. Auto-reloads when you save
+
+**Open in Browser:**
+```
+http://localhost:3000
+```
+
+You should see the AI Dashboard interface!
+
+---
+
+### Common Git Commands
+
+Here are the Git commands you'll use most:
+
+| Command | What It Does |
+|---------|--------------|
+| `git clone [url]` | Download a project |
+| `git status` | See what changed |
+| `git pull` | Get latest updates |
+| `git log` | View history |
+| `git diff` | See differences |
+
+**For Contributors:**
+| Command | What It Does |
+|---------|--------------|
+| `git add [file]` | Stage changes |
+| `git commit -m "message"` | Save changes |
+| `git push` | Upload to GitHub |
+
+---
+
+### Keeping Your Code Updated
+
+As this project improves, you'll want the latest changes:
+
+```bash
+# In the project folder
+git pull origin master
+npm install  # In case new packages were added
+npm run dev   # Restart with new code
+```
+
+**If You Made Changes:**
+```bash
+# Save your changes
+git stash
+
+# Get updates
+git pull origin master
+
+# Restore your changes
+git stash pop
+```
+
+---
+
+### Reporting Issues and Getting Help
+
+Found a bug? Want a feature?
+
+1. Go to: https://github.com/norhtecmbarnes/personalai-dashboard/issues
+2. Click "New Issue"
+3. Describe the problem or feature
+4. Submit
+
+**Good Bug Reports Include:**
+- What you were trying to do
+- What happened instead
+- Steps to reproduce
+- Your system (Windows/Mac/Linux, Node version)
+
+---
+
+### Forking and Customizing
+
+Want to make your own version?
+
+**What is a Fork?**
+A fork is your personal copy of someone else's project. You can modify it without affecting the original.
+
+**How to Fork:**
+1. Go to the repository on GitHub
+2. Click "Fork" (top-right)
+3. GitHub creates your copy
+4. Clone your fork:
+```bash
+git clone https://github.com/YOUR-USERNAME/personalai-dashboard.git
+```
+
+**Keep Your Fork Updated:**
+```bash
+# Add the original as "upstream"
+git remote add upstream https://github.com/norhtecmbarnes/personalai-dashboard.git
+
+# Get updates from upstream
+git fetch upstream
+git merge upstream/master
+```
+
+---
+
+### The License: Open Source Freedom
+
+This project uses dual licensing:
+
+**Code: MIT License**
+- ✅ Use commercially
+- ✅ Modify freely
+- ✅ Distribute
+- ✅ No warranty
+
+**Book Content: CC BY-SA 4.0**
+- ✅ Share and adapt
+- ✅ Commercial use allowed
+- ⚠️ Must give attribution
+- ⚠️ Changes must use same license
+
+**What This Means:**
+You can use this code for anything — personal projects, business products, teaching. Just don't sue us if something breaks!
+
+---
+
+### PROMPT YOU CAN USE
+
+```
+Create a README.md file for an open-source project that:
+1. Explains what the project does in one sentence
+2. Lists prerequisites (Node.js, etc.)
+3. Shows installation steps with commands
+4. Explains basic usage
+5. Links to documentation
+6. Includes a "Contributing" section
+7. Shows the license and how to attribute
+
+The project is: [your project description]
+```
+
+---
+
+## Step 9: AI-Assisted Development Environment
+
+Here's where this book takes a different path. Instead of just using VS Code alone, you'll learn to use **AI assistants** that help you write code. This dramatically speeds up development and helps you learn faster.
+
+### Why AI-Assisted Development?
+
+Remember the philosophy from Chapter 1? We treat AI as a **tool manager**. The same applies here — you're not replacing yourself with AI, you're managing tools that make you more productive.
+
+**The benefits:**
+- **Faster learning** — AI explains concepts as you go
+- **Fewer errors** — AI catches mistakes before they happen
+- **Better code** — AI suggests improvements you might not know about
+- **24/7 help** — AI doesn't sleep, take breaks, or get frustrated
+
+### Choosing Your AI Assistant
+
+You have several options for AI-assisted development:
+
+#### Option 1: OpenCode (Used in This Book)
+
+**OpenCode** is a terminal-based AI coding assistant that runs locally with Ollama. This is what I used to write most of this book and the accompanying code.
+
+**Why OpenCode?**
+- Runs entirely on your machine (privacy first)
+- Works with local models (no subscription required)
+- Terminal-based (stays out of your way)
+- Can read and edit files directly
+
+**How I Set It Up:**
+1. Install Ollama: https://ollama.com
+2. Open terminal in your project folder
+3. Run: `ollama run opencode`
+
+That's it! Now you have an AI assistant in your terminal.
+
+#### Option 2: VS Code with GitHub Copilot
+
+If you prefer VS Code, GitHub Copilot is a popular choice:
+1. Install VS Code
+2. Install the GitHub Copilot extension
+3. Sign in with your GitHub account (requires subscription)
+
+**Pros:** Deep integration with VS Code
+**Cons:** Requires subscription, data sent to cloud
+
+#### Option 3: Cursor IDE
+
+**Cursor** is a VS Code fork with AI built in:
+1. Download from: https://cursor.sh
+2. Open your project folder
+3. Use Cmd+K (Mac) or Ctrl+K (Windows) to invoke AI
+
+**Pros:** Very polished, good context awareness
+**Cons:** Requires subscription for best features
+
+---
+
+### My Development Setup: GLM-5 + Kimi 2.5
+
+Here's exactly how I developed this project. I used **two different AI models**, switching between them based on their strengths:
+
+#### Primary Model: GLM-5 (via OpenCode)
+
+**When to use GLM-5:**
+- Writing TypeScript and JavaScript code
+- Explaining technical concepts
+- Debugging complex logic
+- Refactoring code structure
+- Writing documentation
+
+**Strengths:**
+- Excellent at code generation
+- Good at explaining *why* something works
+- Handles complex multi-file projects well
+- Strong reasoning capabilities
+
+**How I used it:**
+```bash
+ollama run opencode
+# At the OpenCode prompt:
+> "Create a Next.js API route that handles chat messages with streaming responses"
+```
+
+#### Secondary Model: Kimi 2.5 (Moonshot)
+
+**When to use Kimi 2.5:**
+- Long context tasks (reading entire files)
+- Research and explanations
+- Alternative perspective on problems
+- When GLM-5 gets stuck
+
+**Strengths:**
+- Very long context window (can read more at once)
+- Good at summarizing
+- Different "thinking style" provides backup opinions
+- Often catches things GLM-5 misses
+
+**How I used it:**
+```bash
+> "Review the database schema we just created. What optimization opportunities do you see?"
+```
+
+#### The Workflow
+
+Here's my typical development flow:
+
+1. **Start with GLM-5**
+   - Generate initial code
+   - Get structure and logic right
+   
+2. **Switch to Kimi 2.5**
+   - Review the code
+   - Look for edge cases
+   - Get a second opinion
+   
+3. **Iterate Back and Forth**
+   - GLM-5: "Here's what Kimi suggested. Implement these changes."
+   - Kimi: "Review the changes. Are there any issues?"
+   
+4. **Manual Testing**
+   - I review and test the code personally
+   - Make sure it meets my requirements
+   - Adjust as needed
+
+---
+
+### Example Session
+
+Here's a real example of how I developed a feature:
+
+**Step 1: Start OpenCode**
+```bash
+cd ai-dashboard
+ollama run opencode
+```
+
+**Step 2: Describe What I Want (GLM-5)**
+```
+> I need to add a task scheduler to the AI Dashboard. 
+> It should:
+> 1. Run tasks at scheduled intervals
+> 2. Support recurring tasks (daily, weekly, etc.)
+> 3. Log task results
+> 4. Handle failures gracefully
+> 
+> Create the scheduler service in src/lib/services/task-scheduler.ts
+```
+
+**Step 3: Review with Kimi 2.5**
+```
+> Switch to kimi-2.5
+> Review the task scheduler code. What edge cases might we have missed?
+> What error handling should we add?
+```
+
+**Step 4: Implement Feedback (back to GLM-5)**
+```
+> Switch to glm-5
+> Kimi suggested adding retry logic and better logging. 
+> Implement those changes.
+```
+
+**Step 5: Test Manually**
+```bash
+# Exit OpenCode (Ctrl+D or 'exit')
+npm run test
+npm run dev
+# Test in browser
+```
+
+---
+
+### Other AI Models You Can Use
+
+The beauty of this approach is you can use whatever models work best for you:
+
+**Free/Local Models (via Ollama):**
+| Model | Size | Best For |
+|-------|------|----------|
+| `qwen3.5:2b` | 2.3B | Fast responses, simple tasks |
+| `qwen2.5:14b` | 14.8B | More capable, better reasoning |
+| `llama4:scout` | 108.6B | Very capable (needs GPU) |
+| `glm-4.7-flash` | 29.9B | Excellent multilingual |
+| `deepseek-r1` | varies | Reasoning and analysis |
+
+**Cloud Models (require API keys):**
+| Model | Provider | Best For |
+|-------|----------|----------|
+| Claude | Anthropic | Complex reasoning, long context |
+| GPT-4o | OpenAI | General purpose, multimodal |
+| Gemini | Google | Multimodal, long context |
+| DeepSeek | DeepSeek | Code generation, reasoning |
+
+---
+
+### Tips for AI-Assisted Development
+
+#### DO:
+- ✅ **Be specific** — The more detail you provide, the better the output
+- ✅ **Ask for explanations** — "Explain how this works" helps you learn
+- ✅ **Request alternatives** — "Show me three ways to do this"
+- ✅ **Review code yourself** — Never blindly trust AI output
+- ✅ **Use multiple models** — Get different perspectives
+
+#### DON'T:
+- ❌ **Copy without understanding** — You won't learn
+- ❌ **Ignore security** — AI can produce insecure code
+- ❌ **Skip testing** — Always verify AI output works
+- ❌ **Ask for malware** — AI assistants refuse harmful code
+
+---
+
+### How This Book Uses AI
+
+Throughout this book, you'll see **"PROMPT YOU CAN USE"** boxes. These are ready-to-paste prompts for AI assistants:
+
+```
+PROMPT YOU CAN USE:
+"Create a function that validates email addresses. 
+Return true if valid, false otherwise. 
+Include tests for common edge cases."
+```
+
+You can copy these prompts and paste them into:
+- OpenCode (terminal)
+- Claude (web)
+- ChatGPT (web)
+- Cursor IDE
+- GitHub Copilot chat
+
+The prompts are designed to give you **working code** that you can then study, modify, and learn from.
+
+---
+
+### Why Two Models Works Better Than One
+
+Using multiple AI models is like having a team of consultants:
+
+**GLM-5** is your primary developer:
+- Fast and competent
+- Good at generating code
+- Understands project structure
+
+**Kimi 2.5** is your code reviewer:
+- Catches things others miss
+- Different perspective
+- Good at finding edge cases
+
+**You** are the project manager:
+- Make final decisions
+- Ensure quality
+- Understand business requirements
+- Take responsibility
+
+This three-party approach produces better code than any single AI alone.
+
+---
+
+### Setting Up Your AI Environment
+
+**Option A: Free & Private (Recommended for this book)**
+
+```bash
+# 1. Install Ollama
+# Visit https://ollama.com and download
+
+# 2. Pull the models
+ollama pull glm-4.7-flash
+ollama pull qwen2.5:14b
+
+# 3. Create your .env file with API keys (optional)
+# See .env.example for available options
+
+# 4. Start the AI Dashboard
+npm run dev
+```
+
+**Option B: Cloud-Based (Requires subscription)**
+
+1. Sign up for Claude (Anthropic) or ChatGPT Plus (OpenAI)
+2. Use VS Code with Copilot or Cursor IDE
+3. Keep this book open alongside your editor
+
+**Option C: Hybrid (Best of both)**
+
+```bash
+# Local models for daily development (free)
+ollama run glm-4.7-flash
+
+# Cloud models for complex tasks (paid)
+# Use API keys in .env.local for:
+# - OPENROUTER_API_KEY (Claude, GPT-4, etc.)
+# - GLM_API_KEY (GLM models)
+# - DEEPSEEK_API_KEY (DeepSeek)
+```
+
+---
+
+### PROMPT YOU CAN USE
+
+Here's a prompt to set up AI-assisted development:
+
+```
+I want to set up an AI-assisted development environment.
+
+My setup:
+- Operating System: [Windows/Mac/Linux]
+- Code Editor: [VS Code/Cursor/Other]
+- Goal: Build AI applications locally
+
+Recommend:
+1. Which AI models should I use?
+2. How do I install them?
+3. What's the best workflow for my situation?
+
+Consider: I want privacy (local models preferred) but high quality output.
+```
+
+---
 
 Want to generate a setup script? Use this:
 
@@ -1405,6 +2060,14 @@ Include comments explaining each command.
 ✅ **Environment variables** — Settings programs need
 
 ✅ **Project structure** — Organized folders for your code
+
+✅ **GitHub** — Cloud storage for code with version control
+
+✅ **Git clone** — Download projects from GitHub
+
+✅ **AI-assisted development** — Use AI as a tool manager, code faster
+
+✅ **Multiple models** — GLM-5 for code, Kimi for review (or your choice)
 
 ---
 
@@ -8104,4 +8767,1392 @@ await cleanOldTaskResults();
 **Questions?** Check the SYSTEM_GUIDE.md for architecture details.
 
 **Code reference:** All Edge-compatible files in `src/lib/`
+
+# Chapter 17: Building with AI - Don't Be Overwhelmed
+
+**Important:** Before you worry about writing code, remember this book's philosophy from Chapter 1: **AI is your tool manager, not your replacement.** You direct, AI builds.
+
+## The Truth About This Code
+
+When you first see this project's codebase — hundreds of files, thousands of lines — it can feel overwhelming. **Don't worry.** Here's the secret:
+
+**You don't need to write all this code yourself.**
+
+The code in this repository is a **sample implementation** — a working reference you can learn from. But the real power is having AI build similar systems for you.
+
+### You Are the Architect, Not the Builder
+
+Think of building software like building a house:
+
+| Your Role | AI's Role |
+|-----------|-----------|
+| Architect | Construction Worker |
+| Decide what to build | Build what you ask |
+| Set requirements | Implement features |
+| Review and test | Generate code |
+| Make decisions | Suggest alternatives |
+| Approve changes | Document choices |
+
+**You don't need to lay every brick yourself. You just need to know what you want.**
+
+---
+
+## What You'll Learn
+
+- **Don't panic** — You don't need to understand every line
+- **Prompt-driven development** — Describe what you want, AI builds it
+- **The master prompt** — A complete prompt to build the system
+- **Iterative building** — Start small, add features
+- **When to dive deep** — Which parts deserve your attention
+- **Learning by reviewing** — How to read AI-generated code
+
+---
+
+## The Master Prompt: Building the Foundation
+
+Here's a prompt you can copy and paste into OpenCode, Claude, ChatGPT, or any AI assistant. This will build the **foundation** of your AI Dashboard from scratch.
+
+### Copy This Prompt:
+
+```
+I want to build a Personal AI Dashboard - a privacy-first AI assistant 
+that runs entirely on my local machine. Build me the foundation.
+
+## What I Want
+
+A Next.js application with:
+
+1. **Project Structure**
+   - src/app/ for pages and API routes (App Router)
+   - src/lib/ for shared code and utilities
+   - src/components/ for React components
+   - data/ for SQLite database storage
+
+2. **Database Foundation**
+   - SQLite database (using sql.js for browser/edge compatibility)
+   - Tables for: messages, documents, brands, projects, tasks, notes
+   - A database service (src/lib/database/sqlite.ts)
+   - Save/load from data/assistant.db
+
+3. **Chat System**
+   - API route at src/app/api/chat/route.ts
+   - Streaming responses (SSE)
+   - Support for local models via Ollama
+   - Support for cloud models (OpenRouter, GLM API, DeepSeek)
+   - Model router that picks the right model for each task
+
+4. **Features to Scaffold**
+   - Chat interface (src/app/page.tsx)
+   - Document upload and management
+   - Brand voice management
+   - Task scheduling
+   - Memory/notes storage
+
+5. **Core Utilities**
+   - Environment variable handling (.env.example)
+   - Model configuration (src/lib/models/)
+   - ID generation (using uuid)
+
+## Technical Requirements
+
+- TypeScript (strict mode)
+- Next.js 15+ (App Router)
+- React 18+
+- SQLite with sql.js
+- Streaming responses
+- No authentication (local use)
+
+## Style
+
+- Clean, modular code
+- TypeScript types for everything
+- Comments explaining key decisions
+- Error handling throughout
+- Logging for debugging
+
+## Output
+
+1. Create the folder structure
+2. Write the core files (package.json, tsconfig.json, etc.)
+3. Implement the database service
+4. Create the chat API with streaming
+5. Add the model router
+6. Build a simple chat UI
+
+Start with a working foundation. We'll add features incrementally.
+
+After you create each file, explain briefly what it does and why.
+```
+
+---
+
+## How to Use This Prompt
+
+### Option 1: OpenCode (Terminal)
+```bash
+cd ~/projects
+mkdir ai-dashboard
+cd ai-dashboard
+ollama run opencode
+
+# Paste the prompt above
+# Watch AI build the foundation
+```
+
+### Option 2: Claude / ChatGPT (Web)
+1. Copy the prompt
+2. Paste into Claude or ChatGPT
+3. Ask for one section at a time if output is too long
+4. Copy each file to your project
+
+### Option 3: Cursor IDE
+1. Open Cursor in your project folder
+2. Press Cmd+K (Mac) or Ctrl+K (Windows)
+3. Paste the prompt
+4. Accept each file suggestion
+
+---
+
+## Iterative Building: Add One Feature at a Time
+
+The master prompt builds the foundation. After that, add features incrementally:
+
+### Adding Document Management
+
+```
+Add document management to the AI Dashboard:
+
+1. Database table for documents (id, title, content, type, tags, metadata)
+2. API route at src/app/api/documents/route.ts
+   - GET: list documents
+   - POST: upload new document
+3. API route at src/app/api/documents/[id]/route.ts
+   - GET: get document by ID
+   - PUT: update document
+   - DELETE: remove document
+4. A simple document list page at src/app/documents/page.tsx
+5. Upload functionality (support PDF, Word, plain text)
+
+Include error handling and types.
+```
+
+### Adding Brand Voice System
+
+```
+Add a brand voice management system:
+
+1. Database table for brands:
+   - id, name, voice_instructions, sample_content, created_at
+2. API routes for CRUD operations
+3. A page to create and edit brand voices
+4. Store brand voice prompts
+5. Integrate with chat API (option to use brand voice)
+
+The brand voice should modify how AI responds — tone, style, vocabulary.
+```
+
+### Adding Task Scheduling
+
+```
+Add a task scheduling system:
+
+1. Database table for scheduled tasks:
+   - id, type, schedule (cron), last_run, next_run, enabled, config
+2. Task types:
+   - intelligence_report: daily summary
+   - security_scan: scan for vulnerabilities
+   - self_reflection: AI analyzes its own responses
+3. A task scheduler service (src/lib/services/task-scheduler.ts)
+4. API routes to manage tasks
+5. A page to view and manage tasks
+
+Run tasks on schedule, log results to database.
+```
+
+---
+
+## When to Pay Attention
+
+You don't need to read every line of code. Focus on these key areas:
+
+### Must Understand
+
+| File/Folder | Why It Matters |
+|-------------|----------------|
+| `package.json` | What packages are used |
+| `src/lib/database/sqlite.ts` | How data is stored |
+| `src/app/api/chat/route.ts` | How AI responds |
+| `src/lib/models/` | How models are configured |
+| `.env.example` | What settings are available |
+
+### Can Skim
+
+| File/Folder | Why You Can Skim |
+|-------------|------------------|
+| UI Components | Visual only, logic is elsewhere |
+| Type definitions | Auto-generated or boilerplate |
+| Config files | Standard Next.js setup |
+| Utility helpers | Self-explanatory names |
+
+### Never Ignore
+
+| Issue | Why |
+|-------|-----|
+| Security warnings | Could expose your data |
+| Error handling | Prevents crashes |
+| API keys | Never commit real keys |
+| Database migrations | Data integrity |
+
+---
+
+## Learning by Reviewing AI Code
+
+Even though AI generates most code, **you should review it**. Here's how:
+
+### 1. Read the Function Names
+
+```typescript
+// Good: Clear names
+async function sendMessageToModel(message: string): Promise<string>
+async function saveDocumentToDatabase(doc: Document): Promise<void>
+async function loadUserPreferences(userId: string): Promise<Preferences>
+
+// Bad: Unclear names
+async function process(input: any): Promise<any>
+async function handle(data: any): Promise<void>
+async function run(id: string): Promise<any>
+```
+
+**If names are unclear, ask AI to rename them:**
+```
+Refactor these functions to have clearer names:
+- `process` → describe what it processes
+- `handle` → what does it handle?
+- `run` → run what?
+```
+
+### 2. Check Types
+
+```typescript
+// Good: Explicit types
+interface Message {
+  id: string;
+  content: string;
+  role: 'user' | 'assistant' | 'system';
+  timestamp: number;
+}
+
+// Bad: No types
+function sendMessage(message) { // What type is message?
+  return fetch('/api/chat', { body: message })
+}
+```
+
+**Ask AI to add types:**
+```
+Add TypeScript types and interfaces for all parameters and return values.
+Explain the shape of the data at each step.
+```
+
+### 3. Look for Error Handling
+
+```typescript
+// Good: Handles errors
+try {
+  const response = await fetch('/api/chat', { body: message })
+  if (!response.ok) {
+    throw new Error(`API returned ${response.status}`)
+  }
+  return await response.json()
+} catch (error) {
+  console.error('Failed to send message:', error)
+  throw error // Re-throw so caller can handle
+}
+
+// Bad: No error handling
+const response = await fetch('/api/chat', { body: message })
+return await response.json() // What if response is not ok?
+```
+
+**Ask AI to add error handling:**
+```
+Add comprehensive error handling to this function. 
+Handle: network errors, invalid responses, timeouts.
+Log errors appropriately. Re-throw with context.
+```
+
+### 4. Comments Matter
+
+```typescript
+// Bad: No comments
+function processMessage(msg: Message): ProcessedMessage {
+  const cleaned = msg.content.trim().toLowerCase()
+  const tokens = cleaned.split(/\s+/)
+  return { original: msg, cleaned, tokens }
+}
+
+// Good: Explains why
+/**
+ * Prepares a message for AI processing.
+ * 
+ * Why: AI models perform better with clean, normalized input.
+ * - Trim whitespace (avoids empty tokens)
+ * - Lowercase (case-insensitive matching)
+ * - Split into tokens (for context limiting)
+ */
+function processMessage(msg: Message): ProcessedMessage {
+  const cleaned = msg.content.trim().toLowerCase()
+  const tokens = cleaned.split(/\s+/)
+  return { original: msg, cleaned, tokens }
+}
+```
+
+---
+
+## The Sample Code Philosophy
+
+This repository contains a complete, working implementation. Think of it as:
+
+### What the Code Is
+
+- ✅ A **working reference** — Everything runs
+- ✅ A **learning tool** — See how features connect
+- ✅ A **starting point** — Modify for your needs
+- ✅ A **test bed** — Try experiments safely
+
+### What the Code Is NOT
+
+- ❌ The only way to build this
+- ❌ Perfect code (no code is perfect)
+- ❌ Something you must memorize
+- ❌ Something you must write from scratch
+
+### How to Use the Sample
+
+1. **Clone it** — Get it running locally
+2. **Explore it** — Click around, see features
+3. **Break it** — Change things, see what happens
+4. **Learn from it** — Read key files
+5. **Build your own** — Use prompts to create your version
+
+---
+
+## Prompt Library: Building Blocks
+
+Here are prompts for common building blocks. Use these as starting points:
+
+### Database Table
+
+```
+Create a database table for [PURPOSE] with these fields:
+- id: unique identifier (string)
+- [field2]: [type] - [description]
+- [field3]: [type] - [description]
+- created_at: timestamp
+- updated_at: timestamp
+
+Add to src/lib/database/sqlite.ts
+Include: create, read, update, delete functions
+```
+
+### API Route
+
+```
+Create a Next.js API route at src/app/api/[NAME]/route.ts
+
+Endpoints:
+- GET: [describe what it returns]
+- POST: [describe what it accepts and does]
+
+Include:
+- Input validation
+- Error handling
+- TypeScript types
+- Database integration
+```
+
+### React Component
+
+```
+Create a React component for [PURPOSE] at src/components/[NAME].tsx
+
+Props:
+- [prop1]: [type] - [description]
+- [prop2]: [type] - [description]
+
+Features:
+- [feature 1]
+- [feature 2]
+
+Style with Tailwind CSS.
+Include loading and error states.
+```
+
+### Service Class
+
+```
+Create a service class for [PURPOSE] at src/lib/services/[NAME].ts
+
+Methods:
+- [method1]: [description]
+- [method2]: [description]
+
+Include:
+- Singleton pattern
+- Error handling
+- Logging
+- TypeScript types
+```
+
+---
+
+## Common Patterns Reused
+
+Throughout this codebase, you'll see patterns repeated. Learn these:
+
+### Pattern 1: Database Access
+
+```typescript
+// Every database operation follows this pattern
+async function getItem(id: string): Promise<Item | null> {
+  if (!db) throw new Error('Database not initialized')
+  
+  const result = db.exec('SELECT * FROM items WHERE id = ?', [id])
+  
+  if (result.length === 0 || result[0].values.length === 0) {
+    return null
+  }
+  
+  return mapRowToItem(result[0].columns, result[0].values[0])
+}
+```
+
+### Pattern 2: API Route Handler
+
+```typescript
+// Every API route follows this pattern
+export async function POST(request: Request) {
+  try {
+    const body = await request.json()
+    
+    // Validate input
+    if (!body.field) {
+      return NextResponse.json({ error: 'Missing field' }, { status: 400 })
+    }
+    
+    // Do work
+    const result = await doSomething(body)
+    
+    // Return success
+    return NextResponse.json({ result })
+  } catch (error) {
+    console.error('Error:', error)
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
+  }
+}
+```
+
+### Pattern 3: Streaming Response
+
+```typescript
+// Streaming AI responses
+const encoder = new TextEncoder()
+const stream = new ReadableStream({
+  async start(controller) {
+    for await (const chunk of aiResponse) {
+      controller.enqueue(encoder.encode(`data: ${JSON.stringify(chunk)}\n\n`))
+    }
+    controller.close()
+  }
+})
+
+return new Response(stream, {
+  headers: { 'Content-Type': 'text/event-stream' }
+})
+```
+
+---
+
+## Don't Be Overwhelmed: A Checklist
+
+When you feel overwhelmed by the code:
+
+- [ ] Remember: You're the architect, not the bricklayer
+- [ ] Start with the master prompt — let AI build the foundation
+- [ ] Add features one at a time with focused prompts
+- [ ] Review only what matters: database, API routes, model config
+- [ ] Use the sample code as reference, not requirement
+- [ ] Break things — that's how you learn
+- [ ] Ask AI to explain anything confusing
+
+---
+
+## Key Takeaways
+
+✅ **Don't write from scratch** — Use prompts to generate code
+
+✅ **You're the architect** — Direct, review, approve
+
+✅ **Sample code = reference** — Not the only way
+
+✅ **Key files matter most** — Database, API routes, model config
+
+✅ **Iterative building wins** — One feature at a time
+
+✅ **Learn by reviewing** — Read names, types, error handling
+
+✅ **Break the code** — Experiment safely
+
+---
+
+**Next: Chapter 18 - Connecting to Messaging Systems (Telegram, Slack, Notion)**
+
+# Chapter 18: Connecting to Messaging Systems - Telegram, Slack, Notion, and More
+
+Your AI Dashboard doesn't have to live in a web browser. You can connect it to messaging platforms like Telegram, Slack, Discord, Notion, or any other communication tool. This chapter shows you how.
+
+## What You'll Learn
+
+- **Why messaging integration matters** — Meet users where they are
+- **Telegram integration** — Step-by-step bot setup
+- **The integration pattern** — Apply to any platform
+- **Slack integration** — Adapting the same approach
+- **Notion integration** — Document-based AI
+- **Security considerations** — Keeping your system safe
+- **Multi-platform strategy** — One AI, many channels
+
+---
+
+## The Restaurant Delivery Analogy
+
+Imagine you run a great restaurant (your AI Dashboard).
+
+**Traditional approach:** Customers must come to your restaurant (web interface).
+
+**Messaging integration:** You deliver to where customers are:
+- Telegram → Like food delivery to someone's home
+- Slack → Like a food truck at their office
+- Notion → Like meal prep delivered weekly
+- Discord → Like catering their party
+
+**Same kitchen (AI), different delivery methods (integrations).**
+
+---
+
+## Why Messaging Integration?
+
+### Benefits
+
+| Benefit | Explanation |
+|---------|-------------|
+| **Meet users where they are** | They already use Telegram/Slack |
+| **Instant notifications** | Push messages without email |
+| **Mobile-friendly** | Messaging apps are mobile-first |
+| **Familiar interface** | No new app to learn |
+| **Always available** | AI responds 24/7 |
+
+### Use Cases
+
+- **Daily briefings** — AI sends summary each morning
+- **Alerts** — Notify when something important happens
+- **Chat interface** — Have conversations in your favorite app
+- **Commands** — Issue commands via message
+- **Document sharing** — Send files to AI for processing
+
+---
+
+## The Integration Pattern
+
+All messaging integrations follow the same pattern:
+
+```
+┌─────────────────┐
+│   Your AI       │
+│   Dashboard     │
+│   (The Brain)   │
+└────────┬────────┘
+         │
+         │ API Routes
+         │
+┌────────┴────────┐
+│   Integration   │
+│   Service       │
+│   (The Bridge)  │
+└────────┬────────┘
+         │
+         │ Webhook/Polling
+         │
+┌────────┴────────┐
+│   Messaging     │
+│   Platform      │
+│   (Telegram,    │
+│    Slack, etc.) │
+└─────────────────┘
+```
+
+### Key Components
+
+1. **Platform (Messaging App)** — Where users interact
+2. **Webhook/Polling** — How messages get to your server
+3. **Integration Service** — Translates between platform and AI
+4. **API Routes** — Handle incoming messages
+5. **AI Dashboard** — Processes and responds
+
+---
+
+## Telegram Integration (Complete Guide)
+
+Telegram is one of the easiest platforms to integrate with. Let's build a complete Telegram bot.
+
+### Step 1: Create a Telegram Bot
+
+1. Open Telegram and search for **@BotFather**
+2. Send `/newbot`
+3. Give your bot a name (e.g., "MyAI Dashboard")
+4. Give your bot a username (e.g., "myai_dashboard_bot")
+5. **Save the bot token!** It looks like: `1234567890:ABCdefGHIjk...`
+
+### Step 2: Add Configuration
+
+Add to your `.env.local`:
+
+```env
+# Telegram Bot Configuration
+TELEGRAM_BOT_TOKEN=your_bot_token_here
+TELEGRAM_WEBHOOK_URL=https://your-domain.com/api/telegram/webhook
+TELEGRAM_ENABLED=true
+```
+
+### Step 3: Database Storage for Telegram
+
+The AI Dashboard stores Telegram configuration in SQLite:
+
+```typescript
+// Already implemented in src/lib/storage/telegram-config.ts
+
+interface TelegramConfig {
+  botToken: string;
+  enabled: boolean;
+  webhookUrl?: string;
+  allowedUsers?: string[];
+  chatWithAI: boolean;
+}
+```
+
+### Step 4: Integration Service
+
+The Telegram service (at `src/lib/integrations/telegram.ts`) handles:
+
+```typescript
+class TelegramService {
+  // Send a message to a chat
+  async sendMessage(chatId: number, text: string): Promise<void>
+  
+  // Get updates (long polling)
+  async getUpdates(timeout: number): Promise<TelegramUpdate[]>
+  
+  // Set up webhook (alternative to polling)
+  async setWebhook(url: string): Promise<void>
+  
+  // Handle incoming message
+  async handleMessage(message: TelegramMessage): Promise<void>
+  
+  // Register commands
+  async setMyCommands(commands: TelegramBotCommand[]): Promise<void>
+}
+```
+
+### Step 5: API Route for Webhooks
+
+Create `src/app/api/telegram/webhook/route.ts`:
+
+```typescript
+import { NextRequest, NextResponse } from 'next/server';
+import { telegramService } from '@/lib/integrations/telegram';
+import { getDatabase } from '@/lib/database/sqlite';
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    
+    // Verify this is a valid Telegram update
+    if (!body.update_id) {
+      return NextResponse.json({ error: 'Invalid update' }, { status: 400 });
+    }
+    
+    // Process the message
+    if (body.message?.text) {
+      await handleTelegramMessage(body.message);
+    }
+    
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    console.error('Telegram webhook error:', error);
+    return NextResponse.json({ error: 'Internal error' }, { status: 500 });
+  }
+}
+
+async function handleTelegramMessage(message: any) {
+  const chatId = message.chat.id;
+  const text = message.text;
+  
+  // Commands
+  if (text.startsWith('/')) {
+    await handleCommand(chatId, text, message);
+  } else {
+    // Chat with AI
+    const response = await chatWithAI(text, message.from);
+    await telegramService.sendMessage(chatId, response);
+  }
+}
+
+async function handleCommand(chatId: number, command: string, message: any) {
+  const cmd = command.split(' ')[0].toLowerCase();
+  
+  switch (cmd) {
+    case '/start':
+      await telegramService.sendMessage(
+        chatId,
+        'Welcome to AI Dashboard! Send me any message to chat with the AI.'
+      );
+      break;
+      
+    case '/help':
+      await telegramService.sendMessage(
+        chatId,
+        'Commands:\n/start - Start the bot\n/help - Show this help\n/schedule - Set up scheduled messages\n/status - Check system status'
+      );
+      break;
+      
+    case '/status':
+      const status = await getSystemStatus();
+      await telegramService.sendMessage(chatId, status);
+      break;
+      
+    default:
+      await telegramService.sendMessage(chatId, 'Unknown command. Send /help for available commands.');
+  }
+}
+```
+
+### Step 6: Polling Alternative (Easier for Development)
+
+For local development (no public URL), use long polling:
+
+```typescript
+// src/lib/integrations/telegram.ts (excerpt)
+
+async startPolling() {
+  if (this.pollingInterval) return;
+  
+  console.log('[Telegram] Starting polling...');
+  
+  this.pollingInterval = setInterval(async () => {
+    try {
+      const updates = await this.getUpdates(30);
+      
+      for (const update of updates) {
+        if (update.message && !this.processedMessages.has(update.message.message_id)) {
+          this.processedMessages.add(update.message.message_id);
+          
+          if (this.onMessageHandler) {
+            await this.onMessageHandler(update.message);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('[Telegram] Polling error:', error);
+    }
+  }, 1000);
+}
+```
+
+### Step 7: Telegram Management Page
+
+Create `src/app/telegram/page.tsx` (already in project):
+
+```typescript
+// This page lets you:
+// - Enable/disable Telegram integration
+// - Set bot token
+// - Configure allowed users
+// - View message history
+// - Test the connection
+```
+
+### Step 8: Test Your Bot
+
+```bash
+# Start your AI Dashboard
+npm run dev
+
+# In Telegram, find your bot
+# Send: /start
+
+# Send any message
+# The AI should respond
+```
+
+---
+
+## The Universal Integration Pattern
+
+Notice how Telegram integration works? Here's the pattern you can apply to ANY messaging platform:
+
+### Pattern Components
+
+1. **Configuration Storage**
+   - API credentials (tokens, keys)
+   - Webhook URLs
+   - Enabled/disabled toggles
+   - User permissions
+
+2. **Integration Service**
+   - Send messages
+   - Receive messages (webhook or polling)
+   - Parse commands
+   - Format responses
+
+3. **API Routes**
+   - Receive webhooks from platform
+   - Process incoming messages
+   - Send responses
+
+4. **User Interface**
+   - Configuration page
+   - Message history
+   - Test functionality
+
+### Code Template for Any Platform
+
+```typescript
+// src/lib/integrations/[platform].ts
+
+interface [Platform]Config {
+  apiKey: string;
+  enabled: boolean;
+  webhookUrl?: string;
+  allowedUsers?: string[];
+}
+
+class [Platform]Service {
+  private config: [Platform]Config | null = null;
+  
+  setConfig(config: [Platform]Config) {
+    this.config = config;
+  }
+  
+  async sendMessage(recipientId: string, text: string): Promise<void> {
+    // Platform-specific API call
+  }
+  
+  async handleWebhook(payload: any): Promise<void> {
+    // Parse platform webhook format
+    // Route to appropriate handler
+  }
+  
+  async setWebhook(url: string): Promise<void> {
+    // Register webhook with platform
+  }
+}
+
+export const [platform]Service = new [Platform]Service();
+```
+
+---
+
+## Slack Integration
+
+Let's apply the same pattern to Slack.
+
+### Step 1: Create a Slack App
+
+1. Go to https://api.slack.com/apps
+2. Click "Create New App"
+3. Choose "From a manifest" or "From scratch"
+4. Name it (e.g., "AI Dashboard")
+5. Add Bot Token Scopes: `chat:write`, `im:history`, `im:read`
+6. Install to your workspace
+7. **Save the Bot User OAuth Token!**
+
+### Step 2: Add to Configuration
+
+```env
+# Slack Bot Configuration
+SLACK_BOT_TOKEN=xoxb-your-token-here
+SLACK_SIGNING_SECRET=your-signing-secret
+SLACK_ENABLED=true
+```
+
+### Step 3: Slack Integration Service
+
+```typescript
+// src/lib/integrations/slack.ts
+
+interface SlackConfig {
+  botToken: string;
+  signingSecret: string;
+  enabled: boolean;
+}
+
+class SlackService {
+  private config: SlackConfig | null = null;
+  private baseUrl = 'https://slack.com/api';
+  
+  setConfig(config: SlackConfig) {
+    this.config = config;
+  }
+  
+  async sendMessage(channel: string, text: string): Promise<void> {
+    if (!this.config?.botToken) throw new Error('Slack not configured');
+    
+    const response = await fetch(`${this.baseUrl}/chat.postMessage`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.config.botToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ channel, text }),
+    });
+    
+    const data = await response.json();
+    if (!data.ok) throw new Error(data.error);
+  }
+  
+  async handleWebhook(payload: any): Promise<void> {
+    // Verify signature
+    // Parse Slack event format
+    // Route to handler
+  }
+}
+
+export const slackService = new SlackService();
+```
+
+### Step 4: Slack API Route
+
+```typescript
+// src/app/api/slack/events/route.ts
+
+export async function POST(request: NextRequest) {
+  const body = await request.text();
+  
+  // Verify Slack signature
+  const timestamp = request.headers.get('X-Slack-Request-Timestamp');
+  const signature = request.headers.get('X-Slack-Signature');
+  
+  // ... verification logic ...
+  
+  const payload = JSON.parse(body);
+  
+  // Handle URL verification
+  if (payload.type === 'url_verification') {
+    return NextResponse.json({ challenge: payload.challenge });
+  }
+  
+  // Handle events
+  if (payload.event?.type === 'message') {
+    await handleSlackMessage(payload.event);
+  }
+  
+  return NextResponse.json({ ok: true });
+}
+```
+
+---
+
+## Notion Integration
+
+Notion is different — it's document-based, not chat-based.
+
+### Use Cases
+
+- **Daily journaling** — AI helps you write
+- **Knowledge base** — AI retrieves and summarizes
+- **Task management** — AI updates databases
+- **Meeting notes** — AI transcribes and organizes
+
+### Step 1: Create Notion Integration
+
+1. Go to https://www.notion.so/my-integrations
+2. Click "New integration"
+3. Name it, select workspace
+4. **Save the Internal Integration Token!**
+5. Share pages with your integration
+
+### Step 2: Configuration
+
+```env
+# Notion Integration
+NOTION_API_KEY=secret_your_key_here
+NOTION_ENABLED=true
+NOTION_DATABASE_ID=your_database_id
+```
+
+### Step 3: Notion Integration Service
+
+```typescript
+// src/lib/integrations/notion.ts
+
+interface NotionConfig {
+  apiKey: string;
+  databaseId?: string;
+  enabled: boolean;
+}
+
+class NotionService {
+  private config: NotionConfig | null = null;
+  private baseUrl = 'https://api.notion.com/v1';
+  
+  async createPage(parentId: string, title: string, content: string): Promise<any> {
+    const response = await fetch(`${this.baseUrl}/pages`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.config.apiKey}`,
+        'Content-Type': 'application/json',
+        'Notion-Version': '2022-06-28',
+      },
+      body: JSON.stringify({
+        parent: { database_id: parentId },
+        properties: {
+          Name: { title: [{ text: { content: title } }] },
+        },
+        children: [
+          {
+            object: 'block',
+            type: 'paragraph',
+            paragraph: { text: [{ text: { content } }] },
+          },
+        ],
+      }),
+    });
+    
+    return response.json();
+  }
+  
+  async queryDatabase(databaseId: string, filter?: any): Promise<any[]> {
+    const response = await fetch(`${this.baseUrl}/databases/${databaseId}/query`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${this.config.apiKey}`,
+        'Content-Type': 'application/json',
+        'Notion-Version': '2022-06-28',
+      },
+      body: JSON.stringify({ filter }),
+    });
+    
+    const data = await response.json();
+    return data.results;
+  }
+  
+  async appendBlock(pageId: string, content: string): Promise<void> {
+    // Add content to existing page
+  }
+}
+
+export const notionService = new NotionService();
+```
+
+### Step 4: Notion Use Cases
+
+**Daily Journal:**
+```typescript
+// Create a daily journal entry
+await notionService.createPage(
+  databaseId,
+  new Date().toLocaleDateString(),
+  aiGeneratedContent
+);
+```
+
+**Search Knowledge Base:**
+```typescript
+// Query Notion database
+const pages = await notionService.queryDatabase(databaseId, {
+  property: 'Tags',
+  contains: 'important'
+});
+
+// Summarize for user
+const summary = await ai.summarize(pages);
+```
+
+---
+
+## Discord Integration
+
+Discord is similar to Telegram but designed for communities.
+
+### Step 1: Create Discord Bot
+
+1. Go to https://discord.com/developers/applications
+2. Click "New Application"
+3. Navigate to "Bot"
+4. Click "Add Bot"
+5. **Save the Token!**
+6. Enable "Message Content Intent"
+
+### Step 2: Configuration
+
+```env
+# Discord Bot
+DISCORD_BOT_TOKEN=your_token_here
+DISCORD_CLIENT_ID=your_client_id
+DISCORD_ENABLED=true
+```
+
+### Step 3: Discord Integration Service
+
+```typescript
+// src/lib/integrations/discord.ts
+
+class DiscordService {
+  private config: DiscordConfig | null = null;
+  private baseUrl = 'https://discord.com/api/v10';
+  
+  async sendMessage(channelId: string, content: string): Promise<void> {
+    await fetch(`${this.baseUrl}/channels/${channelId}/messages`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bot ${this.config.botToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ content }),
+    });
+  }
+  
+  // Discord uses websockets for real-time, consider discord.js library
+}
+
+export const discordService = new DiscordService();
+```
+
+---
+
+## Security Considerations
+
+When connecting to external platforms, security is critical.
+
+### 1. Verify Webhook Signatures
+
+```typescript
+// Always verify requests come from the platform
+
+function verifyTelegramSignature(token: string, body: string): boolean {
+  // Telegram doesn't sign webhooks, but you can verify the bot token
+  return true; // In production, add IP whitelist
+}
+
+function verifySlackSignature(secret: string, body: string, signature: string, timestamp: string): boolean {
+  const crypto = require('crypto');
+  const base = `v0:${timestamp}:${body}`;
+  const hmac = crypto.createHmac('sha256', secret).update(base).digest('hex');
+  return `v0=${hmac}` === signature;
+}
+
+function verifyDiscordSignature(publicKey: string, body: string, signature: string, timestamp: string): boolean {
+  // Use tweetnacl or similar for Ed25519 verification
+}
+```
+
+### 2. Authorized Users Only
+
+```typescript
+// Only allow specific users
+
+const ALLOWED_USERS = process.env.ALLOWED_TELEGRAM_USERS?.split(',') || [];
+
+async function handleTelegramMessage(message: TelegramMessage) {
+  const userId = message.from?.id?.toString();
+  
+  if (ALLOWED_USERS.length > 0 && !ALLOWED_USERS.includes(userId)) {
+    console.log(`[Telegram] Unauthorized user: ${userId}`);
+    return; // Ignore unauthorized users
+  }
+  
+  // Process authorized message
+}
+```
+
+### 3. Never Expose Secrets in Logs
+
+```typescript
+// Bad
+console.log('Sending message with token:', botToken);
+
+// Good
+console.log('Sending message to chat:', chatId);
+```
+
+### 4. Rate Limiting
+
+```typescript
+// Prevent spam
+
+const MESSAGE_COOLDOWN = 3000; // 3 seconds per user
+const lastMessage = new Map<string, number>();
+
+async function handleTelegramMessage(message: TelegramMessage) {
+  const userId = message.from?.id?.toString();
+  const now = Date.now();
+  const last = lastMessage.get(userId) || 0;
+  
+  if (now - last < MESSAGE_COOLDOWN) {
+    return; // Ignore messages during cooldown
+  }
+  
+  lastMessage.set(userId, now);
+  
+  // Process message
+}
+```
+
+---
+
+## Multi-Platform Strategy
+
+### Single Brain, Many Channels
+
+Your AI Dashboard can handle all platforms simultaneously:
+
+```
+                 ┌─────────────┐
+                 │   AI Core   │
+                 │  (One Brain) │
+                 └──────┬──────┘
+                        │
+        ┌───────────────┼───────────────┐
+        │               │               │
+   ┌────┴───┐    ┌─────┴─────┐    ┌─────┴────┐
+   │Telegram│    │  Slack    │    │  Notion  │
+   │Service │    │  Service  │    │ Service  │
+   └────┬───┘    └─────┬─────┘    └─────┬────┘
+        │               │               │
+   ┌────┴───┐    ┌─────┴─────┐    ┌─────┴────┐
+   │ Bot    │    │  Slack    │    │ Notion   │
+   │API     │    │  API      │    │ API      │
+   └────────┘    └───────────┘    └──────────┘
+```
+
+### Unified Message Handler
+
+```typescript
+// src/lib/integrations/unified-handler.ts
+
+interface UnifiedMessage {
+  platform: 'telegram' | 'slack' | 'discord' | 'notion';
+  userId: string;
+  userName: string;
+  content: string;
+  attachments?: File[];
+  timestamp: number;
+}
+
+class UnifiedHandler {
+  async process(message: UnifiedMessage): Promise<string> {
+    // Log incoming message
+    await this.logMessage(message);
+    
+    // Get conversation history
+    const history = await this.getHistory(message.userId);
+    
+    // Generate AI response
+    const response = await this.generateAIResponse(message, history);
+    
+    // Log outgoing message
+    await this.logResponse(message.userId, response);
+    
+    return response;
+  }
+  
+  private async generateAIResponse(message: UnifiedMessage, history: Message[]): Promise<string> {
+    // Use your AI Dashboard's model router
+    const modelRouter = getModelRouter();
+    return await modelRouter.chat(message.content, { history });
+  }
+}
+
+export const unifiedHandler = new UnifiedHandler();
+```
+
+---
+
+## Platform Comparison
+
+| Feature | Telegram | Slack | Discord | Notion |
+|---------|----------|-------|---------|--------|
+| **Cost** | Free | Free tier | Free | Free tier |
+| **Setup Difficulty** | Easy | Medium | Medium | Medium |
+| **Real-time Chat** | ✅ | ✅ | ✅ | ❌ |
+| **File Support** | ✅ | ✅ | ✅ | ✅ |
+| **Rich Formatting** | Markdown | Markdown | Markdown | Rich Text |
+| **User Base** | General | Business | Gaming/Community | Productivity |
+| **Best For** | Personal bots | Team notifications | Community | Knowledge base |
+| **Webhook Security** | Basic | HMAC signatures | Ed25519 | Internal only |
+
+---
+
+## PROMPT YOU CAN USE
+
+Here's a prompt to create a new messaging integration:
+
+```
+Create a messaging integration for [PLATFORM NAME] in my AI Dashboard.
+
+## Platform Details
+- Name: [PLATFORM NAME]
+- API Documentation: [LINK TO API DOCS]
+- Authentication: [OAuth / API Key / Token]
+
+## What I Need
+1. Integration service at src/lib/integrations/[platform].ts
+2. Type definitions for:
+   - Configuration
+   - Messages
+   - Events
+3. API route for webhooks at src/app/api/[platform]/route.ts
+4. Management page at src/app/[platform]/page.tsx
+5. Environment variables in .env.example
+
+## Requirements
+- Send messages to platform
+- Receive messages via webhook
+- Parse commands (/[command] format)
+- Route to AI for response
+- Log all messages
+- Handle errors gracefully
+- Support message threading
+
+## Security
+- Verify webhook signatures
+- Rate limiting per user
+- Authorized user whitelist
+
+Include TypeScript types and error handling.
+```
+
+---
+
+## Key Takeaways
+
+✅ **Same pattern for all platforms** — Config, Service, API Route, UI
+
+✅ **Telegram is easiest** — Great for learning the pattern
+
+✅ **Slack for business** — Perfect for team notifications
+
+✅ **Notion for documents** — Knowledge base integration
+
+✅ **Security matters** — Verify signatures, rate limit, whitelist
+
+✅ **Unified core** — One AI handles all platforms
+
+✅ **Use the prompt template** — Create new integrations quickly
+
+---
+
+**Next: Chapter 19 - Troubleshooting Common Issues**
 

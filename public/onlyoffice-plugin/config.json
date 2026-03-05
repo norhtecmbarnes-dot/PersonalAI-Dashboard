@@ -1,0 +1,47 @@
+{
+  "name": "AI Dashboard Tools",
+  "nameLocale": {
+    "ru": "Инструменты AI Dashboard",
+    "fr": "Outils AI Dashboard",
+    "es": "Herramientas AI Dashboard",
+    "de": "AI Dashboard Werkzeuge"
+  },
+  "guid": "asc.aidashboard.tools",
+  "version": "1.0.0",
+  "minVersion": "8.0.0",
+  "variations": [
+    {
+      "description": "Advanced AI tools for spreadsheets and presentations powered by AI Dashboard",
+      "descriptionLocale": {
+        "ru": "Продвинутые инструменты ИИ для таблиц и презентаций",
+        "fr": "Outils IA avancés pour les tableaux et présentations",
+        "es": "Herramientas de IA avanzadas para hojas de cálculo y presentaciones"
+      },
+      "url": "index.html",
+      "icons": "resources/icon%(scale)s.png",
+      "isViewer": false,
+      "EditorsSupport": ["word", "cell", "slide"],
+      "type": "panel",
+      "initDataType": "none",
+      "buttons": [
+        {
+          "text": "AI Tools",
+          "textLocale": {
+            "ru": "Инструменты ИИ",
+            "fr": "Outils IA",
+            "es": "Herramientas IA"
+          },
+          "primary": true
+        }
+      ],
+      "store": {
+        "background": {
+          "light": "linear-gradient(90deg, #6366f1 0%, #8b5cf6 100%)",
+          "dark": "linear-gradient(90deg, #4f46e5 0%, #7c3aed 100%)"
+        },
+        "categories": ["specAbilities", "work"]
+      }
+    }
+  ],
+  "onlyofficeScheme": true
+}

@@ -1,5 +1,7 @@
 import initSqlJs, { Database as SqlJsDatabase } from 'sql.js';
 import { v4 as uuidv4 } from 'uuid';
+import * as fs from 'fs';
+import * as path from 'path';
 
 let db: SqlJsDatabase | null = null;
 let dbPath: string = '';
@@ -23,9 +25,6 @@ async function initDb(): Promise<SqlJsDatabase> {
   }
   
   // Node.js runtime - use file-based storage ONLY
-  const path = await import('path');
-  const fs = await import('fs');
-  
   const wasmPath = path.join(process.cwd(), 'node_modules', 'sql.js', 'dist', 'sql-wasm.wasm');
   const wasmBinary = fs.readFileSync(wasmPath);
   
@@ -54,12 +53,11 @@ async function initDb(): Promise<SqlJsDatabase> {
   return db;
 }
 
-async function saveDb(): Promise<void> {
+function saveDb(): void {
   if (db && dbPath) {
     const data = db.export();
     const buffer = Buffer.from(data);
     try {
-      const fs = await import('fs');
       fs.writeFileSync(dbPath, buffer);
       console.log('[SQLite] Database saved to:', dbPath);
     } catch (e) {
@@ -870,7 +868,7 @@ export class SQLDatabase {
     db.run(`CREATE INDEX IF NOT EXISTS idx_prompts_category ON prompts(category)`);
     db.run(`CREATE INDEX IF NOT EXISTS idx_prompts_title ON prompts(title)`);
     
-    await saveDb();
+    saveDb();
   }
 
   private parseTags(tags: string | string[] | undefined | null): string[] {
@@ -898,7 +896,7 @@ export class SQLDatabase {
        contact.source || null, now, now]
     );
 
-    await saveDb();
+    saveDb();
     return { ...contact, id, createdAt: now, updatedAt: now };
   }
 
@@ -919,14 +917,14 @@ export class SQLDatabase {
        updated.source || null, now, id]
     );
 
-    await saveDb();
+    saveDb();
     return updated;
   }
 
   deleteContact(id: string): boolean {
     if (!db) throw new Error('Database not initialized');
     db.run('DELETE FROM contacts WHERE id = ?', [id]);
-    await saveDb();
+    saveDb();
     return true;
   }
 
@@ -1000,7 +998,7 @@ export class SQLDatabase {
        event.status || 'pending', event.source || null, now, now]
     );
 
-    await saveDb();
+    saveDb();
     return { ...event, id, createdAt: now, updatedAt: now };
   }
 
@@ -1021,14 +1019,14 @@ export class SQLDatabase {
        updated.status, updated.source || null, now, id]
     );
 
-    await saveDb();
+    saveDb();
     return updated;
   }
 
   deleteEvent(id: string): boolean {
     if (!db) throw new Error('Database not initialized');
     db.run('DELETE FROM events WHERE id = ?', [id]);
-    await saveDb();
+    saveDb();
     return true;
   }
 
@@ -1096,7 +1094,7 @@ export class SQLDatabase {
        task.source || null, now, now]
     );
 
-    await saveDb();
+    saveDb();
     return { ...task, id, createdAt: now, updatedAt: now };
   }
 
@@ -1117,14 +1115,14 @@ export class SQLDatabase {
        updated.source || null, now, id]
     );
 
-    await saveDb();
+    saveDb();
     return updated;
   }
 
   deleteTask(id: string): boolean {
     if (!db) throw new Error('Database not initialized');
     db.run('DELETE FROM tasks WHERE id = ?', [id]);
-    await saveDb();
+    saveDb();
     return true;
   }
 
@@ -1196,7 +1194,7 @@ export class SQLDatabase {
        note.color || 'yellow', now, now]
     );
 
-    await saveDb();
+    saveDb();
     return { ...note, id, createdAt: now, updatedAt: now };
   }
 
@@ -1223,14 +1221,14 @@ export class SQLDatabase {
        now, id]
     );
 
-    await saveDb();
+    saveDb();
     return updated;
   }
 
   deleteNote(id: string): boolean {
     if (!db) throw new Error('Database not initialized');
     db.run('DELETE FROM notes WHERE id = ?', [id]);
-    await saveDb();
+    saveDb();
     return true;
   }
 
@@ -1293,7 +1291,7 @@ export class SQLDatabase {
        activity.source || null, activity.rawData || null, now]
     );
 
-    await saveDb();
+    saveDb();
     return { ...activity, id, createdAt: now };
   }
 
@@ -1358,14 +1356,14 @@ export class SQLDatabase {
        raw.date || null, raw.metadata ? JSON.stringify(raw.metadata) : null, 0, null, now]
     );
 
-    await saveDb();
+    saveDb();
     return { ...raw, id, processed: false, createdAt: now };
   }
 
   markProcessed(id: string, result: string): boolean {
     if (!db) throw new Error('Database not initialized');
     db.run('UPDATE raw_data SET processed = 1, processing_result = ? WHERE id = ?', [result, id]);
-    await saveDb();
+    saveDb();
     return true;
   }
 
@@ -1503,7 +1501,7 @@ export class SQLDatabase {
     db.run('DELETE FROM activities');
     db.run('DELETE FROM raw_data');
     db.run('DELETE FROM vector_lake');
-    await saveDb();
+    saveDb();
   }
 
   // Vector Lake Methods
@@ -1520,7 +1518,7 @@ export class SQLDatabase {
        entry.answer, entry.embedding, 1, now, now, entry.expiresAt || null]
     );
 
-    await saveDb();
+    saveDb();
     return { ...entry, id, accessCount: 1, lastAccessed: now, createdAt: now };
   }
 
@@ -1554,7 +1552,7 @@ export class SQLDatabase {
   incrementAccessCount(id: string): void {
     if (!db) throw new Error('Database not initialized');
     db.run('UPDATE vector_lake SET access_count = access_count + 1, last_accessed = ? WHERE id = ?', [Date.now(), id]);
-    await saveDb();
+    saveDb();
   }
 
   getPopularQueries(limit: number = 10): VectorLakeEntry[] {
@@ -1574,7 +1572,7 @@ export class SQLDatabase {
   deleteVectorLakeEntry(id: string): boolean {
     if (!db) throw new Error('Database not initialized');
     db.run('DELETE FROM vector_lake WHERE id = ?', [id]);
-    await saveDb();
+    saveDb();
     return true;
   }
 
@@ -1582,7 +1580,7 @@ export class SQLDatabase {
     if (!db) throw new Error('Database not initialized');
     const now = Date.now();
     const result = db.exec('DELETE FROM vector_lake WHERE expires_at IS NOT NULL AND expires_at < ?', [now]);
-    await saveDb();
+    saveDb();
     return result.length;
   }
 
@@ -1663,7 +1661,7 @@ export class SQLDatabase {
       `INSERT INTO folders (id, name, parent_id, description, color, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [id, folder.name, folder.parentId || null, folder.description || null, folder.color || null, now, now]
     );
-    await saveDb();
+    saveDb();
     return { ...folder, id, createdAt: now, updatedAt: now };
   }
 
@@ -1695,14 +1693,14 @@ export class SQLDatabase {
       `UPDATE folders SET name = ?, parent_id = ?, description = ?, color = ?, updated_at = ? WHERE id = ?`,
       [updated.name, updated.parentId || null, updated.description || null, updated.color || null, updated.updatedAt, id]
     );
-    await saveDb();
+    saveDb();
     return updated;
   }
 
   deleteFolder(id: string): boolean {
     if (!db) throw new Error('Database not initialized');
     db.run('DELETE FROM folders WHERE id = ?', [id]);
-    await saveDb();
+    saveDb();
     return true;
   }
 
@@ -1730,7 +1728,7 @@ export class SQLDatabase {
       [id, brand.name, brand.description || null, brand.website || null, JSON.stringify(brand.contacts || []),
        brand.notes || null, JSON.stringify(brand.tags || []), JSON.stringify(brand.documents || []), now, now]
     );
-    await saveDb();
+    saveDb();
     return { ...brand, id, createdAt: now, updatedAt: now };
   }
 
@@ -1758,14 +1756,14 @@ export class SQLDatabase {
       [updated.name, updated.description || null, updated.website || null, JSON.stringify(updated.contacts || []),
        updated.notes || null, JSON.stringify(updated.tags || []), JSON.stringify(updated.documents || []), updated.updatedAt, id]
     );
-    await saveDb();
+    saveDb();
     return updated;
   }
 
   deleteBrand(id: string): boolean {
     if (!db) throw new Error('Database not initialized');
     db.run('DELETE FROM brands WHERE id = ?', [id]);
-    await saveDb();
+    saveDb();
     return true;
   }
 
@@ -1796,7 +1794,7 @@ export class SQLDatabase {
       [id, project.name, project.description || null, project.folderId || null, project.brandId || null,
        project.status || 'active', JSON.stringify(project.tags || []), now, now]
     );
-    await saveDb();
+    saveDb();
     return { ...project, id, createdAt: now, updatedAt: now };
   }
 
@@ -1830,14 +1828,14 @@ export class SQLDatabase {
       [updated.name, updated.description || null, updated.folderId || null, updated.brandId || null,
        updated.status, JSON.stringify(updated.tags || []), updated.updatedAt, id]
     );
-    await saveDb();
+    saveDb();
     return updated;
   }
 
   deleteProject(id: string): boolean {
     if (!db) throw new Error('Database not initialized');
     db.run('DELETE FROM projects WHERE id = ?', [id]);
-    await saveDb();
+    saveDb();
     return true;
   }
 
@@ -1861,7 +1859,7 @@ export class SQLDatabase {
   async run(sql: string, params: any[] = []): Promise<void> {
     if (!db) throw new Error('Database not initialized');
     db.run(sql, params);
-    await saveDb();
+    saveDb();
   }
 
   async get(sql: string, params: any[] = []): Promise<any | null> {
@@ -1892,7 +1890,7 @@ export class SQLDatabase {
        VALUES (?, ?, ?, 'active', 0, ?, NULL)`,
       [id, JSON.stringify(keywords), filters ? JSON.stringify(filters) : null, Date.now()]
     );
-    await saveDb();
+    saveDb();
   }
 
   getSAMSearches(): any[] {
@@ -1931,7 +1929,7 @@ export class SQLDatabase {
     if (parts.length > 0) {
       params.push(id);
       db.run(`UPDATE sam_searches SET ${parts.join(', ')} WHERE id = ?`, params);
-      await saveDb();
+      saveDb();
     }
   }
 
@@ -1939,7 +1937,7 @@ export class SQLDatabase {
     if (!db) throw new Error('Database not initialized');
     db.run('DELETE FROM sam_searches WHERE id = ?', [id]);
     db.run('DELETE FROM sam_opportunities WHERE search_id = ?', [id]);
-    await saveDb();
+    saveDb();
   }
 
   addSAMOpportunity(opp: any, searchId?: string): void {
@@ -1956,7 +1954,7 @@ export class SQLDatabase {
        JSON.stringify(opp.keywords || []), JSON.stringify(opp.matchedKeywords || []),
        Date.now()]
     );
-    await saveDb();
+    saveDb();
   }
 
   getSAMOpportunities(searchId?: string): any[] {
@@ -1991,7 +1989,7 @@ export class SQLDatabase {
     } else {
       db.run('DELETE FROM sam_opportunities');
     }
-    await saveDb();
+    saveDb();
   }
 
   addSAMApiKey(key: string, expiresAt: number): void {
@@ -2001,7 +1999,7 @@ export class SQLDatabase {
        VALUES (?, ?, ?, NULL)`,
       [key, Date.now(), expiresAt]
     );
-    await saveDb();
+    saveDb();
   }
 
   getSAMApiKeys(): any[] {
@@ -2032,7 +2030,7 @@ export class SQLDatabase {
   deleteSAMApiKey(key: string): void {
     if (!db) throw new Error('Database not initialized');
     db.run('DELETE FROM sam_api_keys WHERE key = ?', [key]);
-    await saveDb();
+    saveDb();
   }
 
   // Tracked Opportunities Methods
@@ -2076,7 +2074,7 @@ export class SQLDatabase {
        JSON.stringify(opp.tags || []), opp.userPriority || 'medium', now, now]
     );
     
-    await saveDb();
+    saveDb();
     return { id, createdAt: now };
   }
 
@@ -2182,7 +2180,7 @@ export class SQLDatabase {
     values.push(id);
     
     db.run(`UPDATE tracked_opportunities SET ${fields.join(', ')} WHERE id = ?`, values);
-    await saveDb();
+    saveDb();
     return true;
   }
 
@@ -2192,7 +2190,7 @@ export class SQLDatabase {
     db.run('DELETE FROM opportunity_documents WHERE opportunity_id = ?', [id]);
     db.run('DELETE FROM opportunity_news WHERE opportunity_id = ?', [id]);
     db.run('DELETE FROM tracked_opportunities WHERE id = ?', [id]);
-    await saveDb();
+    saveDb();
     return true;
   }
 
@@ -2215,7 +2213,7 @@ export class SQLDatabase {
       [id, doc.opportunityId, doc.filename, doc.originalName || doc.filename, doc.content, doc.type || 'text', doc.size || 0, now]
     );
     
-    await saveDb();
+    saveDb();
     return { id, uploadedAt: now };
   }
 
@@ -2240,7 +2238,7 @@ export class SQLDatabase {
   deleteOpportunityDocument(docId: string): boolean {
     if (!db) throw new Error('Database not initialized');
     db.run('DELETE FROM opportunity_documents WHERE id = ?', [docId]);
-    await saveDb();
+    saveDb();
     return true;
   }
 
@@ -2264,7 +2262,7 @@ export class SQLDatabase {
       [id, news.opportunityId || null, news.solicitationNumber || '', news.title, news.summary || '', news.source || '', news.url || '', news.newsDate || '', now]
     );
     
-    await saveDb();
+    saveDb();
     return { id, capturedAt: now };
   }
 
@@ -2365,7 +2363,7 @@ export class SQLDatabase {
        doc.content.length, now, now]
     );
     
-    await saveDb();
+    saveDb();
     return { id, createdAt: now };
   }
 
@@ -2437,14 +2435,14 @@ export class SQLDatabase {
       [title, content, type, category, JSON.stringify(tags), JSON.stringify(metadata), size, Date.now(), id]
     );
     
-    await saveDb();
+    saveDb();
     return true;
   }
 
   deleteDocument(id: string): boolean {
     if (!db) throw new Error('Database not initialized');
     db.run('DELETE FROM documents WHERE id = ?', [id]);
-    await saveDb();
+    saveDb();
     return true;
   }
 
@@ -2496,7 +2494,7 @@ export class SQLDatabase {
        JSON.stringify(task.config || {}), now, now]
     );
     
-    await saveDb();
+    saveDb();
     return { id, createdAt: now };
   }
 
@@ -2680,7 +2678,7 @@ export class SQLDatabase {
       ]
     );
     
-    await saveDb();
+    saveDb();
     return true;
   }
 
@@ -2712,7 +2710,7 @@ export class SQLDatabase {
       [id, taskId, result.result || null, JSON.stringify(result.data || {}), result.success ? 1 : 0, now]
     );
     
-    await saveDb();
+    saveDb();
     return { id, createdAt: now };
   }
 
@@ -2748,7 +2746,7 @@ export class SQLDatabase {
     
     db.run(`DELETE FROM task_results WHERE created_at < ?`, [cutoff]);
     
-    await saveDb();
+    saveDb();
   }
 
   recordTaskRun(id: string, success: boolean, result?: string, error?: string): void {
@@ -2767,26 +2765,26 @@ export class SQLDatabase {
       [now, result || null, error || null, runCount, successCount, failCount, now, id]
     );
     
-    await saveDb();
+    saveDb();
   }
 
   deleteScheduledTask(id: string): boolean {
     if (!db) throw new Error('Database not initialized');
     db.run('DELETE FROM scheduled_tasks WHERE id = ?', [id]);
-    await saveDb();
+    saveDb();
     return true;
   }
 
   enableTask(id: string): void {
     if (!db) throw new Error('Database not initialized');
     db.run('UPDATE scheduled_tasks SET enabled = 1, updated_at = ? WHERE id = ?', [Date.now(), id]);
-    await saveDb();
+    saveDb();
   }
 
   disableTask(id: string): void {
     if (!db) throw new Error('Database not initialized');
     db.run('UPDATE scheduled_tasks SET enabled = 0, updated_at = ? WHERE id = ?', [Date.now(), id]);
-    await saveDb();
+    saveDb();
   }
 
   // Chat History Methods
@@ -2817,7 +2815,7 @@ export class SQLDatabase {
        wordCount, now, now]
     );
     
-    await saveDb();
+    saveDb();
     return { id, createdAt: now };
   }
 
@@ -2944,7 +2942,7 @@ export class SQLDatabase {
   deleteChatHistory(id: string): boolean {
     if (!db) throw new Error('Database not initialized');
     db.run('DELETE FROM chat_history WHERE id = ?', [id]);
-    await saveDb();
+    saveDb();
     return true;
   }
 
@@ -3022,7 +3020,7 @@ export class SQLDatabase {
        JSON.stringify(expert.contact || {}), now, now]
     );
     
-    await saveDb();
+    saveDb();
     return { id, createdAt: now };
   }
 
@@ -3059,14 +3057,14 @@ export class SQLDatabase {
     values.push(id);
     
     db.run(`UPDATE experts SET ${fields.join(', ')} WHERE id = ?`, values);
-    await saveDb();
+    saveDb();
     return true;
   }
 
   deleteExpert(id: string): boolean {
     if (!db) throw new Error('Database not initialized');
     db.run('DELETE FROM experts WHERE id = ?', [id]);
-    await saveDb();
+    saveDb();
     return true;
   }
 
@@ -3106,13 +3104,13 @@ export class SQLDatabase {
       `INSERT OR REPLACE INTO settings (key, value, category, updated_at) VALUES (?, ?, ?, ?)`,
       [key, value, category, now]
     );
-    await saveDb();
+    saveDb();
   }
 
   deleteSetting(key: string): boolean {
     if (!db) throw new Error('Database not initialized');
     db.run('DELETE FROM settings WHERE key = ?', [key]);
-    await saveDb();
+    saveDb();
     return true;
   }
 
@@ -3198,7 +3196,7 @@ export class SQLDatabase {
       ]
     );
     
-    await saveDb();
+    saveDb();
     return { id, createdAt: now };
   }
 
@@ -3310,14 +3308,14 @@ export class SQLDatabase {
     values.push(id);
     
     db.run(`UPDATE custom_tools SET ${fields.join(', ')} WHERE id = ?`, values);
-    await saveDb();
+    saveDb();
     return true;
   }
 
   deleteCustomTool(id: string): boolean {
     if (!db) throw new Error('Database not initialized');
     db.run('DELETE FROM custom_tools WHERE id = ?', [id]);
-    await saveDb();
+    saveDb();
     return true;
   }
 
@@ -3392,7 +3390,7 @@ export class SQLDatabase {
         JSON.stringify(prompt.tags || []), JSON.stringify(prompt.variables || []), now, now]
     );
     
-    await saveDb();
+    saveDb();
     return { id, createdAt: now };
   }
 
@@ -3462,20 +3460,20 @@ export class SQLDatabase {
     values.push(id);
     
     db.run(`UPDATE prompts SET ${fields.join(', ')} WHERE id = ?`, values);
-    await saveDb();
+    saveDb();
     return true;
   }
 
   incrementPromptUse(id: string): void {
     if (!db) throw new Error('Database not initialized');
     db.run('UPDATE prompts SET use_count = use_count + 1, updated_at = ? WHERE id = ?', [Date.now(), id]);
-    await saveDb();
+    saveDb();
   }
 
   deletePrompt(id: string): boolean {
     if (!db) throw new Error('Database not initialized');
     db.run('DELETE FROM prompts WHERE id = ?', [id]);
-    await saveDb();
+    saveDb();
     return true;
   }
 
@@ -3503,7 +3501,7 @@ export class SQLDatabase {
 
   close(): void {
     if (db) {
-      await saveDb();
+      saveDb();
       db.close();
       db = null;
     }
@@ -3514,7 +3512,7 @@ export class SQLDatabase {
     try {
       // sql.js doesn't support VACUUM directly, but we can export and reimport
       // For now, just save to optimize
-      await saveDb();
+      saveDb();
     } catch (error) {
       console.error('Error vacuuming database:', error);
     }

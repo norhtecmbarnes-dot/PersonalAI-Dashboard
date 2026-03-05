@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>AI Dashboard Tools</title>
+  <script src="https://onlyoffice.github.io/sdkjs-plugins/v1/plugins.js"></script>
+  <script src="https://onlyoffice.github.io/sdkjs-plugins/v1/plugins-ui.js"></script>
+  <link rel="stylesheet" href="https://onlyoffice.github.io/sdkjs-plugins/v1/plugins.css">
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      margin: 0;
+      padding: 12px;
+      background: #1e1e2e;
+      color: #e2e8f0;
+    }
+    .section { margin-bottom: 16px; }
+    .section-title {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      color: #94a3b8;
+      margin-bottom: 8px;
+    }
+    .tabs {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 12px;
+    }
+    .tab {
+      flex: 1;
+      padding: 8px;
+      border: none;
+      border-radius: 6px;
+      background: #334155;
+      color: #94a3b8;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    .tab.active {
+      background: #6366f1;
+      color: white;
+    }
+    .btn {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 13px;
+      margin-bottom: 8px;
+      text-align: left;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .btn-green { background: #059669; color: white; }
+    .btn-orange { background: #ea580c; color: white; }
+    .btn-purple { background: #7c3aed; color: white; }
+    .btn-blue { background: #2563eb; color: white; }
+    .btn:hover { opacity: 0.9; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .icon { font-size: 16px; }
+    textarea {
+      width: 100%;
+      height: 80px;
+      padding: 8px;
+      border: 1px solid #475569;
+      border-radius: 6px;
+      background: #0f172a;
+      color: #e2e8f0;
+      font-size: 12px;
+      resize: vertical;
+      margin-bottom: 8px;
+    }
+    input, select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #475569;
+      border-radius: 6px;
+      background: #0f172a;
+      color: #e2e8f0;
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+    .endpoint-input {
+      margin-bottom: 12px;
+    }
+    .label {
+      font-size: 11px;
+      color: #94a3b8;
+      margin-bottom: 4px;
+      display: block;
+    }
+    .result {
+      background: #0f172a;
+      border: 1px solid #475569;
+      border-radius: 6px;
+      padding: 10px;
+      font-size: 12px;
+      max-height: 200px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+    }
+    .loading {
+      text-align: center;
+      padding: 20px;
+      color: #94a3b8;
+    }
+    .hidden { display: none; }
+    .row { display: flex; gap: 8px; }
+    .row > * { flex: 1; }
+  </style>
+</head>
+<body>
+  <div class="section">
+    <label class="label">AI Dashboard Endpoint</label>
+    <input type="text" id="endpoint" value="http://localhost:3000/api/office-ai" placeholder="http://your-server:3000/api/office-ai">
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="spreadsheet">📊 Spreadsheet</button>
+    <button class="tab" data-tab="presentation">📽️ Presentation</button>
+  </div>
+
+  <!-- Spreadsheet Tools -->
+  <div id="spreadsheet-panel">
+    <div class="section">
+      <div class="section-title">Quick Actions</div>
+      <button class="btn btn-green" onclick="analyzeData()">
+        <span class="icon">📊</span> Analyze Selection
+      </button>
+      <button class="btn btn-blue" onclick="generateFormula()">
+        <span class="icon">ƒx</span> Generate Formula
+      </button>
+      <button class="btn btn-purple" onclick="suggestChart()">
+        <span class="icon">📈</span> Suggest Chart
+      </button>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Advanced</div>
+      <button class="btn btn-orange" onclick="cleanData()">
+        <span class="icon">🧹</span> Clean Data
+      </button>
+      <button class="btn btn-orange" onclick="predictValues()">
+        <span class="icon">🔮</span> Predict Values
+      </button>
+      <button class="btn btn-orange" onclick="generateData()">
+        <span class="icon">✨</span> Generate Sample Data
+      </button>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Custom Prompt</div>
+      <textarea id="spreadsheet-prompt" placeholder="Describe what you want to do with the data..."></textarea>
+      <button class="btn btn-green" onclick="customSpreadsheet()">
+        <span class="icon">🚀</span> Run
+      </button>
+    </div>
+  </div>
+
+  <!-- Presentation Tools -->
+  <div id="presentation-panel" class="hidden">
+    <div class="section">
+      <div class="section-title">Slide Tools</div>
+      <button class="btn btn-orange" onclick="convertToBullets()">
+        <span class="icon">•</span> Convert to Bullets
+      </button>
+      <button class="btn btn-orange" onclick="generateSpeakerNotes()">
+        <span class="icon">🎤</span> Speaker Notes
+      </button>
+      <button class="btn btn-orange" onclick="improveSlide()">
+        <span class="icon">✏️</span> Improve Slide
+      </button>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Create New</div>
+      <button class="btn btn-blue" onclick="createOutline()">
+        <span class="icon">📋</span> Create Outline
+      </button>
+      <button class="btn btn-blue" onclick="createFromOutline()">
+        <span class="icon">🏗️</span> Slides from Outline
+      </button>
+    </div>
+
+    <div class="section">
+      <div class="section-title">Presentation Details</div>
+      <input type="text" id="topic" placeholder="Presentation topic...">
+      <div class="row">
+        <input type="text" id="audience" placeholder="Audience">
+        <input type="number" id="duration" placeholder="Minutes" value="15">
+      </div>
+    </div>
+  </div>
+
+  <!-- Result -->
+  <div class="section">
+    <div class="section-title">Result</div>
+    <div id="result" class="result" style="display:none;"></div>
+    <div id="loading" class="loading" style="display:none;">
+      <span>⏳ Processing with AI...</span>
+    </div>
+  </div>
+
+  <button class="btn btn-green" onclick="insertResult()">
+    <span class="icon">📝</span> Insert Result
+  </button>
+
+  <script>
+    let lastResult = '';
+    let currentTab = 'spreadsheet';
+
+    // Tab switching
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        currentTab = tab.dataset.tab;
+        document.getElementById('spreadsheet-panel').classList.toggle('hidden', currentTab !== 'spreadsheet');
+        document.getElementById('presentation-panel').classList.toggle('hidden', currentTab !== 'presentation');
+      });
+    });
+
+    function showLoading() {
+      document.getElementById('loading').style.display = 'block';
+      document.getElementById('result').style.display = 'none';
+    }
+
+    function hideLoading() {
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('result').style.display = 'block';
+    }
+
+    function showResult(text) {
+      lastResult = text;
+      document.getElementById('result').textContent = text;
+      hideLoading();
+    }
+
+    function showError(text) {
+      showResult('Error: ' + text);
+    }
+
+    async function callAI(type, action, data) {
+      const endpoint = document.getElementById('endpoint').value;
+      showLoading();
+
+      try {
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type, action, data })
+        });
+
+        const json = await response.json();
+
+        if (json.success) {
+          const result = json.analysis || json.formula || json.cleanedData || 
+                         JSON.stringify(json.chartConfig, null, 2) || json.predictions ||
+                         json.csv || json.bullets?.join('\n• ') || json.speakerNotes ||
+                         json.outline || json.improvements || json.summary || json.slides ||
+                         JSON.stringify(json, null, 2);
+          showResult(result);
+        } else {
+          showError(json.error || 'Unknown error');
+        }
+      } catch (e) {
+        showError(e.message);
+      }
+    }
+
+    async function getSelectedText() {
+      return new Promise((resolve) => {
+        window.Asc.plugin.executeMethod('GetSelectedText', [], (text) => {
+          resolve(text || '');
+        });
+      });
+    }
+
+    function insertText(text) {
+      window.Asc.plugin.executeMethod('PasteText', [text]);
+    }
+
+    function insertResult() {
+      if (lastResult) {
+        insertText(lastResult);
+      }
+    }
+
+    // Spreadsheet functions
+    async function analyzeData() {
+      const text = await getSelectedText();
+      if (!text) {
+        showError('Please select data first');
+        return;
+      }
+      await callAI('spreadsheet', 'analyze', { spreadsheetData: text });
+    }
+
+    async function generateFormula() {
+      const requirement = prompt('What should the formula do?');
+      if (!requirement) return;
+      
+      const text = await getSelectedText();
+      const columns = text.split('\n')[0]?.split(',').map(c => c.trim()) || [];
+      
+      await callAI('spreadsheet', 'formula', { requirement, columns });
+    }
+
+    async function suggestChart() {
+      const text = await getSelectedText();
+      if (!text) {
+        showError('Please select data first');
+        return;
+      }
+      const purpose = prompt('What should the chart show? (optional)') || '';
+      await callAI('spreadsheet', 'chart', { spreadsheetData: text, purpose });
+    }
+
+    async function cleanData() {
+      const text = await getSelectedText();
+      if (!text) {
+        showError('Please select data first');
+        return;
+      }
+      const instructions = prompt('Cleaning instructions (optional):') || 'Standardize formatting, remove duplicates';
+      await callAI('spreadsheet', 'clean', { spreadsheetData: text, instructions });
+    }
+
+    async function predictValues() {
+      const text = await getSelectedText();
+      if (!text) {
+        showError('Please select data first');
+        return;
+      }
+      const predictionType = prompt('Predict what? (e.g., next 5 periods)') || 'next 5 periods';
+      await callAI('spreadsheet', 'predict', { spreadsheetData: text, predictionType });
+    }
+
+    async function generateData() {
+      const prompt = document.getElementById('spreadsheet-prompt').value || prompt('Describe the data to generate:');
+      if (!prompt) return;
+      await callAI('spreadsheet', 'generate-data', { prompt, rows: 10 });
+    }
+
+    async function customSpreadsheet() {
+      const prompt = document.getElementById('spreadsheet-prompt').value;
+      if (!prompt) {
+        showError('Please enter a prompt');
+        return;
+      }
+      // Default to analysis with custom prompt
+      const text = await getSelectedText();
+      await callAI('spreadsheet', 'analyze', { spreadsheetData: text + '\n\nRequest: ' + prompt });
+    }
+
+    // Presentation functions
+    async function convertToBullets() {
+      const text = await getSelectedText();
+      if (!text) {
+        showError('Please select content first');
+        return;
+      }
+      await callAI('presentation', 'bullets', { content: text, style: 'professional and concise' });
+    }
+
+    async function generateSpeakerNotes() {
+      const text = await getSelectedText();
+      const title = prompt('Slide title (optional):') || 'Slide';
+      await callAI('presentation', 'speaker-notes', { title, content: text || '' });
+    }
+
+    async function improveSlide() {
+      const text = await getSelectedText();
+      const title = prompt('Slide title (optional):') || 'Untitled';
+      await callAI('presentation', 'improve', { title, content: text || '' });
+    }
+
+    async function createOutline() {
+      const topic = document.getElementById('topic').value || prompt('Presentation topic:');
+      const audience = document.getElementById('audience').value || 'general audience';
+      const duration = parseInt(document.getElementById('duration').value) || 15;
+      
+      if (!topic) {
+        showError('Please enter a topic');
+        return;
+      }
+      await callAI('presentation', 'outline', { topic, audience, duration, purpose: 'inform' });
+    }
+
+    async function createFromOutline() {
+      const outline = await getSelectedText();
+      if (!outline) {
+        showError('Please select an outline first');
+        return;
+      }
+      await callAI('presentation', 'create-from-outline', { outline });
+    }
+
+    // Initialize plugin
+    window.Asc.plugin.init = function() {
+      console.log('AI Dashboard Tools plugin initialized');
+    };
+  </script>
+</body>
+</html>

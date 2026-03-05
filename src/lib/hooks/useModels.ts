@@ -76,14 +76,15 @@ export function useModels() {
     } catch (err) {
       console.error('Error loading models:', err);
       setError(err instanceof Error ? err.message : 'Failed to load models');
-      // Fallback models - prefer 7-9B range
+      // Fallback models - match actual available models
       setModels([
-        { id: 'ollama/qwen2.5:7b', name: 'qwen2.5:7b', provider: 'ollama', description: '7B - good balance of speed and capability' },
-        { id: 'ollama/llama3.1:8b', name: 'llama3.1:8b', provider: 'ollama', description: '8B - excellent middle ground' },
-        { id: 'ollama/gemma2:9b', name: 'gemma2:9b', provider: 'ollama', description: '9B - great performance' },
-        { id: 'ollama/llama3.2', name: 'llama3.2', provider: 'ollama', description: '3B - lightweight fallback' },
+        { id: 'ollama/qwen3.5:2b', name: 'qwen3.5:2b', provider: 'ollama', description: '2.3B - fast, near GPT-4 mini performance' },
+        { id: 'ollama/qwen2.5:14b', name: 'qwen2.5:14b', provider: 'ollama', description: '14.8B - more capable, better reasoning' },
+        { id: 'ollama/llama4:scout', name: 'llama4:scout', provider: 'ollama', description: '108.6B - very capable but slow on CPU' },
+        { id: 'ollama/glm-4.7-flash', name: 'glm-4.7-flash', provider: 'ollama', description: '29.9B - excellent multilingual model' },
+        { id: 'ollama/gpt-oss:latest', name: 'gpt-oss:latest', provider: 'ollama', description: '20.9B - open source GPT model' },
       ]);
-      setSelectedModel('ollama/qwen2.5:7b');
+      setSelectedModel('ollama/qwen3.5:2b');
     } finally {
       setLoading(false);
     }
