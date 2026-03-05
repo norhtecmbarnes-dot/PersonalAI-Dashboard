@@ -256,6 +256,61 @@ export default function BrandWorkspacePage() {
     }
   };
 
+  const deleteBrand = async (brandId: string, brandName: string) => {
+    if (!confirm(`Are you sure you want to delete "${brandName}"?\n\nThis will permanently delete:\n- The brand\n- All ${brands.find(b => b.id === brandId) ? 'brand documents' : 'documents'}\n- All projects\n- All chat sessions\n\nThis action cannot be undone.`)) {
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/brand-workspace/brands', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete', id: brandId }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        await loadBrands();
+        if (selectedBrand?.id === brandId) {
+          setSelectedBrand(null);
+          setSelectedProject(null);
+          setViewMode('brands');
+        }
+      }
+    } catch (error) {
+      console.error('Error deleting brand:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const deleteProject = async (projectId: string, projectName: string) => {
+    if (!confirm(`Are you sure you want to delete "${projectName}"?\n\nThis will permanently delete:\n- The project\n- All project documents\n- All chat sessions\n\nThis action cannot be undone.`)) {
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/brand-workspace/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'delete', id: projectId }),
+      });
+      const data = await response.json();
+      if (data.success && selectedBrand) {
+        await loadProjects(selectedBrand.id);
+        if (selectedProject?.id === projectId) {
+          setSelectedProject(null);
+          setViewMode('projects');
+        }
+      }
+    } catch (error) {
+      console.error('Error deleting project:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const uploadDocument = async (files: FileList) => {
     if (!selectedBrand || !files.length) return;
 
@@ -409,15 +464,24 @@ export default function BrandWorkspacePage() {
                 <div className="space-y-2">
                   {brands.map(brand => (
                     <div key={brand.id} className="w-full">
-                      <button
-                        onClick={() => selectBrand(brand)}
-                        className="w-full text-left p-3 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
-                      >
-                        <div className="font-medium">{brand.name}</div>
-                        {brand.industry && (
-                          <div className="text-sm text-gray-400">{brand.industry}</div>
-                        )}
-                      </button>
+                      <div className="flex gap-1">
+                        <button
+                          onClick={() => selectBrand(brand)}
+                          className="flex-1 text-left p-3 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+                        >
+                          <div className="font-medium">{brand.name}</div>
+                          {brand.industry && (
+                            <div className="text-sm text-gray-400">{brand.industry}</div>
+                          )}
+                        </button>
+                        <button
+                          onClick={() => deleteBrand(brand.id, brand.name)}
+                          className="px-2 py-2 bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white rounded-lg transition-colors"
+                          title="Delete brand"
+                        >
+                          🗑️
+                        </button>
+                      </div>
                       <button
                         onClick={() => {
                           setSelectedBrand(brand);
@@ -461,21 +525,29 @@ export default function BrandWorkspacePage() {
                 </div>
                 <div className="space-y-2">
                   {projects.map(project => (
-                    <button
-                      key={project.id}
-                      onClick={() => selectProject(project)}
-                      className={`w-full text-left p-3 rounded-lg transition-colors ${
-                        selectedProject?.id === project.id
-                          ? 'bg-purple-900/50 border border-purple-500'
-                          : 'bg-gray-700 hover:bg-gray-600'
-                      }`}
-                    >
-                      <div className="font-medium">{project.name}</div>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-xs px-2 py-0.5 bg-gray-600 rounded">{project.type}</span>
-                        <span className="text-xs text-gray-400">{project.status}</span>
-                      </div>
-                    </button>
+                    <div key={project.id} className="flex gap-1">
+                      <button
+                        onClick={() => selectProject(project)}
+                        className={`flex-1 text-left p-3 rounded-lg transition-colors ${
+                          selectedProject?.id === project.id
+                            ? 'bg-purple-900/50 border border-purple-500'
+                            : 'bg-gray-700 hover:bg-gray-600'
+                        }`}
+                      >
+                        <div className="font-medium">{project.name}</div>
+                        <div className="flex items-center gap-2 mt-1">
+                          <span className="text-xs px-2 py-0.5 bg-gray-600 rounded">{project.type}</span>
+                          <span className="text-xs text-gray-400">{project.status}</span>
+                        </div>
+                      </button>
+                      <button
+                        onClick={() => deleteProject(project.id, project.name)}
+                        className="px-2 py-2 bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white rounded-lg transition-colors self-start mt-3"
+                        title="Delete project"
+                      >
+                        🗑️
+                      </button>
+                    </div>
                   ))}
                   {projects.length === 0 && (
                     <div className="text-gray-500 text-sm text-center py-4">
