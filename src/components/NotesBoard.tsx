@@ -178,7 +178,8 @@ export function NotesBoard({ onEditNote }: NotesBoardProps) {
   }, [notes]);
 
   const deleteNote = useCallback(async (id: string) => {
-    if (!confirm('Delete this note?')) return;
+    const confirmed = window.confirm('Delete this note?');
+    if (!confirmed) return;
     
     try {
       await fetch('/api/database', {
@@ -280,11 +281,16 @@ export function NotesBoard({ onEditNote }: NotesBoardProps) {
                   onClick={(e) => e.stopPropagation()}
                 />
                 <button
+                  onMouseDown={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                  }}
                   onClick={(e) => {
                     e.stopPropagation();
+                    e.preventDefault();
                     deleteNote(note.id);
                   }}
-                  className={`p-1 ${colorStyle.text} opacity-60 hover:opacity-100`}
+                  className={`p-1 ${colorStyle.text} opacity-60 hover:opacity-100 hover:bg-red-500/20 rounded transition-colors`}
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
