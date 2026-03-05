@@ -299,7 +299,7 @@ This is a KEY chapter for enterprise adoption. Cover:
 - Sensitive data cannot leave organization
 - Compliance requirements
 - Cost control at scale
-- No vendor lock-in
+- No vendor lock-in — you're not forced into proprietary systems, you default to what works best for you
 
 **Deployment Options:**
 - Single server (VPS, bare metal)
