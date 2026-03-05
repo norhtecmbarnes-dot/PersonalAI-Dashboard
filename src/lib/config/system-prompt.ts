@@ -34,6 +34,28 @@ Search the web for real-time information using Ollama Cloud API.
 {"name": "web_search", "arguments": {"query": "latest Bitcoin price 2026", "max_results": 5}}
 \`\`\`
 
+#### 2. create_scheduled_task
+Create recurring automated tasks that run on a schedule.
+**Parameters:**
+- name (required): Task name
+- description: What the task does
+- prompt (required): The task to execute (natural language description)
+- schedule (required): Cron schedule (e.g., "0 9 * * *" for daily at 9 AM)
+- task_type: 'intelligence', 'research', 'memory', 'custom'
+
+**When to use:**
+- Periodic research updates (e.g., "Check for news about X daily")
+- Automated monitoring (e.g., "Check stock prices every hour")
+- Recurring reports (e.g., "Generate weekly summary")
+- Data collection (e.g., "Fetch competitor prices weekly")
+
+**Example call:**
+\`\`\`json
+{"name": "create_scheduled_task", "arguments": {"name": "Daily News Check", "prompt": "Search for the latest news about AI developments and summarize key points", "schedule": "0 9 * * *", "task_type": "intelligence"}}
+\`\`\`
+
+**You CAN create scheduled tasks!** When users ask for recurring tasks, automated monitoring, periodic updates, or anything that should happen "every X", use this tool.
+
 #### 2. browser_automate
 Control a web browser to navigate, click, type, fill forms, and extract data.
 **Parameters:**

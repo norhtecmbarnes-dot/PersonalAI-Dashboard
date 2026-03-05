@@ -303,6 +303,12 @@ class TaskScheduler {
         case 'web_check':
           result = await this.executeWebCheckTask(task);
           break;
+        case 'memory_capture':
+          result = await this.executeMemoryCaptureTask(task);
+          break;
+        case 'memory_archive':
+          result = await this.executeMemoryArchiveTask(task);
+          break;
         case 'rl_training':
           result = await this.executeRLTrainingTask(task);
           break;
@@ -315,6 +321,11 @@ class TaskScheduler {
         default:
           throw new Error(`Unknown task type: ${task.taskType}`);
       }
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      return { success: false, error: errorMessage };
+    }
+  }
 
       // Save result for viewing
       sqlDatabase.recordTaskRun(task.id, result.success, result.result, result.error);
@@ -568,6 +579,118 @@ Summarize:
       return {
         success: false,
         error: error instanceof Error ? error.message : 'Failed to execute custom task',
+      };
+    }
+  }
+
+  private async executeMemoryCaptureTask(task: ScheduledTask): Promise<TaskExecutionResult> {
+    try {
+      const { sqlDatabase } = await import('@/lib/database/sqlite');
+      const { streamChatCompletion } = await import('@/lib/models/sdk.server');
+      
+      // Get recent chat messages from last 10 minutes
+      const recentMessages = await sqlDatabase.all(`
+        SELECT * FROM chat_messages 
+        WHERE timestamp > ? 
+        ORDER BY timestamp DESC 
+        LIMIT 50
+      `, [Date.now() - 10 * 60 * 1000]);
+      
+      if (recentMessages.length === 0) {
+        return { success: true, result: 'No recent messages to capture' };
+      }
+      
+      // Analyze with AI to extract important facts
+      const prompt = `Analyze these recent chat messages and extract important facts, decisions, and preferences to save to memory.
+
+Messages:
+${recentMessages.map(m => `${m.role}: ${m.content}`).join('\n')}
+
+Extract:
+1. User facts (name, preferences, interests)
+2. Important decisions made
+3. Key topics discussed
+4. Action items or tasks mentioned
+
+Return JSON array: [{"category": "user|decision|knowledge", "content": "...", "importance": 5}]`;
+
+      const result = await streamChatCompletion({
+        model: router.getModelId('memory_capture'),
+        messages: [{ role: 'user', content: prompt }],
+      });
+      
+      const response = result.message?.content || String(result.message);
+      
+      // Parse and save memories
+      try {
+        const jsonMatch = response.match(/\[[\s\S]*\]/);
+        if (jsonMatch) {
+          const memories = JSON.parse(jsonMatch[0]);
+          for (const memory of memories.slice(0, 5)) {
+            await sqlDatabase.addMemory({
+              content: memory.content,
+              category: memory.category || 'knowledge',
+              importance: memory.importance || 5,
+              source: 'memory_capture',
+            });
+          }
+        }
+      } catch (e) {
+        console.log('[MemoryCapture] Failed to parse memories:', e);
+      }
+      
+      return {
+        success: true,
+        result: `Captured from ${recentMessages.length} messages`,
+        data: { messageCount: recentMessages.length },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Memory capture failed',
+      };
+    }
+  }
+
+  private async executeMemoryArchiveTask(task: ScheduledTask): Promise<TaskExecutionResult> {
+    try {
+      const { sqlDatabase } = await import('@/lib/database/sqlite');
+      const { memoryArchiver } = await import('@/lib/memory/memory-archiver');
+      
+      // Archive memories older than 30 days with low importance
+      const cutoffDate = Date.now() - (30 * 24 * 60 * 60 * 1000);
+      
+      const oldMemories = await sqlDatabase.all(`
+        SELECT * FROM memory 
+        WHERE created_at < ? AND importance <= 5
+        ORDER BY created_at ASC
+        LIMIT 100
+      `, [cutoffDate]);
+      
+      if (oldMemories.length === 0) {
+        return { success: true, result: 'No memories to archive' };
+      }
+      
+      // Archive memories
+      let archivedCount = 0;
+      for (const memory of oldMemories) {
+        try {
+          await memoryArchiver.archiveMemory(memory.id);
+          archivedCount++;
+        } catch (e) {
+          console.log('[MemoryArchive] Failed to archive:', memory.id, e);
+        }
+      }
+      
+      return {
+        success: true,
+        result: `Archived ${archivedCount} memories`,
+        data: { archivedCount },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Memory archive failed',
       };
     }
   }
