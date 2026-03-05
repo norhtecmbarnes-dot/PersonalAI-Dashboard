@@ -76,13 +76,70 @@ export function useModels() {
     } catch (err) {
       console.error('Error loading models:', err);
       setError(err instanceof Error ? err.message : 'Failed to load models');
-      // Fallback models - match actual available models
+      // Fallback models - comprehensive list of commonly available models
       setModels([
-        { id: 'ollama/qwen3.5:2b', name: 'qwen3.5:2b', provider: 'ollama', description: '2.3B - fast, near GPT-4 mini performance' },
-        { id: 'ollama/qwen2.5:14b', name: 'qwen2.5:14b', provider: 'ollama', description: '14.8B - more capable, better reasoning' },
-        { id: 'ollama/llama4:scout', name: 'llama4:scout', provider: 'ollama', description: '108.6B - very capable but slow on CPU' },
-        { id: 'ollama/glm-4.7-flash', name: 'glm-4.7-flash', provider: 'ollama', description: '29.9B - excellent multilingual model' },
-        { id: 'ollama/gpt-oss:latest', name: 'gpt-oss:latest', provider: 'ollama', description: '20.9B - open source GPT model' },
+        // Local models (Ollama)
+        { id: 'ollama/qwen3.5:2b', name: 'qwen3.5:2b', provider: 'ollama', description: '2.3B - Fast, near GPT-4 mini' },
+        { id: 'ollama/qwen3.5:7b', name: 'qwen3.5:7b', provider: 'ollama', description: '7B - Excellent performance' },
+        { id: 'ollama/qwen3.5:14b', name: 'qwen3.5:14b', provider: 'ollama', description: '14B - More capable reasoning' },
+        { id: 'ollama/qwen3.5:32b', name: 'qwen3.5:32b', provider: 'ollama', description: '32B - Highly capable' },
+        { id: 'ollama/qwen2.5:7b', name: 'qwen2.5:7b', provider: 'ollama', description: '7B - Good balance' },
+        { id: 'ollama/qwen2.5:14b', name: 'qwen2.5:14b', provider: 'ollama', description: '14.8B - Better reasoning' },
+        { id: 'ollama/qwen2.5-coder:7b', name: 'qwen2.5-coder:7b', provider: 'ollama', description: '7B - Code specialist' },
+        { id: 'ollama/llama3.2', name: 'llama3.2', provider: 'ollama', description: '3B - Lightweight fallback' },
+        { id: 'ollama/llama3.2:1b', name: 'llama3.2:1b', provider: 'ollama', description: '1B - Ultra lightweight' },
+        { id: 'ollama/llama3.1:8b', name: 'llama3.1:8b', provider: 'ollama', description: '8B - Good middle ground' },
+        { id: 'ollama/llama3.1:70b', name: 'llama3.1:70b', provider: 'ollama', description: '70B - Very capable (needs GPU)' },
+        { id: 'ollama/llama4:scout', name: 'llama4:scout', provider: 'ollama', description: '108.6B - Very capable (needs GPU)' },
+        { id: 'ollama/glm-4.7-flash', name: 'glm-4.7-flash', provider: 'ollama', description: '29.9B - Multilingual model' },
+        { id: 'ollama/glm-4:9b', name: 'glm-4:9b', provider: 'ollama', description: '9B - Good for general use' },
+        { id: 'ollama/gemma2:9b', name: 'gemma2:9b', provider: 'ollama', description: '9B - Great performance' },
+        { id: 'ollama/gemma2:27b', name: 'gemma2:27b', provider: 'ollama', description: '27B - Excellent (needs GPU)' },
+        { id: 'ollama/mistral:7b', name: 'mistral:7b', provider: 'ollama', description: '7B - Efficient and capable' },
+        { id: 'ollama/mistral-nemo:12b', name: 'mistral-nemo:12b', provider: 'ollama', description: '12B - Good reasoning' },
+        { id: 'ollama/codellama:7b', name: 'codellama:7b', provider: 'ollama', description: '7B - Code generation' },
+        { id: 'ollama/codellama:34b', name: 'codellama:34b', provider: 'ollama', description: '34B - Advanced code (needs GPU)' },
+        { id: 'ollama/deepseek-coder:6.7b', name: 'deepseek-coder:6.7b', provider: 'ollama', description: '6.7B - Code specialist' },
+        { id: 'ollama/deepseek-r1:7b', name: 'deepseek-r1:7b', provider: 'ollama', description: '7B - Reasoning model' },
+        { id: 'ollama/phi3:mini', name: 'phi3:mini', provider: 'ollama', description: '3.8B - Microsoft lightweight' },
+        { id: 'ollama/phi3:medium', name: 'phi3:medium', provider: 'ollama', description: '14B - Microsoft medium' },
+        
+        // Cloud models - Gemini
+        { id: 'gemini/gemini-2.0-flash', name: 'Gemini 2.0 Flash', provider: 'gemini', description: 'Fast, efficient, free tier' },
+        { id: 'gemini/gemini-1.5-pro', name: 'Gemini 1.5 Pro', provider: 'gemini', description: 'Advanced reasoning' },
+        { id: 'gemini/gemini-1.5-flash', name: 'Gemini 1.5 Flash', provider: 'gemini', description: 'Fast multimodal' },
+        
+        // Cloud models - OpenAI
+        { id: 'openai/gpt-4o', name: 'GPT-4o', provider: 'openai', description: 'Most capable GPT-4' },
+        { id: 'openai/gpt-4o-mini', name: 'GPT-4o Mini', provider: 'openai', description: 'Fast and affordable' },
+        { id: 'openai/gpt-4-turbo', name: 'GPT-4 Turbo', provider: 'openai', description: 'Previous flagship' },
+        { id: 'openai/gpt-3.5-turbo', name: 'GPT-3.5 Turbo', provider: 'openai', description: 'Fast and cheap' },
+        
+        // Cloud models - Anthropic
+        { id: 'anthropic/claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet', provider: 'anthropic', description: 'Latest Claude' },
+        { id: 'anthropic/claude-3-opus-20240229', name: 'Claude 3 Opus', provider: 'anthropic', description: 'Most powerful Claude' },
+        { id: 'anthropic/claude-3-haiku-20240307', name: 'Claude 3 Haiku', provider: 'anthropic', description: 'Fast and efficient' },
+        
+        // Cloud models - Groq (ultra-fast)
+        { id: 'groq/llama-3.3-70b-versatile', name: 'Llama 3.3 70B (Groq)', provider: 'groq', description: 'Ultra-fast inference' },
+        { id: 'groq/llama-3.1-8b-instant', name: 'Llama 3.1 8B (Groq)', provider: 'groq', description: 'Fastest inference' },
+        { id: 'groq/mixtral-8x7b-32768', name: 'Mixtral 8x7B (Groq)', provider: 'groq', description: 'Fast mixture of experts' },
+        
+        // Cloud models - Mistral
+        { id: 'mistral/mistral-large-latest', name: 'Mistral Large', provider: 'mistral', description: 'Flagship Mistral' },
+        { id: 'mistral/mistral-medium-latest', name: 'Mistral Medium', provider: 'mistral', description: 'Balanced performance' },
+        { id: 'mistral/codestral-latest', name: 'Codestral', provider: 'mistral', description: 'Code generation' },
+        
+        // Cloud models - DeepSeek
+        { id: 'deepseek/deepseek-chat', name: 'DeepSeek Chat', provider: 'deepseek', description: 'General chat' },
+        { id: 'deepseek/deepseek-reasoner', name: 'DeepSeek Reasoner', provider: 'deepseek', description: 'Advanced reasoning' },
+        
+        // Cloud models - GLM
+        { id: 'glm/glm-4.7-flash', name: 'GLM-4.7 Flash', provider: 'glm', description: 'Fast multilingual' },
+        { id: 'glm/glm-4-plus', name: 'GLM-4 Plus', provider: 'glm', description: 'Advanced GLM' },
+        
+        // Cloud models - OpenRouter
+        { id: 'openrouter/auto', name: 'OpenRouter Auto', provider: 'openrouter', description: 'Auto-select best' },
       ]);
       setSelectedModel('ollama/qwen3.5:2b');
     } finally {
