@@ -49,16 +49,19 @@ const AVAILABLE_MODELS: ModelInfo[] = [
   // Ultra-lightweight models (CPU-friendly, no GPU required)
   { id: 'qwen3.5:2b', name: 'Qwen 3.5 2B', tier: 'local-fast', provider: 'ollama', maxTokens: 32768, costPerToken: 0, available: true, capabilities: ['chat', 'code'], description: 'Ultra-lightweight model (2B params), runs on CPU, near GPT-4 mini performance' },
   
+  // Fast mid-range models
+  { id: 'qwen3.5:9b', name: 'Qwen 3.5 9B', tier: 'local-fast', provider: 'ollama', maxTokens: 32768, costPerToken: 0, available: true, capabilities: ['chat', 'code', 'analysis'], description: 'Fast 9B multimodal model - excellent speed/capability balance' },
+  
   // Lightweight models
   { id: 'glm-4.7-flash', name: 'GLM-4.7 Flash', tier: 'local-fast', provider: 'ollama', maxTokens: 8192, costPerToken: 0, available: true, capabilities: ['chat', 'code'] },
   
   // Capable models (require more resources)
-  { id: 'qwen2.5:14b', name: 'Qwen 2.5 14B', tier: 'local-capable', provider: 'ollama', maxTokens: 32768, costPerToken: 0, available: true, capabilities: ['chat', 'code', 'analysis'] },
-  { id: 'qwen3.5:27b', name: 'Qwen 3.5 27B', tier: 'local-capable', provider: 'ollama', maxTokens: 32768, costPerToken: 0, available: true, capabilities: ['chat', 'code', 'analysis'] },
+  { id: 'qwen3.5:27b', name: 'Qwen 3.5 27B', tier: 'local-capable', provider: 'ollama', maxTokens: 32768, costPerToken: 0, available: true, capabilities: ['chat', 'code', 'analysis'], description: 'Large 27B multimodal model' },
   { id: 'lfm2:latest', name: 'LFM2', tier: 'local-capable', provider: 'ollama', maxTokens: 32768, costPerToken: 0, available: true, capabilities: ['chat', 'code'] },
   { id: 'glm-ocr', name: 'GLM OCR', tier: 'local-capable', provider: 'ollama', maxTokens: 8192, costPerToken: 0, available: true, capabilities: ['chat'] },
   
   // Cloud models (paid)
+  { id: 'qwen3.5:full', name: 'Qwen 3.5 Full (Cloud)', tier: 'cloud-thinking', provider: 'cloud', maxTokens: 128000, costPerToken: 0.00001, available: true, capabilities: ['chat', 'code', 'analysis'], description: 'Full-size Qwen 3.5 multimodal model in the cloud' },
   { id: 'glm-5:cloud', name: 'GLM-5 Cloud', tier: 'cloud-thinking', provider: 'cloud', maxTokens: 128000, costPerToken: 0.00001, available: true, capabilities: ['chat', 'code', 'analysis'] },
   { id: 'kimi-k2.5:cloud', name: 'Kimi K2.5 Cloud', tier: 'cloud-fast', provider: 'cloud', maxTokens: 128000, costPerToken: 0.00001, available: true, capabilities: ['chat', 'analysis'] },
 ];
@@ -286,8 +289,8 @@ class ModelRouter {
       'glm-4.7-flash': 4,
       'glm-ocr': 4,
       'qwen3.5:2b': 2,
+      'qwen3.5:9b': 9,
       'qwen3.5:27b': 27,
-      'qwen2.5:14b': 14,
       'lfm2:latest': 7,
       'glm-5:cloud': 50,
       'kimi-k2.5:cloud': 20,
@@ -327,11 +330,18 @@ class ModelRouter {
   getChatModel(): ModelInfo {
     this.recordActivity();
     
-    // Prefer qwen2.5:14b for chat - good balance of speed and capability
-    const preferredModel = this.models.find(m => m.id === 'qwen2.5:14b' && m.available);
+    // Prefer qwen3.5:9b for chat - excellent speed/capability balance
+    const preferredModel = this.models.find(m => m.id === 'qwen3.5:9b' && m.available);
     if (preferredModel) {
-      console.log(`[ModelRouter] Using qwen2.5:14b for chat (fast & capable)`);
+      console.log(`[ModelRouter] Using qwen3.5:9b for chat (fast & capable)`);
       return preferredModel;
+    }
+    
+    // Fallback to qwen3.5:2b for speed
+    const qwen2b = this.models.find(m => m.id === 'qwen3.5:2b' && m.available);
+    if (qwen2b) {
+      console.log(`[ModelRouter] Using qwen3.5:2b for chat (ultra-fast)`);
+      return qwen2b;
     }
     
     // Fallback to glm-4.7-flash for speed
@@ -395,14 +405,21 @@ class ModelRouter {
 
   /**
    * Get fast model for quick responses
-   * Uses qwen2.5:14b or glm-4.7-flash for speed
+   * Uses qwen3.5:9b or qwen3.5:2b for speed
    */
   getFastModel(): ModelInfo {
-    // Prefer qwen2.5:14b for good speed/quality balance
-    const qwen14b = this.models.find(m => m.id === 'qwen2.5:14b' && m.available);
-    if (qwen14b) {
-      console.log(`[ModelRouter] Using qwen2.5:14b for fast response`);
-      return qwen14b;
+    // Prefer qwen3.5:9b for good speed/quality balance
+    const qwen9b = this.models.find(m => m.id === 'qwen3.5:9b' && m.available);
+    if (qwen9b) {
+      console.log(`[ModelRouter] Using qwen3.5:9b for fast response`);
+      return qwen9b;
+    }
+    
+    // Fallback to qwen3.5:2b
+    const qwen2b = this.models.find(m => m.id === 'qwen3.5:2b' && m.available);
+    if (qwen2b) {
+      console.log(`[ModelRouter] Using qwen3.5:2b for fast response`);
+      return qwen2b;
     }
     
     // Fallback to glm-4.7-flash
@@ -420,11 +437,20 @@ class ModelRouter {
    * Get model for complex analysis
    */
   getAnalysisModel(): ModelInfo {
-    // Use qwen2.5:14b for analysis - good balance of speed and capability
-    const qwen14b = this.models.find(m => m.id === 'qwen2.5:14b' && m.available);
-    if (qwen14b) {
-      return qwen14b;
+    // Use qwen3.5:27b for complex analysis - best local capability
+    const qwen27b = this.models.find(m => m.id === 'qwen3.5:27b' && m.available);
+    if (qwen27b) {
+      console.log(`[ModelRouter] Using qwen3.5:27b for analysis (capable)`);
+      return qwen27b;
     }
+    
+    // Fallback to qwen3.5:9b
+    const qwen9b = this.models.find(m => m.id === 'qwen3.5:9b' && m.available);
+    if (qwen9b) {
+      console.log(`[ModelRouter] Using qwen3.5:9b for analysis (fast)`);
+      return qwen9b;
+    }
+    
     return this.models.find(m => m.id === 'glm-4.7-flash') || this.models[0];
   }
 
