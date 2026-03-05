@@ -56,35 +56,20 @@ async function loadApiKeys(): Promise<void> {
     return;
   }
   
-  try {
-    const { sqlDatabase } = await import('../database/sqlite');
-    await sqlDatabase.initialize();
-    
-    CACHED_KEYS = {
-      openrouter: sqlDatabase.getApiKey('openrouter') || process.env.OPENROUTER_API_KEY,
-      deepseek: sqlDatabase.getApiKey('deepseek') || process.env.DEEPSEEK_API_KEY,
-      glm: sqlDatabase.getApiKey('glm') || process.env.GLM_API_KEY,
-      openai: sqlDatabase.getApiKey('openai') || process.env.OPENAI_API_KEY,
-      anthropic: sqlDatabase.getApiKey('anthropic') || process.env.ANTHROPIC_API_KEY,
-      gemini: sqlDatabase.getApiKey('gemini') || process.env.GEMINI_API_KEY,
-      groq: sqlDatabase.getApiKey('groq') || process.env.GROQ_API_KEY,
-      mistral: sqlDatabase.getApiKey('mistral') || process.env.MISTRAL_API_KEY,
-      lastLoad: now,
-    };
-  } catch (error) {
-    console.log('[SDK] Using env vars for API keys');
-    CACHED_KEYS = {
-      openrouter: process.env.OPENROUTER_API_KEY,
-      deepseek: process.env.DEEPSEEK_API_KEY,
-      glm: process.env.GLM_API_KEY,
-      openai: process.env.OPENAI_API_KEY,
-      anthropic: process.env.ANTHROPIC_API_KEY,
-      gemini: process.env.GEMINI_API_KEY,
-      groq: process.env.GROQ_API_KEY,
-      mistral: process.env.MISTRAL_API_KEY,
-      lastLoad: now,
-    };
-  }
+  // Only load from environment variables, not from database
+  // This prevents accidentally using API keys that were previously configured
+  // but are no longer desired
+  CACHED_KEYS = {
+    openrouter: process.env.OPENROUTER_API_KEY,
+    deepseek: process.env.DEEPSEEK_API_KEY,
+    glm: process.env.GLM_API_KEY,
+    openai: process.env.OPENAI_API_KEY,
+    anthropic: process.env.ANTHROPIC_API_KEY,
+    gemini: process.env.GEMINI_API_KEY,
+    groq: process.env.GROQ_API_KEY,
+    mistral: process.env.MISTRAL_API_KEY,
+    lastLoad: now,
+  };
 }
 
 function getOpenRouterKey(): string | undefined {
@@ -752,8 +737,10 @@ export async function chatCompletion(params: {
     } catch (error) {
         console.error('Chat completion error:', error);
         
-        // Fall back to OpenRouter if Ollama fails and no external API used yet
-        if (openRouterKey && !params.model.startsWith('openrouter/')) {
+        // Only fall back to OpenRouter if explicitly configured and user wants cloud
+        // Disable fallback when using Ollama to prevent unwanted API calls
+        const shouldFallback = process.env.ENABLE_CLOUD_FALLBACK === 'true';
+        if (shouldFallback && openRouterKey && !params.model.startsWith('openrouter/')) {
             console.log('Falling back to OpenRouter...');
             return callOpenRouter(params.model, params.messages, params.tools);
         }
@@ -842,8 +829,10 @@ export async function streamChatCompletion(params: {
     } catch (error) {
         console.error('Stream chat completion error:', error);
         
-        // Fall back to OpenRouter if Ollama fails
-        if (openRouterKey) {
+        // Only fall back to OpenRouter if explicitly configured
+        // Disable fallback when using Ollama to prevent unwanted API calls
+        const shouldFallback = process.env.ENABLE_CLOUD_FALLBACK === 'true';
+        if (shouldFallback && openRouterKey) {
             console.log('Falling back to OpenRouter...');
             const result = await callOpenRouter(params.model, params.messages);
             return {
