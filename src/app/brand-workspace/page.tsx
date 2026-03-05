@@ -612,6 +612,106 @@ export default function BrandWorkspacePage() {
 
           {/* Main Content */}
           <div className="lg:col-span-3">
+            {/* Brand Voice Upload (no project needed) */}
+            {(viewMode === 'documents' || viewMode === 'projects') && selectedBrand && !selectedProject && (
+              <div className="bg-gray-800 rounded-lg p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h2 className="text-xl font-semibold">Brand Voice Documents</h2>
+                    <p className="text-sm text-gray-400">These documents define {selectedBrand.name}'s voice and will be available across all projects</p>
+                  </div>
+                  <span className="text-gray-400 text-sm">{brandVoiceDocs.length} documents</span>
+                </div>
+
+                {/* Upload Area */}
+                <div className="mb-6 p-6 border-2 border-dashed border-gray-600 rounded-lg bg-gray-700/30">
+                  <div className="text-center mb-4">
+                    <p className="text-gray-300 mb-2">Upload documents to build your brand voice</p>
+                    <p className="text-xs text-gray-500">Supported files: .txt, .md, .markdown, .html, .pdf, .json, .docx</p>
+                  </div>
+                  <div className="flex gap-3 justify-center">
+                    <label className="px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg cursor-pointer text-white font-medium transition-colors">
+                      Upload Files
+                      <input
+                        type="file"
+                        multiple
+                        accept=".txt,.md,.markdown,.html,.pdf,.json,.docx"
+                        className="hidden"
+                        onChange={(e) => {
+                          setUploadTarget('brand');
+                          e.target.files && uploadDocument(e.target.files);
+                        }}
+                      />
+                    </label>
+                    <button
+                      onClick={() => {
+                        setUploadTarget('brand');
+                        addUrlDocument();
+                      }}
+                      className="px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg text-white font-medium transition-colors"
+                    >
+                      Add URL
+                    </button>
+                  </div>
+                </div>
+
+                {/* Brand Voice Documents Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {brandVoiceDocs.map((doc: BrandDocument) => (
+                    <div key={doc.id} className="bg-gradient-to-br from-purple-900/30 to-gray-700 rounded-lg p-4 border border-purple-500/30">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h3 className="font-medium">{doc.title}</h3>
+                          <div className="flex gap-2 mt-1">
+                            <span className="text-xs px-2 py-0.5 bg-purple-900/50 text-purple-300 rounded">{doc.type}</span>
+                            <span className="text-xs px-2 py-0.5 bg-purple-600/50 text-purple-200 rounded">Brand Voice</span>
+                          </div>
+                        </div>
+                        <button
+                          onClick={async () => {
+                            if (!confirm('Delete this document?')) return;
+                            await fetch('/api/brand-workspace/brands', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                action: 'deleteDocument',
+                                documentId: doc.id,
+                              }),
+                            });
+                            loadDocuments(selectedBrand.id);
+                          }}
+                          className="p-1 text-gray-400 hover:text-red-400"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                      {doc.metadata?.summary && (
+                        <p className="text-sm text-gray-400 mt-2 line-clamp-2">{doc.metadata.summary}</p>
+                      )}
+                      {doc.metadata?.tags && doc.metadata.tags.length > 0 && (
+                        <div className="flex gap-1 mt-2 flex-wrap">
+                          {doc.metadata.tags.slice(0, 5).map((tag: string) => (
+                            <span key={tag} className="text-xs px-1.5 py-0.5 bg-gray-600 rounded">{tag}</span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                  {brandVoiceDocs.length === 0 && (
+                    <div className="col-span-2 text-center py-12 text-gray-500">
+                      <svg className="w-16 h-16 mx-auto mb-4 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      </svg>
+                      <p className="text-lg mb-2">No brand voice documents yet</p>
+                      <p className="text-sm">Upload company guidelines, style guides, or reference materials</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             {/* Documents View */}
             {viewMode === 'documents' && selectedProject && (
               <div className="space-y-6">
