@@ -248,12 +248,18 @@ Extract everything useful. Return ONLY valid JSON, no explanations.`;
     if (knowledge.brandVoice.style) {
       entries.push({ documentId, brandId, category: 'brand_voice', key: 'style', value: knowledge.brandVoice.style, metadata: {} });
     }
-    knowledge.brandVoice.keyMessages.forEach((msg, idx) => {
-      entries.push({ documentId, brandId, category: 'brand_voice', key: `key_message_${idx}`, value: msg, metadata: {} });
-    });
-    knowledge.brandVoice.avoidPhrases.forEach((phrase, idx) => {
-      entries.push({ documentId, brandId, category: 'brand_voice', key: `avoid_${idx}`, value: phrase, metadata: {} });
-    });
+    const keyMessages = knowledge.brandVoice.keyMessages;
+    if (keyMessages && keyMessages.length > 0) {
+      keyMessages.forEach((msg, idx) => {
+        entries.push({ documentId, brandId, category: 'brand_voice', key: `key_message_${idx}`, value: msg, metadata: {} });
+      });
+    }
+    const avoidPhrases = knowledge.brandVoice.avoidPhrases;
+    if (avoidPhrases && avoidPhrases.length > 0) {
+      avoidPhrases.forEach((phrase, idx) => {
+        entries.push({ documentId, brandId, category: 'brand_voice', key: `avoid_${idx}`, value: phrase, metadata: {} });
+      });
+    }
 
     const now = Date.now();
     for (const entry of entries) {
@@ -382,14 +388,14 @@ Extract everything useful. Return ONLY valid JSON, no explanations.`;
       parts.push(`## Timeline\n${knowledge.timeline.map(t => `- **${t.event}**: ${t.date || 'Date unknown'}`).join('\n')}\n`);
     }
 
-    if (knowledge.brandVoice.tone || knowledge.brandVoice.style || knowledge.brandVoice.keyMessages.length > 0) {
+    if (knowledge.brandVoice.tone || knowledge.brandVoice.style || (knowledge.brandVoice.keyMessages && knowledge.brandVoice.keyMessages.length > 0)) {
       parts.push(`## Brand Voice`);
       if (knowledge.brandVoice.tone) parts.push(`- **Tone**: ${knowledge.brandVoice.tone}`);
       if (knowledge.brandVoice.style) parts.push(`- **Style**: ${knowledge.brandVoice.style}`);
-      if (knowledge.brandVoice.keyMessages.length > 0) {
+      if (knowledge.brandVoice.keyMessages && knowledge.brandVoice.keyMessages.length > 0) {
         parts.push(`- **Key Messages**:\n${knowledge.brandVoice.keyMessages.map(m => `  - ${m}`).join('\n')}`);
       }
-      if (knowledge.brandVoice.avoidPhrases.length > 0) {
+      if (knowledge.brandVoice.avoidPhrases && knowledge.brandVoice.avoidPhrases.length > 0) {
         parts.push(`- **Avoid**:\n${knowledge.brandVoice.avoidPhrases.map(p => `  - ${p}`).join('\n')}`);
       }
       parts.push('');
