@@ -121,6 +121,19 @@ export default function Home() {
   const [voiceEnabled, setVoiceEnabled] = useState(false);
   const recognitionRef = useRef<any>(null);
   
+  // Load voices when component mounts (needed for some browsers)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.speechSynthesis) {
+      // Load voices (needed for Chrome/Safari)
+      window.speechSynthesis.getVoices();
+      
+      // Chrome loads voices asynchronously
+      window.speechSynthesis.onvoiceschanged = () => {
+        window.speechSynthesis.getVoices();
+      };
+    }
+  }, []);
+  
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -475,7 +488,7 @@ export default function Home() {
   };
 
   // Voice Output
-  const speak = (text: string) => {
+  const speak = async (text: string) => {
     if (!voiceEnabled) return;
     
     // Stop any current speech
@@ -486,11 +499,60 @@ export default function Home() {
       .replace(/[*_`#]/g, '')
       .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
       .replace(/```[\s\S]*?```/g, 'code block')
+      .replace(/#{1,6}\s/g, '')
+      .replace(/\n{2,}/g, '\n')
+      .replace(/\n/g, ', ')
       .slice(0, 1000); // Limit length
     
     const utterance = new SpeechSynthesisUtterance(cleanText);
-    utterance.rate = 1;
+    
+    // Try to find a better voice
+    const voices = window.speechSynthesis.getVoices();
+    
+    // Prefer high-quality voices in this order:
+    // 1. Google voices (usually high quality)
+    // 2. Microsoft voices (Windows)
+    // 3. Apple voices (Mac)
+    // 4. Any English voice
+    const preferredVoices = [
+      'Google US English',
+      'Google UK English Female',
+      'Microsoft David',
+      'Microsoft Zira',
+      'Microsoft Mark',
+      'Samantha',
+      'Alex',
+      'Daniel',
+      'Karen',
+      'Tessa',
+      'Veena',
+    ];
+    
+    let selectedVoice = voices.find(v => 
+      preferredVoices.some(pv => v.name.includes(pv))
+    );
+    
+    // Fallback to any English voice
+    if (!selectedVoice) {
+      selectedVoice = voices.find(v => 
+        v.lang.startsWith('en') && v.localService !== false
+      );
+    }
+    
+    // Final fallback to any voice
+    if (!selectedVoice && voices.length > 0) {
+      selectedVoice = voices[0];
+    }
+    
+    if (selectedVoice) {
+      utterance.voice = selectedVoice;
+    }
+    
+    // Natural speech settings
+    utterance.rate = 0.95; // Slightly slower for clarity
     utterance.pitch = 1;
+    utterance.volume = 1;
+    utterance.lang = 'en-US';
     
     utterance.onstart = () => setIsSpeaking(true);
     utterance.onend = () => setIsSpeaking(false);
