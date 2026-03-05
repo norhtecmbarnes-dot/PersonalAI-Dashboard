@@ -53,7 +53,7 @@ export const TASK_TEMPLATES: TaskTemplate[] = [
     type: 'security',
     name: 'Security Scan',
     description: 'Scan system for security vulnerabilities',
-    defaultSchedule: 'every:12:hours',
+    defaultSchedule: 'weekly', // Changed from every 12 hours to weekly for performance
   },
   {
     type: 'research',
