@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { MarkdownRenderer } from '@/components/MarkdownRenderer';
+import { PageModelSelector } from '@/components/PageModelSelector';
 import type { Brand, Project, BrandDocument, ChatSession, ChatMessage } from '@/types/brand-workspace';
 
 type ViewMode = 'brands' | 'projects' | 'documents' | 'chat';
@@ -128,6 +129,43 @@ export default function BrandWorkspacePage() {
       console.error('Error creating session:', error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const startBrandChat = async () => {
+    if (!selectedBrand) return;
+    setIsLoading(true);
+    try {
+      const response = await fetch('/api/brand-workspace/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'createSession',
+          brandId: selectedBrand.id,
+          title: `Brand Chat - ${selectedBrand.name} - ${new Date().toLocaleDateString()}`,
+        }),
+      });
+      const data = await response.json();
+      if (data.success && data.session) {
+        setCurrentSession(data.session);
+        setViewMode('chat');
+        // Load brand-level sessions (without project filter)
+        await loadBrandSessions(selectedBrand.id);
+      }
+    } catch (error) {
+      console.error('Error creating brand chat session:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const loadBrandSessions = async (brandId: string) => {
+    try {
+      const response = await fetch(`/api/brand-workspace/chat?brandId=${brandId}`);
+      const data = await response.json();
+      setSessions(data.sessions || []);
+    } catch (error) {
+      console.error('Error loading brand sessions:', error);
     }
   };
 
@@ -700,6 +738,14 @@ export default function BrandWorkspacePage() {
 
                 {/* Input */}
                 <div className="p-4 border-t border-gray-700">
+                  <div className="mb-3">
+                    <PageModelSelector
+                      pageId="brand-workspace"
+                      label="AI Model"
+                      showHealth={true}
+                      className="w-full"
+                    />
+                  </div>
                   <div className="flex gap-2">
                     <textarea
                       value={chatInput}
