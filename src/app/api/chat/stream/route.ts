@@ -151,8 +151,10 @@ CRITICAL INSTRUCTIONS:
     // Start streaming in background
     (async () => {
       try {
+        // Use fast model - prefer qwen3.5:9b
+        const fastModel = model && model.includes('qwen') ? model : 'ollama/qwen3.5:9b';
         const result = await streamChatCompletion({
-          model: model || 'glm-4.7-flash',
+          model: fastModel,
           messages,
         });
 

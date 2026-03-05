@@ -490,7 +490,7 @@ Generate appropriate chart type (line, bar, pie, doughnut, etc.) based on the re
 
       try {
         const result = await streamChatCompletion({
-          model: 'glm-4.7-flash',
+          model: 'ollama/qwen3.5:9b',
           messages: [
             { role: 'system', content: 'You generate Chart.js visualization code. Return ONLY HTML code, no markdown code blocks.' },
             { role: 'user', content: vizPrompt },
@@ -700,18 +700,21 @@ Generate appropriate chart type (line, bar, pie, doughnut, etc.) based on the re
       agentBrowserToolDefinition,
     ];
 
-    // Tool call execution loop
-    const maxToolIterations = 5;
+    // Tool call execution loop - limit to 2 iterations for speed
+    const maxToolIterations = 2;
     let currentMessages = [...messages];
     let finalContent = '';
     let toolCallsExecuted: string[] = [];
 
+    // Use fast model - prefer qwen3.5:9b
+    const fastModel = model && model.includes('qwen3.5') ? model : 'ollama/qwen3.5:9b';
+
     for (let iteration = 0; iteration < maxToolIterations; iteration++) {
       const result = await chatCompletion({
-        model: model || 'glm-4.7-flash',
+        model: fastModel,
         messages: currentMessages,
         temperature: 0.7,
-        maxTokens: 4096,
+        maxTokens: 2048,  // Reduced for speed
         tools: tools,
       });
 
