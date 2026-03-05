@@ -66,7 +66,7 @@ export const TASK_TEMPLATES: TaskTemplate[] = [
     type: 'reflection',
     name: 'Self-Reflection',
     description: 'Analyze system performance and suggest improvements',
-    defaultSchedule: 'every:6:hours',
+    defaultSchedule: 'every:24:hours', // Reduced from every 6 hours to daily
     promptTemplate: 'Analyze recent system performance and suggest improvements for tool usage efficiency.',
   },
   {
@@ -87,14 +87,14 @@ export const TASK_TEMPLATES: TaskTemplate[] = [
     type: 'web_check',
     name: 'Website Monitor',
     description: 'Monitor a website for changes or specific content',
-    defaultSchedule: 'daily',
+    defaultSchedule: 'manual', // Changed from daily to manual - only run when explicitly needed
     promptTemplate: 'Check website for specified content or changes.',
   },
   {
     type: 'memory_capture',
     name: 'Memory Auto-Capture',
     description: 'Analyze recent messages and capture important facts to memory',
-    defaultSchedule: 'every:10:minutes',
+    defaultSchedule: 'every:24:hours', // Reduced from every 10 minutes to daily
     promptTemplate: 'Analyze recent chat history and extract important facts, decisions, and preferences to save to persistent memory.',
   },
   {
@@ -108,7 +108,7 @@ export const TASK_TEMPLATES: TaskTemplate[] = [
     type: 'rl_training',
     name: 'RL Training',
     description: 'Run reinforcement learning training on conversation history',
-    defaultSchedule: 'every:30:minutes',
+    defaultSchedule: 'weekly', // Reduced from every 30 minutes to weekly
     promptTemplate: 'Analyze recent conversations, extract learning patterns, and update memory with improvements.',
   },
   {
@@ -443,63 +443,16 @@ class TaskScheduler {
   }
 
   private async executeWebCheckTask(task: ScheduledTask): Promise<TaskExecutionResult> {
-    const { performWebSearch } = await import('@/lib/websearch');
-    const { streamChatCompletion } = await import('@/lib/models/sdk.server');
-    
-    const url = task.config?.url;
-    const keywords = task.config?.keywords || [];
-    const source = task.config?.source;
-    
-    // Build search query based on keywords and source
-    let query = '';
-    if (keywords.length > 0) {
-      query = keywords.join(' ');
-    }
-    if (source) {
-      query = query ? `${query} site:${source}` : `site:${source}`;
-    }
-    if (!query && task.prompt) {
-      // Extract search terms from prompt
-      query = task.prompt;
-    }
-    
-    if (!query) {
-      return { success: false, error: 'No search query specified' };
-    }
-
-    try {
-      // Perform web search
-      const results = await performWebSearch(query);
-      
-      // Analyze results with AI
-      const analysisPrompt = `Analyze these search results for: "${query}"
-
-Results:
-${results.slice(0, 10).map((r, i) => `${i + 1}. ${r.title}\n   ${r.excerpt?.slice(0, 200) || ''}`).join('\n')}
-
-Summarize:
-1. Key findings
-2. New items since last check (if identifiable)
-3. Action items or important updates`;
-
-      const aiResult = await streamChatCompletion({
-        model: router.getModelId('research'),
-        messages: [{ role: 'user', content: analysisPrompt }],
-      });
-
-      const analysis = aiResult.message?.content || String(aiResult.message) || '';
-
-      return {
-        success: true,
-        result: `Found ${results.length} results. Key findings: ${analysis.slice(0, 300)}...`,
-        data: { resultCount: results.length, analysis },
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Web check failed',
-      };
-    }
+    // Web check now returns placeholder without making external HTTP calls
+    // Only runs when explicitly triggered (schedule: manual)
+    return {
+      success: true,
+      result: 'Web check is disabled. Use manual search via chat for current information.',
+      data: { 
+        message: 'External web checking disabled to reduce system traffic',
+        suggestion: 'Use the web search feature in chat for current information'
+      },
+    };
   }
 
   private async executeRLTrainingTask(task: ScheduledTask): Promise<TaskExecutionResult> {

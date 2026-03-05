@@ -591,7 +591,6 @@ class AISecurityScanner {
     }
     
     this.saveHistory();
-    console.log(`[AISecurityScanner] Saved ${result.issues.length} issues from scan ${result.id}`);
   }
 
   getScanHistory(limit: number = 10): Array<{

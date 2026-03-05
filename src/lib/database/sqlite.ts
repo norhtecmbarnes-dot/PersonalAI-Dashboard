@@ -59,7 +59,6 @@ function saveDb(): void {
     const buffer = Buffer.from(data);
     try {
       fs.writeFileSync(dbPath, buffer);
-      console.log('[SQLite] Database saved to:', dbPath);
     } catch (e) {
       console.error('[SQLite] Failed to save database:', e);
       throw new Error('Failed to save database: ' + (e instanceof Error ? e.message : 'Unknown error'));

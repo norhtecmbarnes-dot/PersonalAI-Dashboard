@@ -1,4 +1,5 @@
-import { canadaBuysService, CanadaBuysOpportunity } from '../integrations/canada-buys';
+// Canada Buys integration removed - no external procurement APIs
+// External news scraping removed - system now generates reports without external HTTP calls
 
 export interface IntelligenceReport {
   id: string;
@@ -40,7 +41,7 @@ export interface KeyIndividual {
 
 export interface BidOpportunityReport {
   samGov: any[];
-  canadaBuys: CanadaBuysOpportunity[];
+  canadaBuys: any[];
   generatedAt: number;
 }
 
@@ -56,13 +57,25 @@ export class IntelligenceService {
   }
 
   async generateReport(): Promise<IntelligenceReport> {
+    // Generate empty reports without external HTTP calls
     const report: IntelligenceReport = {
       id: `report_${Date.now()}`,
       createdAt: Date.now(),
       period: this.getReportPeriod(),
-      newsSummary: await this.scanNewsSources(),
-      keyIndividuals: this.scanKeyIndividuals(),
-      bidOpportunities: await this.scanBidOpportunities(),
+      newsSummary: {
+        spaceDomainAwareness: [],
+        commercialSpace: [],
+        noaaCommercialSpace: [],
+        jointCommercialOffice: [],
+        goldenDome: [],
+        generatedAt: Date.now(),
+      },
+      keyIndividuals: [],
+      bidOpportunities: {
+        samGov: [],
+        canadaBuys: [],
+        generatedAt: Date.now(),
+      },
     };
 
     this.lastReport = report;
@@ -92,91 +105,6 @@ export class IntelligenceService {
     const now = new Date();
     const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     return `${yesterday.toLocaleDateString()} - ${now.toLocaleDateString()}`;
-  }
-
-  private async scanNewsSources(): Promise<NewsSummary> {
-    const sources = [
-      { name: 'spaceDomainAwareness', url: 'https://www.spaceforce.mil/News/' },
-      { name: 'commercialSpace', url: 'https://spacenews.com/' },
-      { name: 'noaaCommercialSpace', url: 'https://www.noaa.gov/commercial-space' },
-      { name: 'jointCommercialOffice', url: 'https://www.spacecom.mil/' },
-      { name: 'goldenDome', url: 'https://www.mda.mil/' },
-    ];
-
-    const summary: NewsSummary = {
-      spaceDomainAwareness: [],
-      commercialSpace: [],
-      noaaCommercialSpace: [],
-      jointCommercialOffice: [],
-      goldenDome: [],
-      generatedAt: Date.now(),
-    };
-
-    for (const source of sources) {
-      try {
-        const articles = await this.scrapeNewsSource(source.url, source.name);
-        (summary as any)[source.name] = articles;
-      } catch (error) {
-        console.error(`Error scanning ${source.name}:`, error);
-      }
-    }
-
-    return summary;
-  }
-
-  private async scrapeNewsSource(url: string, sourceName: string): Promise<Article[]> {
-    return [];
-  }
-
-  private scanKeyIndividuals(): KeyIndividual[] {
-    const individuals = [
-      {
-        name: 'Gen. Chance Saltzman',
-        title: 'Chief of Space Operations',
-        organization: 'U.S. Space Force',
-        sources: ['https://www.spaceforce.mil/'],
-      },
-      {
-        name: 'Dr. Frank Calvelli',
-        title: 'Assistant Secretary of the Air Force for Space Acquisition and Integration',
-        organization: 'U.S. Air Force',
-        sources: ['https://www.af.mil/'],
-      },
-      {
-        name: 'Lt. Gen. Philip Garrant',
-        title: 'Deputy Chief of Space Operations for Strategy, Plans, Programs, and Requirements',
-        organization: 'U.S. Space Force',
-        sources: ['https://www.spaceforce.mil/'],
-      },
-    ];
-
-    return individuals.map(ind => ({
-      ...ind,
-      linkedInUrl: this.generateLinkedInUrl(ind.name),
-    }));
-  }
-
-  private generateLinkedInUrl(name: string): string {
-    const encoded = encodeURIComponent(name);
-    return `https://www.linkedin.com/search/results/all/?keywords=${encoded}`;
-  }
-
-  private async scanBidOpportunities(): Promise<BidOpportunityReport> {
-    // SAM.gov integration has been removed
-    const canadaKeywords = [
-      'missile defense',
-      'space domain awareness',
-      'electro-optical',
-      'satellite surveillance',
-    ];
-
-    const canadaResults = await canadaBuysService.searchOpportunities(canadaKeywords);
-
-    return {
-      samGov: [],
-      canadaBuys: canadaResults,
-      generatedAt: Date.now(),
-    };
   }
 
   private saveReport(report: IntelligenceReport): void {

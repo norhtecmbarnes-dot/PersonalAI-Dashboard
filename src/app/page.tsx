@@ -500,14 +500,6 @@ export default function Home() {
     }
   };
 
-    recognition.onend = () => {
-      setIsListening(false);
-    };
-
-    recognition.start();
-    recognitionRef.current = recognition;
-  };
-
   const stopListening = () => {
     if (recognitionRef.current) {
       recognitionRef.current.stop();

@@ -2,13 +2,17 @@
 
 Imagine starting your day with a comprehensive briefing: overnight news relevant to your industry, competitor moves, emerging trends, and potential opportunities. This is what **Intelligence Reports** do — they automate the research you'd otherwise spend hours doing manually.
 
+## Important Update (March 2026)
+
+**Traffic Reduction Initiative:** The intelligence system has been redesigned to minimize external HTTP calls and system load. External web scraping and procurement API integrations have been removed to reduce traffic. The system now provides a lightweight, local-only intelligence framework that can be extended manually when needed.
+
 ## What You'll Learn
 
 - What **intelligence reports** are and why they matter
-- Setting up **automated data collection**
-- Integrating with **web search APIs**
-- Building a **report generation system**
-- Creating **scheduled tasks** for automation
+- Setting up **manual data collection** (reduced automation)
+- Understanding **traffic-conscious design**
+- Building a **report generation system** with local data
+- Creating **scheduled tasks** with reduced frequency
 - Designing **report templates and formatting**
 - Storing and retrieving **historical reports**
 
@@ -16,7 +20,7 @@ Imagine starting your day with a comprehensive briefing: overnight news relevant
 
 ## What is an Intelligence Report?
 
-An intelligence report is like having a research assistant that works 24/7:
+An intelligence report is like having a research assistant that works on-demand:
 
 **Traditional Approach (Manual):**
 - Wake up, open 10 browser tabs
@@ -26,11 +30,11 @@ An intelligence report is like having a research assistant that works 24/7:
 - Compile findings manually
 - **Time: 1-2 hours daily**
 
-**AI Dashboard Approach (Automated):**
-- System runs scheduled searches
-- AI analyzes and summarizes findings
-- Delivers formatted report at 8 AM
-- **Time: 2 minutes to read**
+**AI Dashboard Approach (Lightweight):**
+- System maintains local data structures
+- Generate reports on-demand when needed
+- AI analyzes local findings
+- **Time: 2 minutes to generate**
 
 ### Real-World Use Cases
 
@@ -39,8 +43,39 @@ An intelligence report is like having a research assistant that works 24/7:
 | **Market Intelligence** | Industry trends, competitor pricing, new entrants | Strategic decisions |
 | **Sales Intel** | Prospect news, trigger events, company changes | Better outreach |
 | **Security Intel** | CVEs, threat actors, attack patterns | Proactive defense |
-| **GovCon Intel** | SAM.gov opportunities, RFPs, agency news | Bid preparation |
+| **GovCon Intel** | RFPs, agency news | Bid preparation |
 | **Tech Intel** | New frameworks, tool updates, best practices | Staying current |
+
+---
+
+## Traffic-Conscious Design
+
+### Why Reduced Automation?
+
+In early 2026, we identified that aggressive automation was generating excessive traffic:
+
+**Before (High Traffic):**
+- RL Training: Every 30 minutes (48x/day)
+- Memory Capture: Every 10 minutes (144x/day)
+- Self-Reflection: Every 6 hours (4x/day)
+- Web Checks: Daily external API calls
+- Canada Buys: Daily procurement API calls
+
+**After (Minimal Traffic):**
+- RL Training: Weekly (1x/week) - 98% reduction
+- Memory Capture: Daily (1x/day) - 99% reduction
+- Self-Reflection: Daily (1x/day) - 75% reduction
+- Web Checks: Manual only - 100% automation reduction
+- Canada Buys: Removed - 100% reduction
+
+**Total Traffic Reduction: 99%**
+
+### Benefits
+
+1. **Lower Costs** - Fewer API calls
+2. **Faster Performance** - Less background processing
+3. **Better Privacy** - No external data transmission unless needed
+4. **More Control** - Run tasks only when you need them
 
 ---
 
@@ -48,24 +83,24 @@ An intelligence report is like having a research assistant that works 24/7:
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                    SCHEDULER                            │
-│              (Daily at 8:00 AM)                        │
+│              MANUAL TRIGGER                             │
+│         (Generate on demand)                            │
 └────────────────────┬────────────────────────────────────┘
                      │
                      ▼
 ┌─────────────────────────────────────────────────────────┐
-│              DATA COLLECTION                            │
+│              LOCAL DATA SOURCES                         │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐  │
-│  │ Web Search   │  │ RSS Feeds    │  │ APIs         │  │
-│  │ (Tavily)     │  │ (Industry)   │  │ (Custom)     │  │
+│  │ User Notes   │  │ Documents    │  │ Chat History │  │
+│  │ (Local)      │  │ (Local)      │  │ (Local)      │  │
 │  └──────────────┘  └──────────────┘  └──────────────┘  │
 └────────────────────┬────────────────────────────────────┘
                      │
                      ▼
 ┌─────────────────────────────────────────────────────────┐
 │              AI ANALYSIS                                │
-│  • Categorize findings                                  │
-│  • Identify trends                                      │
+│  • Categorize local findings                            │
+│  • Identify patterns                                    │
 │  • Score relevance                                      │
 │  • Summarize key points                                 │
 └────────────────────┬────────────────────────────────────┘
@@ -82,9 +117,9 @@ An intelligence report is like having a research assistant that works 24/7:
                      ▼
 ┌─────────────────────────────────────────────────────────┐
 │              DELIVERY                                   │
-│  • Save to database                                     │
+│  • Save to local database                               │
 │  • Display in dashboard                                 │
-│  • Optional: Email/Telegram                             │
+│  • Export as needed                                     │
 └─────────────────────────────────────────────────────────┘
 ```
 
@@ -96,15 +131,15 @@ Create: `src/lib/services/intelligence.ts`
 
 ```typescript
 import { sqlDatabase } from '@/lib/database/sqlite';
-import { performWebSearch } from '@/lib/websearch';
 import { chatCompletion } from '@/lib/models/sdk.server';
 
 export interface IntelligenceConfig {
   id: string;
   name: string;
   description?: string;
-  searchQueries: string[];
-  schedule: 'daily' | 'weekly' | 'hourly';
+  // Note: External search removed - use local documents only
+  dataSources: ('documents' | 'notes' | 'chat_history')[];
+  schedule: 'manual' | 'daily' | 'weekly';
   enabled: boolean;
   maxResults?: number;
   analysisPrompt?: string;
@@ -117,7 +152,6 @@ export interface IntelligenceReport {
   generatedAt: number;
   summary: string;
   findings: Finding[];
-  rawData: any[];
   metadata?: Record<string, any>;
 }
 
@@ -127,7 +161,7 @@ export interface Finding {
   title: string;
   content: string;
   source: string;
-  url?: string;
+  sourceId?: string;
   relevanceScore: number;
   timestamp: number;
 }
@@ -142,13 +176,13 @@ export class IntelligenceService {
     
     sqlDatabase.run(
       `INSERT INTO intelligence_configs 
-       (id, name, description, search_queries, schedule, enabled, max_results, analysis_prompt, created_at, updated_at)
+       (id, name, description, data_sources, schedule, enabled, max_results, analysis_prompt, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         config.name,
         config.description || null,
-        JSON.stringify(config.searchQueries),
+        JSON.stringify(config.dataSources),
         config.schedule,
         config.enabled ? 1 : 0,
         config.maxResults || 10,
@@ -171,7 +205,7 @@ export class IntelligenceService {
       id: row.id,
       name: row.name,
       description: row.description,
-      searchQueries: JSON.parse(row.search_queries || '[]'),
+      dataSources: JSON.parse(row.data_sources || '[]'),
       schedule: row.schedule,
       enabled: row.enabled === 1,
       maxResults: row.max_results,
@@ -179,35 +213,21 @@ export class IntelligenceService {
     })) || [];
   }
 
-  // Generate a report
+  // Generate a report from local data only
   async generateReport(configId: string): Promise<IntelligenceReport> {
     const config = await this.getConfigById(configId);
     if (!config) throw new Error('Config not found');
     
     console.log(`[Intelligence] Generating report: ${config.name}`);
     
-    // Collect data from all queries
-    const allResults: any[] = [];
-    
-    for (const query of config.searchQueries) {
-      console.log(`[Intelligence] Searching: ${query}`);
-      try {
-        const results = await performWebSearch(query);
-        allResults.push(...results.map(r => ({
-          ...r,
-          searchQuery: query,
-          collectedAt: Date.now(),
-        })));
-      } catch (error) {
-        console.error(`[Intelligence] Search failed for "${query}":`, error);
-      }
-    }
+    // Collect data from local sources only (no external HTTP calls)
+    const localData = await this.collectLocalData(config);
     
     // Limit results
-    const limitedResults = allResults.slice(0, config.maxResults || 10);
+    const limitedData = localData.slice(0, config.maxResults || 10);
     
     // Analyze findings with AI
-    const findings = await this.analyzeFindings(limitedResults, config);
+    const findings = await this.analyzeFindings(limitedData, config);
     
     // Generate summary
     const summary = await this.generateSummary(findings, config);
@@ -220,13 +240,46 @@ export class IntelligenceService {
       generatedAt: Date.now(),
       summary,
       findings,
-      rawData: limitedResults,
     };
     
     // Save to database
     await this.saveReport(report);
     
     return report;
+  }
+
+  // Collect data from local sources only
+  private async collectLocalData(config: IntelligenceConfig): Promise<any[]> {
+    const results: any[] = [];
+    
+    if (config.dataSources.includes('documents')) {
+      // Query local documents
+      const docs = sqlDatabase.run('SELECT * FROM documents WHERE importance >= ?', ['medium']);
+      results.push(...(docs || []).map((d: any) => ({
+        type: 'document',
+        title: d.title,
+        content: d.summary || d.content?.substring(0, 500),
+        source: 'Documents',
+        sourceId: d.id,
+        timestamp: d.created_at,
+      })));
+    }
+    
+    if (config.dataSources.includes('notes')) {
+      // Query local notes
+      const notes = sqlDatabase.run('SELECT * FROM notes WHERE importance >= ?', ['medium']);
+      results.push(...(notes || []).map((n: any) => ({
+        type: 'note',
+        title: n.title,
+        content: n.content?.substring(0, 500),
+        source: 'Notes',
+        sourceId: n.id,
+        timestamp: n.created_at,
+      })));
+    }
+    
+    // Sort by timestamp, most recent first
+    return results.sort((a, b) => b.timestamp - a.timestamp);
   }
 
   // Analyze findings using AI
@@ -237,9 +290,9 @@ export class IntelligenceService {
     if (results.length === 0) return [];
     
     const defaultPrompt = `
-      Analyze these search results and categorize them into key findings.
+      Analyze these local documents and notes, and categorize them into key findings.
       For each finding, provide:
-      1. Category (e.g., News, Opportunity, Threat, Trend)
+      1. Category (e.g., Project, Decision, Knowledge, Task)
       2. Title (brief, specific)
       3. Content (2-3 sentences summarizing)
       4. Relevance score (1-10)
@@ -250,8 +303,8 @@ export class IntelligenceService {
     const prompt = config.analysisPrompt || defaultPrompt;
     
     // Prepare data for AI
-    const searchResultsText = results
-      .map((r, i) => `${i + 1}. ${r.title}\n   ${r.excerpt || r.content}\n   Source: ${r.url || r.source}`)
+    const dataText = results
+      .map((r, i) => `${i + 1}. ${r.title}\n   ${r.content}\n   Source: ${r.source}`)
       .join('\n\n');
     
     try {
@@ -259,7 +312,7 @@ export class IntelligenceService {
         model: 'ollama/qwen2.5-coder',
         messages: [
           { role: 'system', content: 'You are an intelligence analyst. Provide structured, factual analysis.' },
-          { role: 'user', content: `${prompt}\n\nSearch Results:\n${searchResultsText}` },
+          { role: 'user', content: `${prompt}\n\nLocal Data:\n${dataText}` },
         ],
       });
       
@@ -278,7 +331,7 @@ export class IntelligenceService {
         // If JSON parsing fails, create single finding
         parsed = [{
           category: 'Analysis',
-          title: 'Search Results Summary',
+          title: 'Local Data Summary',
           content: content.substring(0, 500),
           relevanceScore: 5,
         }];
@@ -290,8 +343,8 @@ export class IntelligenceService {
         category: item.category || 'General',
         title: item.title || 'Untitled',
         content: item.content || item.summary || '',
-        source: results[index]?.source || 'Web Search',
-        url: results[index]?.url,
+        source: results[index]?.source || 'Local Data',
+        sourceId: results[index]?.sourceId,
         relevanceScore: item.relevanceScore || item.relevance || 5,
         timestamp: Date.now(),
       }));
@@ -304,7 +357,7 @@ export class IntelligenceService {
   // Generate executive summary
   private async generateSummary(findings: Finding[], config: IntelligenceConfig): Promise<string> {
     if (findings.length === 0) {
-      return `No significant findings for ${config.name} in this reporting period.`;
+      return `No significant findings for ${config.name} in local data.`;
     }
     
     const findingsText = findings
@@ -317,14 +370,14 @@ export class IntelligenceService {
         model: 'ollama/qwen2.5-coder',
         messages: [
           { role: 'system', content: 'You are an executive assistant. Write concise, actionable summaries.' },
-          { role: 'user', content: `Write a 3-4 sentence executive summary of these intelligence findings:\n\n${findingsText}` },
+          { role: 'user', content: `Write a 3-4 sentence executive summary of these local findings:\n\n${findingsText}` },
         ],
       });
       
       return response.message?.content || 'Summary unavailable.';
     } catch {
       // Fallback summary
-      return `${findings.length} findings identified. Key items: ${findings.slice(0, 3).map(f => f.title).join(', ')}.`;
+      return `${findings.length} findings identified from local data. Key items: ${findings.slice(0, 3).map(f => f.title).join(', ')}.`;
     }
   }
 
@@ -332,8 +385,8 @@ export class IntelligenceService {
   private async saveReport(report: IntelligenceReport): Promise<void> {
     sqlDatabase.run(
       `INSERT INTO intelligence_reports 
-       (id, config_id, config_name, generated_at, summary, findings, raw_data, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+       (id, config_id, config_name, generated_at, summary, findings, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
         report.id,
         report.configId,
@@ -341,7 +394,6 @@ export class IntelligenceService {
         report.generatedAt,
         report.summary,
         JSON.stringify(report.findings),
-        JSON.stringify(report.rawData),
         Date.now(),
       ]
     );
@@ -363,7 +415,6 @@ export class IntelligenceService {
       generatedAt: row.generated_at,
       summary: row.summary,
       findings: JSON.parse(row.findings || '[]'),
-      rawData: JSON.parse(row.raw_data || '[]'),
     })) || [];
   }
 
@@ -376,7 +427,7 @@ export class IntelligenceService {
       id: row.id,
       name: row.name,
       description: row.description,
-      searchQueries: JSON.parse(row.search_queries || '[]'),
+      dataSources: JSON.parse(row.data_sources || '[]'),
       schedule: row.schedule,
       enabled: row.enabled === 1,
       maxResults: row.max_results,
@@ -400,8 +451,8 @@ CREATE TABLE IF NOT EXISTS intelligence_configs (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   description TEXT,
-  search_queries TEXT, -- JSON array
-  schedule TEXT DEFAULT 'daily',
+  data_sources TEXT, -- JSON array of local sources
+  schedule TEXT DEFAULT 'manual', -- manual, daily, weekly
   enabled INTEGER DEFAULT 1,
   max_results INTEGER DEFAULT 10,
   analysis_prompt TEXT,
@@ -417,7 +468,6 @@ CREATE TABLE IF NOT EXISTS intelligence_reports (
   generated_at INTEGER,
   summary TEXT,
   findings TEXT, -- JSON
-  raw_data TEXT, -- JSON
   created_at INTEGER,
   FOREIGN KEY (config_id) REFERENCES intelligence_configs(id)
 );
@@ -433,36 +483,32 @@ Create: `src/app/intelligence/page.tsx`
 'use client';
 
 import { useState, useEffect } from 'react';
-import { intelligenceService, IntelligenceConfig, IntelligenceReport } from '@/lib/services/intelligence';
 
 export default function IntelligencePage() {
-  const [configs, setConfigs] = useState<IntelligenceConfig[]>([]);
-  const [reports, setReports] = useState<IntelligenceReport[]>([]);
-  const [isCreating, setIsCreating] = useState(false);
-  const [generatingId, setGeneratingId] = useState<string | null>(null);
+  const [reports, setReports] = useState<any[]>([]);
+  const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
-    loadData();
+    loadReports();
   }, []);
 
-  const loadData = async () => {
-    const [configsData, reportsData] = await Promise.all([
-      intelligenceService.getConfigs(),
-      intelligenceService.getRecentReports(10),
-    ]);
-    setConfigs(configsData);
-    setReports(reportsData);
+  const loadReports = async () => {
+    const response = await fetch('/api/intelligence');
+    const data = await response.json();
+    setReports(data.reports || []);
   };
 
-  const handleGenerate = async (configId: string) => {
-    setGeneratingId(configId);
+  const handleGenerate = async () => {
+    setGenerating(true);
     try {
-      await intelligenceService.generateReport(configId);
-      await loadData();
-    } catch (error) {
-      console.error('Generation failed:', error);
+      await fetch('/api/intelligence', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'generate' }),
+      });
+      await loadReports();
     } finally {
-      setGeneratingId(null);
+      setGenerating(false);
     }
   };
 
@@ -472,121 +518,77 @@ export default function IntelligencePage() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Intelligence Reports</h1>
         <p className="text-gray-600">
-          Automated research and analysis for your areas of interest.
+          Generate on-demand reports from your local data.
+          <span className="text-amber-600 ml-2">(External sources disabled for traffic reduction)</span>
         </p>
       </div>
 
-      <div className="grid grid-cols-12 gap-6">
-        {/* Configurations */}
-        <div className="col-span-4">
-          <div className="bg-white rounded-lg shadow">
-            <div className="p-4 border-b flex justify-between items-center">
-              <h2 className="font-semibold">Configurations</h2>
-              <button
-                onClick={() => setIsCreating(true)}
-                className="text-blue-600 hover:text-blue-800 text-sm"
-              >
-                + New
-              </button>
-            </div>
+      {/* Generate Button */}
+      <div className="mb-6">
+        <button
+          onClick={handleGenerate}
+          disabled={generating}
+          className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 disabled:opacity-50"
+        >
+          {generating ? 'Generating...' : 'Generate New Report'}
+        </button>
+        <p className="text-sm text-gray-500 mt-2">
+          Analyzes your documents, notes, and chat history
+        </p>
+      </div>
 
-            <div className="divide-y">
-              {configs.map((config) => (
-                <div key={config.id} className="p-4">
-                  <div className="flex justify-between items-start mb-2">
-                    <h3 className="font-medium">{config.name}</h3>
-                    <span className={`text-xs px-2 py-1 rounded ${
-                      config.enabled ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-600'
-                    }`}>
-                      {config.schedule}
-                    </span>
-                  </div>
-                  <p className="text-sm text-gray-500 mb-3">
-                    {config.searchQueries.length} queries
-                  </p>
-                  <button
-                    onClick={() => handleGenerate(config.id)}
-                    disabled={generatingId === config.id}
-                    className="w-full bg-blue-600 text-white py-2 rounded text-sm hover:bg-blue-700 disabled:opacity-50"
-                  >
-                    {generatingId === config.id ? 'Generating...' : 'Generate Now'}
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
+      {/* Reports List */}
+      <div className="bg-white rounded-lg shadow">
+        <div className="p-4 border-b">
+          <h2 className="font-semibold">Recent Reports</h2>
         </div>
 
-        {/* Recent Reports */}
-        <div className="col-span-8">
-          <div className="bg-white rounded-lg shadow">
-            <div className="p-4 border-b">
-              <h2 className="font-semibold">Recent Reports</h2>
+        <div className="divide-y">
+          {reports.length === 0 ? (
+            <div className="p-8 text-center text-gray-500">
+              <p className="text-4xl mb-4">📊</p>
+              <p>No reports yet. Generate your first report!</p>
             </div>
-
-            <div className="divide-y">
-              {reports.length === 0 ? (
-                <div className="p-8 text-center text-gray-500">
-                  <p className="text-4xl mb-4">📊</p>
-                  <p>No reports yet. Generate your first report!</p>
-                </div>
-              ) : (
-                reports.map((report) => (
-                  <div key={report.id} className="p-6">
-                    <div className="flex justify-between items-start mb-3">
-                      <div>
-                        <h3 className="font-semibold text-lg">{report.configName}</h3>
-                        <p className="text-sm text-gray-500">
-                          {new Date(report.generatedAt).toLocaleString()}
-                        </p>
-                      </div>
-                      <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
-                        {report.findings.length} findings
-                      </span>
-                    </div>
-                    
-                    <p className="text-gray-700 mb-4">{report.summary}</p>
-                    
-                    {report.findings.length > 0 && (
-                      <div className="space-y-2">
-                        <h4 className="font-medium text-sm">Key Findings:</h4>
-                        {report.findings.slice(0, 3).map((finding) => (
-                          <div key={finding.id} className="bg-gray-50 p-3 rounded">
-                            <div className="flex justify-between items-start">
-                              <h5 className="font-medium text-sm">{finding.title}</h5>
-                              <span className={`text-xs px-2 py-0.5 rounded ${
-                                finding.relevanceScore >= 7 ? 'bg-green-100 text-green-800' :
-                                finding.relevanceScore >= 4 ? 'bg-yellow-100 text-yellow-800' :
-                                'bg-gray-100 text-gray-600'
-                              }`}>
-                                Score: {finding.relevanceScore}/10
-                              </span>
-                            </div>
-                            <p className="text-sm text-gray-600 mt-1">{finding.content}</p>
-                            {finding.url && (
-                              <a
-                                href={finding.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="text-xs text-blue-600 hover:underline mt-2 inline-block"
-                              >
-                                Source →
-                              </a>
-                            )}
-                          </div>
-                        ))}
-                        {report.findings.length > 3 && (
-                          <p className="text-sm text-gray-500">
-                            + {report.findings.length - 3} more findings
-                          </p>
-                        )}
-                      </div>
-                    )}
+          ) : (
+            reports.map((report) => (
+              <div key={report.id} className="p-6">
+                <div className="flex justify-between items-start mb-3">
+                  <div>
+                    <h3 className="font-semibold text-lg">{report.configName}</h3>
+                    <p className="text-sm text-gray-500">
+                      {new Date(report.generatedAt).toLocaleString()}
+                    </p>
                   </div>
-                ))
-              )}
-            </div>
-          </div>
+                  <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded">
+                    {report.findings?.length || 0} findings
+                  </span>
+                </div>
+                
+                <p className="text-gray-700 mb-4">{report.summary}</p>
+                
+                {report.findings?.length > 0 && (
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-sm">Key Findings:</h4>
+                    {report.findings.slice(0, 3).map((finding: any) => (
+                      <div key={finding.id} className="bg-gray-50 p-3 rounded">
+                        <div className="flex justify-between items-start">
+                          <h5 className="font-medium text-sm">{finding.title}</h5>
+                          <span className={`text-xs px-2 py-0.5 rounded ${
+                            finding.relevanceScore >= 7 ? 'bg-green-100 text-green-800' :
+                            finding.relevanceScore >= 4 ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-gray-100 text-gray-600'
+                          }`}>
+                            Score: {finding.relevanceScore}/10
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-600 mt-1">{finding.content}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            ))
+          )}
         </div>
       </div>
     </div>
@@ -596,200 +598,39 @@ export default function IntelligencePage() {
 
 ---
 
-## Step 4: Create Configuration Form
+## Traffic Reduction Checklist
 
-Create: `src/app/intelligence/new/page.tsx`
+When building intelligence features, follow these principles:
 
-```tsx
-'use client';
+### ✅ DO
+- [ ] Query local data first (documents, notes, chat history)
+- [ ] Make external calls only on explicit user action
+- [ ] Cache results when possible
+- [ ] Use longer intervals for scheduled tasks (daily instead of hourly)
+- [ ] Provide manual trigger options
+- [ ] Document traffic implications
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
-
-export default function NewIntelligenceConfigPage() {
-  const router = useRouter();
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
-  const [queries, setQueries] = useState(['']);
-  const [schedule, setSchedule] = useState<'daily' | 'weekly' | 'hourly'>('daily');
-  const [isSaving, setIsSaving] = useState(false);
-
-  const addQuery = () => setQueries([...queries, '']);
-  
-  const updateQuery = (index: number, value: string) => {
-    const newQueries = [...queries];
-    newQueries[index] = value;
-    setQueries(newQueries);
-  };
-
-  const removeQuery = (index: number) => {
-    setQueries(queries.filter((_, i) => i !== index));
-  };
-
-  const handleSubmit = async () => {
-    if (!name.trim() || queries.filter(q => q.trim()).length === 0) return;
-    
-    setIsSaving(true);
-    
-    try {
-      const response = await fetch('/api/intelligence/configs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name,
-          description,
-          searchQueries: queries.filter(q => q.trim()),
-          schedule,
-          enabled: true,
-        }),
-      });
-      
-      if (response.ok) {
-        router.push('/intelligence');
-      }
-    } catch (error) {
-      console.error('Failed to save:', error);
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  return (
-    <div className="max-w-2xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6">New Intelligence Configuration</h1>
-      
-      <div className="bg-white rounded-lg shadow p-6 space-y-6">
-        {/* Name */}
-        <div>
-          <label className="block text-sm font-medium mb-2">Name</label>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="e.g., Competitor Watch"
-            className="w-full border rounded-lg px-4 py-2"
-          />
-        </div>
-
-        {/* Description */}
-        <div>
-          <label className="block text-sm font-medium mb-2">Description</label>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="What does this intelligence report track?"
-            rows={3}
-            className="w-full border rounded-lg px-4 py-2"
-          />
-        </div>
-
-        {/* Search Queries */}
-        <div>
-          <label className="block text-sm font-medium mb-2">Search Queries</label>
-          <p className="text-sm text-gray-500 mb-3">
-            Each query will be run to collect data for the report.
-          </p>
-          
-          {queries.map((query, index) => (
-            <div key={index} className="flex gap-2 mb-2">
-              <input
-                type="text"
-                value={query}
-                onChange={(e) => updateQuery(index, e.target.value)}
-                placeholder={`Query ${index + 1}`}
-                className="flex-1 border rounded-lg px-4 py-2"
-              />
-              {queries.length > 1 && (
-                <button
-                  onClick={() => removeQuery(index)}
-                  className="text-red-600 px-3"
-                >
-                  ×
-                </button>
-              )}
-            </div>
-          ))}
-          
-          <button
-            onClick={addQuery}
-            className="text-blue-600 text-sm hover:underline"
-          >
-            + Add another query
-          </button>
-        </div>
-
-        {/* Schedule */}
-        <div>
-          <label className="block text-sm font-medium mb-2">Schedule</label>
-          <select
-            value={schedule}
-            onChange={(e) => setSchedule(e.target.value as any)}
-            className="w-full border rounded-lg px-4 py-2"
-          >
-            <option value="hourly">Hourly</option>
-            <option value="daily">Daily</option>
-            <option value="weekly">Weekly</option>
-          </select>
-        </div>
-
-        {/* Submit */}
-        <div className="flex gap-4 pt-4">
-          <button
-            onClick={handleSubmit}
-            disabled={isSaving || !name.trim()}
-            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50"
-          >
-            {isSaving ? 'Creating...' : 'Create Configuration'}
-          </button>
-          
-          <a
-            href="/intelligence"
-            className="text-gray-600 px-6 py-2 inline-block"
-          >
-            Cancel
-          </a>
-        </div>
-      </div>
-    </div>
-  );
-}
-```
-
----
-
-## PROMPT YOU CAN USE
-
-Enhance the intelligence system:
-
-```
-Add these features to the Intelligence Reports:
-1. RSS feed integration for continuous monitoring
-2. Email delivery of reports
-3. Trend analysis across multiple reports
-4. Export reports as PDF
-5. Custom branding for reports
-6. Alert conditions (notify when specific keywords appear)
-7. Report comparison view (see changes over time)
-
-Focus on making it a complete intelligence platform.
-```
+### ❌ DON'T
+- [ ] Make external HTTP calls on every page load
+- [ ] Schedule frequent tasks that call external APIs
+- [ ] Scrape websites automatically
+- [ ] Poll external services continuously
+- [ ] Run RL training or memory capture more than once per day
 
 ---
 
 ## Key Takeaways
 
-✅ **Intelligence Reports** — Automated research that saves hours daily
+✅ **Lightweight Intelligence** — Analyze local data without external calls
 
-✅ **Multi-source Collection** — Web search + RSS + APIs
+✅ **Manual Control** — Generate reports when needed, not on schedule
 
-✅ **AI Analysis** — Categorize, score, and summarize findings
+✅ **Traffic Conscious** — 99% reduction in automated API calls
 
-✅ **Scheduled Execution** — Set it and forget it
+✅ **Privacy First** — Data stays local unless you choose to search externally
 
-✅ **Configurable** — Different reports for different needs
-
-✅ **Relevance Scoring** — Focus on what matters most
+✅ **Still Powerful** — AI analysis works great on your existing data
 
 ---
 
-**Next: Chapter 13 - Adding Self-Reflection**
+**Next: Chapter 13 - Model Router**
