@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { PageModelSelector } from '@/components/PageModelSelector';
 
 interface TableSchema {
   name: string;
@@ -243,7 +244,13 @@ export default function DatabaseFormBuilder() {
             <h1 className="text-3xl font-bold text-white">Database Form Builder</h1>
             <p className="text-slate-400 mt-1">Create forms connected to SQLite tables</p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 items-center">
+            <PageModelSelector
+              pageId="database-forms"
+              label="AI Model"
+              showHealth={true}
+              className="w-64"
+            />
             <Link href="/canvas" className="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600">
               Canvas UI
             </Link>
