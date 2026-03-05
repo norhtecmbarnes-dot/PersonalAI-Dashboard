@@ -433,12 +433,21 @@ export default function BrandWorkspacePage() {
               <div className="bg-gray-800 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg font-semibold">{selectedBrand.name}</h2>
-                  <button
-                    onClick={createProject}
-                    className="px-3 py-1 bg-purple-600 hover:bg-purple-700 rounded text-sm"
-                  >
-                    + New
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={startBrandChat}
+                      className="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm"
+                      title="Chat with brand documents"
+                    >
+                      💬 Chat
+                    </button>
+                    <button
+                      onClick={createProject}
+                      className="px-3 py-1 bg-purple-600 hover:bg-purple-700 rounded text-sm"
+                    >
+                      + New
+                    </button>
+                  </div>
                 </div>
                 <div className="space-y-2">
                   {projects.map(project => (
@@ -459,9 +468,15 @@ export default function BrandWorkspacePage() {
                     </button>
                   ))}
                   {projects.length === 0 && (
-                    <p className="text-gray-500 text-sm text-center py-4">
-                      No projects yet. Create one to get started.
-                    </p>
+                    <div className="text-gray-500 text-sm text-center py-4">
+                      <p>No projects yet.</p>
+                      <button
+                        onClick={startBrandChat}
+                        className="mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded text-sm"
+                      >
+                        💬 Start Brand Chat
+                      </button>
+                    </div>
                   )}
                 </div>
               </div>
