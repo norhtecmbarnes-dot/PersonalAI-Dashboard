@@ -175,7 +175,7 @@ export default function BrandWorkspacePage() {
   };
 
   const sendMessage = async () => {
-    if (!chatInput.trim() || !currentSession || !selectedBrand || !selectedProject || isLoading) return;
+    if (!chatInput.trim() || !currentSession || !selectedBrand || isLoading) return;
 
     const message = chatInput.trim();
     setChatInput('');
@@ -187,7 +187,7 @@ export default function BrandWorkspacePage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'chat',
-          projectId: selectedProject.id,
+          projectId: selectedProject?.id || undefined,
           brandId: selectedBrand.id,
           sessionId: currentSession.id,
           message,
