@@ -9,9 +9,9 @@
 
 ## Overview
 
-OpenAI Dashboard is a self-hosted AI assistant that gives you complete control over your AI interactions. Unlike cloud-based solutions, your data never leaves your computer, making it ideal for sensitive workflows, research, and enterprise applications.
+PersonalAI Dashboard is a self-hosted AI assistant that gives you complete control over your AI interactions. Unlike cloud-based solutions, your data never leaves your computer, making it ideal for sensitive workflows, research, and enterprise applications.
 
-**Why OpenAI Dashboard?**
+**Why PersonalAI Dashboard?**
 - 🔒 **100% Private** - All data stays on your machine
 - 💰 **Zero Subscription Fees** - Free to run forever
 - 🌐 **Works Offline** - No internet required after setup
@@ -51,8 +51,8 @@ OpenAI Dashboard is a self-hosted AI assistant that gives you complete control o
 
 ```bash
 # Clone the repository
-git clone https://github.com/norhtecmbarnes/openai-dashboard.git
-cd openai-dashboard
+git clone https://github.com/norhtecmbarnes-dot/PersonalAI-Dashboard.git
+cd PersonalAI-Dashboard
 
 # Install dependencies
 npm install
@@ -81,7 +81,7 @@ Visit `http://localhost:3000` to access your dashboard.
 
 ```
 ┌─────────────────────────────────────────────┐
-│           OpenAI Dashboard                   │
+│         PersonalAI Dashboard                 │
 │  ┌───────────────────────────────────────┐  │
 │  │  Next.js + TypeScript Frontend        │  │
 │  │  • React Components                   │  │
@@ -114,7 +114,7 @@ Visit `http://localhost:3000` to access your dashboard.
 ## Project Structure
 
 ```
-openai-dashboard/
+personala-dashboard/
 ├── src/
 │   ├── app/                 # Next.js App Router
 │   │   ├── api/            # API routes
@@ -140,8 +140,8 @@ We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) f
 
 ```bash
 # Fork and clone
-git clone https://github.com/norhtecmbarnes/openai-dashboard.git
-cd openai-dashboard
+git clone https://github.com/norhtecmbarnes-dot/PersonalAI-Dashboard.git
+cd PersonalAI-Dashboard
 
 # Install dependencies
 npm install
