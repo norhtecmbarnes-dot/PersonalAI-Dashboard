@@ -215,7 +215,7 @@ If you use this project in your work, please cite:
   title = {PersonalAI Dashboard: Privacy-First AI Assistant},
   author = {PersonalAI Dashboard Contributors},
   year = {2026},
-  url = {https://github.com/norhtecmbarnes/personala-dashboard}
+  url = {https://github.com/norhtecmbarnes-dot/PersonalAI-Dashboard}
 }
 ```
 

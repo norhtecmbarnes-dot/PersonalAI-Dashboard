@@ -1,6 +1,6 @@
 # Setting Up Your GitHub Repository
 
-This guide will help you create a clean, professional GitHub repository for OpenAI Dashboard.
+This guide will help you create a clean, professional GitHub repository for PersonalAI Dashboard.
 
 ## Prerequisites
 
@@ -11,7 +11,7 @@ This guide will help you create a clean, professional GitHub repository for Open
 ## Step 1: Create Repository on GitHub
 
 1. Go to https://github.com/new
-2. **Repository name**: `openai-dashboard` (or your preferred name)
+2. **Repository name**: `PersonalAI-Dashboard` (or your preferred name)
 3. **Description**: "A comprehensive, privacy-first AI assistant that runs entirely on your local machine"
 4. **Visibility**: Public (for open source)
 5. **DO NOT** initialize with:
@@ -26,7 +26,7 @@ Run these commands in your terminal (in the project directory):
 
 ```bash
 # Add the GitHub remote
-git remote add origin https://github.com/YOUR_USERNAME/openai-dashboard.git
+git remote add origin https://github.com/YOUR_USERNAME/PersonalAI-Dashboard.git
 
 # Verify the remote was added
 git remote -v
@@ -71,7 +71,7 @@ git push -u origin main
 Go to your repository on GitHub and configure:
 
 ### General Settings
-1. **Repository name**: openai-dashboard
+1. **Repository name**: PersonalAI-Dashboard
 2. **Social preview**: Upload an image (1200x630 recommended)
 3. **Topics**: Add these tags:
    - ai-assistant
@@ -264,7 +264,7 @@ git config user.email
 ### Permission denied
 ```bash
 # Use SSH instead of HTTPS
-git remote set-url origin git@github.com:YOUR_USERNAME/openai-dashboard.git
+git remote set-url origin git@github.com:YOUR_USERNAME/PersonalAI-Dashboard.git
 ```
 
 ### Large files rejected
@@ -278,7 +278,7 @@ Make sure `.gitignore` excludes:
 Consider using GitHub CLI:
 ```bash
 gh auth login
-gh repo create openai-dashboard --public --source=. --push
+gh repo create PersonalAI-Dashboard --public --source=. --push
 ```
 
 ## Next Steps
