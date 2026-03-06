@@ -1,5 +1,39 @@
 # Change Log - AI Dashboard
 
+## Version 2.3.2 (March 6, 2026)
+
+---
+
+### Performance & Security Improvements
+
+**Chat Page Speed Optimizations:**
+- Added `useCallback` memoization for async functions to prevent unnecessary re-renders
+- Implemented document context caching (60s TTL) to avoid repeated database queries
+- Limited conversation history to last 10 messages for faster API calls
+- Truncated memory context to 2000 chars to reduce token usage
+- Reduced initial load hooks to prevent duplicate data fetching
+- Removed verbose console.log statements for cleaner production logs
+
+**Security Enhancements:**
+- Applied `sanitizePrompt()` to user inputs across API routes:
+  - `/api/chat/stream` - Message and memory context sanitization
+  - `/api/writing` - Text and style input sanitization
+  - `/api/brand-chat` - Brand ID and message sanitization
+  - `/api/memory-file` - All memory operations sanitized
+  - `/api/settings` - Key, value, and category sanitization
+- Added input length limits across all sanitized endpoints
+- Added `export const runtime = 'nodejs'` to writing route for consistency
+
+**Files Modified:**
+- `src/app/page.tsx` - useCallback memoization, optimized hooks
+- `src/app/api/chat/stream/route.ts` - Document caching, history limiting, sanitization
+- `src/app/api/writing/route.ts` - Input sanitization, runtime declaration
+- `src/app/api/brand-chat/route.ts` - Input sanitization
+- `src/app/api/memory-file/route.ts` - Input sanitization
+- `src/app/api/settings/route.ts` - Input sanitization
+
+---
+
 ## Version 2.3.1 (March 6, 2026)
 
 ---

@@ -2,33 +2,41 @@ export const runtime = 'nodejs';
 
 import { NextRequest } from 'next/server';
 import { streamChatCompletion } from '@/lib/models/sdk.server';
-import { validateString, sanitizeString, validateArray, sanitizeObject } from '@/lib/utils/validation';
+import { validateString, sanitizeString, sanitizePrompt, validateArray, sanitizeObject } from '@/lib/utils/validation';
 import { ollamaWebSearch } from '@/lib/browser/web-search-tool';
 import { memoryFileService } from '@/lib/services/memory-file';
 import { sqlDatabase } from '@/lib/database/sqlite';
 
 const MAX_MESSAGE_LENGTH = 10000;
-const MAX_HISTORY_LENGTH = 100;
+const MAX_HISTORY_LENGTH = 50;
+
+let cachedDocumentContext: { data: string; timestamp: number } | null = null;
+const DOC_CACHE_TTL = 60000;
 
 async function getDocumentContext(): Promise<string> {
+  if (cachedDocumentContext && Date.now() - cachedDocumentContext.timestamp < DOC_CACHE_TTL) {
+    return cachedDocumentContext.data;
+  }
+  
   try {
     await sqlDatabase.initialize();
     const docs = sqlDatabase.getDocuments();
     
     if (!docs || docs.length === 0) {
+      cachedDocumentContext = { data: '', timestamp: Date.now() };
       return '';
     }
     
-    // Get last 5 documents as context
-    const recentDocs = docs.slice(0, 5);
+    const recentDocs = docs.slice(0, 3);
     const docContext = recentDocs.map((doc: any) => {
-      const content = doc.content?.slice(0, 500) || '';
-      return `- **${doc.title}** (${doc.type || 'text'}): ${content}${doc.content?.length > 500 ? '...' : ''}`;
+      const content = doc.content?.slice(0, 300) || '';
+      return `- **${doc.title}**: ${content}`;
     }).join('\n');
     
-    return `\n\n### Available Documents\nYou have access to these documents in your database:\n${docContext}\n\nWhen the user asks about documents, reference these by title. You can search through them.`;
+    const result = `\n\n### Available Documents\n${docContext}\n\n`;
+    cachedDocumentContext = { data: result, timestamp: Date.now() };
+    return result;
   } catch (error) {
-    console.error('[Chat] Error loading documents:', error);
     return '';
   }
 }
@@ -66,27 +74,22 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const message = sanitizeString(body.message);
+    const message = sanitizePrompt(sanitizeString(body.message));
     const model = sanitizeString(body.model);
     const conversationHistory = sanitizeObject(body.conversationHistory || []);
     const isSearchMode = body.searchMode === true;
 
-    // Load MEMORY.md context
     let memoryContext = '';
     try {
       const memoryPrompt = memoryFileService.getSystemPrompt();
-      memoryContext = `\n\n--- MEMORY CONTEXT ---\n${memoryPrompt}\n\n`;
+      memoryContext = `\n\n--- MEMORY CONTEXT ---\n${memoryPrompt.slice(0, 2000)}\n\n`;
     } catch (memError) {
-      console.error('[Chat] Memory load error:', memError);
     }
     
-    // Load document context
     const documentContext = await getDocumentContext();
 
-    // Build messages array
     const messages: Array<{role: 'system' | 'user' | 'assistant'; content: string}> = [];
     
-    // Set up system prompt based on search mode
     let systemPrompt = memoryContext;
     
     if (isSearchMode) {
@@ -102,19 +105,18 @@ CRITICAL INSTRUCTIONS:
       systemPrompt += `You are a helpful AI assistant. Be concise and helpful.`;
     }
     
-    // Add document context
     if (documentContext) {
       systemPrompt += documentContext;
     }
     
     messages.push({ role: 'system', content: systemPrompt });
     
-    // Add conversation history
-    for (const msg of (conversationHistory as any[])) {
+    const historyLimit = Math.min(conversationHistory.length, 10);
+    for (let i = Math.max(0, conversationHistory.length - historyLimit); i < conversationHistory.length; i++) {
+      const msg = conversationHistory[i] as any;
       messages.push({ role: msg.role, content: msg.content });
     }
     
-    // Handle search mode
     let userMessage = message;
     
     if (isSearchMode) {

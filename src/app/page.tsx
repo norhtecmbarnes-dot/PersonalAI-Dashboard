@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react';
 import { createPortal } from 'react-dom';
 import { CommandMenu, COMMANDS } from '@/components/CommandMenu';
 import { MarkdownRenderer } from '@/components/MarkdownRenderer';
@@ -136,21 +136,19 @@ export default function Home() {
   
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const initialLoadDone = useRef(false);
 
   useEffect(() => {
+    if (initialLoadDone.current) return;
+    initialLoadDone.current = true;
+    
     loadModels();
     checkHealth();
     loadUserPreferences();
-    loadDocuments();
-    loadSavedChats();
     
-    // Reduce heartbeat frequency - only check every 5 minutes instead of 30 seconds
-    // The task scheduler runs independently and doesn't need constant checks
     const heartbeatInterval = setInterval(() => {
-      fetch('/api/heartbeat').catch(err => {
-        console.log('[Heartbeat] Background check failed:', err);
-      });
-    }, 300000); // 5 minutes instead of 30 seconds
+      fetch('/api/heartbeat').catch(() => {});
+    }, 300000);
     
     return () => {
       clearInterval(heartbeatInterval);
@@ -158,10 +156,15 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    loadDocuments();
+    loadSavedChats();
+  }, []);
+
+  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const loadSavedChats = async () => {
+  const loadSavedChats = useCallback(async () => {
     try {
       const response = await fetch('/api/chat-history?action=recent&limit=10');
       const data = await response.json();
@@ -169,9 +172,9 @@ export default function Home() {
     } catch (error) {
       console.error('Error loading saved chats:', error);
     }
-  };
+  }, []);
 
-  const saveCurrentChat = async () => {
+  const saveCurrentChat = useCallback(async () => {
     if (messages.length === 0) return;
     
     try {
@@ -192,9 +195,9 @@ export default function Home() {
     } catch (error) {
       console.error('Error saving chat:', error);
     }
-  };
+  }, [messages, selectedModel, selectedExpert?.id, loadSavedChats]);
 
-  const loadChat = async (chatId: string) => {
+  const loadChat = useCallback(async (chatId: string) => {
     try {
       const response = await fetch(`/api/chat-history?action=get&id=${chatId}`);
       const data = await response.json();
@@ -205,9 +208,9 @@ export default function Home() {
     } catch (error) {
       console.error('Error loading chat:', error);
     }
-  };
+  }, []);
 
-  const loadDocuments = async () => {
+  const loadDocuments = useCallback(async () => {
     try {
       const response = await fetch('/api/documents/import?action=list');
       const data = await response.json();
@@ -215,9 +218,9 @@ export default function Home() {
     } catch (error) {
       console.error('Error loading documents:', error);
     }
-  };
+  }, []);
 
-  const loadUserPreferences = async () => {
+  const loadUserPreferences = useCallback(async () => {
     try {
       const response = await fetch('/api/user');
       const data = await response.json();
@@ -233,37 +236,29 @@ export default function Home() {
       console.error('Error loading preferences:', error);
       window.location.href = '/setup';
     }
-  };
+  }, []);
 
-  const loadModels = async () => {
+  const loadModels = useCallback(async () => {
     try {
       const response = await fetch('/api/models');
       const data = await response.json();
       
-      // Get available models from Ollama
       const ollamaModels = (data.ollama?.models || []).map((m: any) => m.name || m.id);
-      
-      // Get external/cloud models
       const externalModels = (data.external || []).map((m: any) => m.id);
-      
-      // Combine all models: Ollama first, then external
       const allModels = [...ollamaModels, ...externalModels];
       
       if (allModels.length > 0) {
         setModels(allModels);
-        // Set first available model as default if current not in list
-        if (!allModels.includes(selectedModel)) {
-          setSelectedModel(ollamaModels.length > 0 ? ollamaModels[0] : externalModels[0]);
-        }
+        setSelectedModel(prev => allModels.includes(prev) ? prev : (ollamaModels.length > 0 ? ollamaModels[0] : externalModels[0]));
       }
       
       setOllamaHealthy(data.ollama?.available ?? false);
     } catch (error) {
       console.error('Error loading models:', error);
     }
-  };
+  }, []);
 
-  const checkHealth = async () => {
+  const checkHealth = useCallback(async () => {
     try {
       const response = await fetch('/api/heartbeat');
       const data = await response.json();
@@ -271,10 +266,9 @@ export default function Home() {
         setOllamaHealthy(false);
       }
     } catch (error) {
-      console.error('Health check failed:', error);
       setOllamaHealthy(false);
     }
-  };
+  }, []);
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading) return;

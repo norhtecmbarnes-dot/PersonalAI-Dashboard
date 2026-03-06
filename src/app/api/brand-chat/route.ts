@@ -3,6 +3,7 @@ export const runtime = 'nodejs';
 import { NextResponse } from 'next/server';
 import { sqlDatabase } from '@/lib/database/sqlite';
 import { DocumentStore } from '@/lib/storage/documents';
+import { sanitizePrompt, sanitizeString } from '@/lib/utils/validation';
 
 export async function POST(request: Request) {
   try {
@@ -17,7 +18,10 @@ export async function POST(request: Request) {
       );
     }
 
-    const brand = sqlDatabase.getBrandById(brandId);
+    const sanitizedBrandId = sanitizeString(brandId);
+    const sanitizedMessage = sanitizePrompt(message, 10000);
+
+    const brand = sqlDatabase.getBrandById(sanitizedBrandId);
     if (!brand) {
       return NextResponse.json(
         { error: 'Brand not found' },
@@ -59,8 +63,8 @@ export async function POST(request: Request) {
 
     const messages = [
       { role: 'system' as const, content: systemPrompt },
-      ...(conversationHistory || []),
-      { role: 'user' as const, content: message }
+      ...(conversationHistory || []).slice(-10),
+      { role: 'user' as const, content: sanitizedMessage }
     ];
 
     const model = body.model || 'openrouter';

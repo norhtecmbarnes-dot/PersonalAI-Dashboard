@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { memoryFileService, memoryToMarkdown, parseMemoryFromMarkdown, MemoryFile, MemorySection } from '@/lib/services/memory-file';
+import { sanitizeString, sanitizePrompt } from '@/lib/utils/validation';
 
 export async function GET(request: NextRequest) {
   try {
@@ -61,25 +62,24 @@ export async function POST(request: NextRequest) {
         
       case 'updateConversation':
         await memoryFileService.updateConversation(
-          body.summary, 
-          body.topics || [], 
-          body.actions || []
+          sanitizePrompt(body.summary, 2000), 
+          (body.topics || []).slice(0, 10).map((t: string) => sanitizeString(t).slice(0, 100)), 
+          (body.actions || []).slice(0, 10).map((a: string) => sanitizeString(a).slice(0, 200))
         );
         return NextResponse.json({ success: true });
         
       case 'updateContext':
         await memoryFileService.updateContext(
-          body.focus,
-          body.recentFiles || [],
-          body.activeQueries || []
+          sanitizePrompt(body.focus, 500),
+          (body.recentFiles || []).slice(0, 20).map((f: string) => sanitizeString(f).slice(0, 200)),
+          (body.activeQueries || []).slice(0, 10).map((q: string) => sanitizeString(q).slice(0, 200))
         );
         return NextResponse.json({ success: true });
         
       case 'updateSoul':
-        // Save soul to database instead of file
         try {
           const { sqlDatabase } = await import('@/lib/database/sqlite');
-          sqlDatabase.setSetting('memory_soul', body.soul);
+          sqlDatabase.setSetting('memory_soul', sanitizePrompt(body.soul, 5000));
           return NextResponse.json({ success: true });
         } catch (e) {
           console.error('[MemoryFile] Could not save soul:', e);
@@ -87,8 +87,7 @@ export async function POST(request: NextRequest) {
         }
         
       case 'import':
-        const imported = parseMemoryFromMarkdown(body.markdown);
-        // Save to database
+        const imported = parseMemoryFromMarkdown(sanitizePrompt(body.markdown, 50000));
         try {
           const { sqlDatabase } = await import('@/lib/database/sqlite');
           sqlDatabase.setSetting('memory_file', JSON.stringify({

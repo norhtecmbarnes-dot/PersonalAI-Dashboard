@@ -1,6 +1,9 @@
+export const runtime = 'nodejs';
+
 import { NextRequest, NextResponse } from 'next/server';
 import { chatCompletion } from '@/lib/models/sdk.server';
 import { memoryFileService } from '@/lib/services/memory-file';
+import { sanitizePrompt } from '@/lib/utils/validation';
 
 const EXPAND_PROMPT = `You are an expert writer. Expand on the following text, adding more detail, examples, and depth while maintaining the original voice and style. Make it approximately 2-3x longer while keeping it natural and engaging.
 
@@ -97,37 +100,37 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'action required' }, { status: 400 });
     }
 
-    // Get memory context
+    const sanitizedText = sanitizePrompt(text, 8000);
+    const sanitizedStyle = style ? sanitizePrompt(style, 100) : 'professional';
+
     let memoryContext = '';
     try {
-      memoryContext = memoryFileService.getSystemPrompt();
+      memoryContext = memoryFileService.getSystemPrompt().slice(0, 1500);
     } catch (e) {
-      console.log('Memory not loaded');
     }
 
-    // Build prompt based on action
     let prompt = '';
     switch (action) {
       case 'expand':
-        prompt = EXPAND_PROMPT.replace('{text}', text);
+        prompt = EXPAND_PROMPT.replace('{text}', sanitizedText);
         break;
       case 'outline':
-        prompt = OUTLINE_PROMPT.replace('{text}', text);
+        prompt = OUTLINE_PROMPT.replace('{text}', sanitizedText);
         break;
       case 'continue':
-        prompt = CONTINUE_PROMPT.replace('{text}', text);
+        prompt = CONTINUE_PROMPT.replace('{text}', sanitizedText);
         break;
       case 'rewrite':
-        prompt = REWRITE_PROMPT.replace('{text}', text).replace('{style}', style || 'professional');
+        prompt = REWRITE_PROMPT.replace('{text}', sanitizedText).replace('{style}', sanitizedStyle);
         break;
       case 'simplify':
-        prompt = SIMPLIFY_PROMPT.replace('{text}', text);
+        prompt = SIMPLIFY_PROMPT.replace('{text}', sanitizedText);
         break;
       case 'elaborate':
-        prompt = ELABORATE_PROMPT.replace('{text}', text);
+        prompt = ELABORATE_PROMPT.replace('{text}', sanitizedText);
         break;
       case 'structure':
-        prompt = STRUCTURE_PROMPT.replace('{text}', text);
+        prompt = STRUCTURE_PROMPT.replace('{text}', sanitizedText);
         break;
       default:
         return NextResponse.json({ error: 'Invalid action. Use: expand, outline, continue, rewrite, simplify, elaborate, structure' }, { status: 400 });
@@ -138,10 +141,11 @@ export async function POST(request: NextRequest) {
       content: memoryContext + '\n\nYou are a skilled writing assistant. Follow instructions precisely and provide only the requested output.'
     };
 
-    // Use Kimi K2.5 by default - distilled from Claude, excellent for English writing via Ollama Cloud
     const useModel = model || 'kimi-k2.5';
     
-    console.log('[Writing] Processing:', action, 'with model:', useModel);
+    if (process.env.NODE_ENV !== 'production') {
+      console.log('[Writing] Processing:', action, 'with model:', useModel);
+    }
     
     // Handle streaming
     if (stream) {
