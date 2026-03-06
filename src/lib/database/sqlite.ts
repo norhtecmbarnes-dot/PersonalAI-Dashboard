@@ -2610,6 +2610,16 @@ export class SQLDatabase {
       
       const lastRun = task.last_run || 0;
       
+      // If never run, stagger tasks to prevent all running at once
+      // Use task creation time or ID hash to stagger
+      if (lastRun === 0) {
+        const createdAt = task.created_at || now;
+        const taskIdHash = task.id ? parseInt(task.id.replace(/\D/g, '').slice(-6) || '0', 10) : 0;
+        // Stagger: run within first hour after creation based on ID hash
+        const staggerMs = (taskIdHash % 60) * 60 * 1000; // 0-60 minutes stagger
+        return now >= createdAt + staggerMs;
+      }
+      
       // Parse schedule - supports: "every:N:unit" or "cron:expression"
       if (task.schedule.startsWith('every:')) {
         const parts = task.schedule.split(':');

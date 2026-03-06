@@ -139,7 +139,9 @@ export async function POST(request: NextRequest) {
     };
 
     const useModel = model || 'glm-4.7-flash';
-
+    
+    console.log('[Writing] Processing:', action, 'with model:', useModel);
+    
     // Handle streaming
     if (stream) {
       const encoder = new TextEncoder();
@@ -184,6 +186,8 @@ export async function POST(request: NextRequest) {
     });
 
     const content = result.message?.content || '';
+    
+    console.log('[Writing] Result length:', content.length, 'characters');
 
     return NextResponse.json({
       success: true,
@@ -194,7 +198,12 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Writing assistant error:', error);
     return NextResponse.json(
-      { error: 'Failed to process request', details: error instanceof Error ? error.message : 'Unknown' },
+      { 
+        success: false,
+        error: 'Failed to process request', 
+        details: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined,
+      },
       { status: 500 }
     );
   }
