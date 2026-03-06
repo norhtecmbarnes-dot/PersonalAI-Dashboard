@@ -6,7 +6,7 @@ export interface ScheduledTask {
   name: string;
   description?: string;
   prompt?: string;
-  taskType: 'intelligence' | 'security' | 'research' | 'reflection' | 'sam_check' | 'brand_task' | 'web_check' | 'memory_capture' | 'memory_archive' | 'rl_training' | 'cleanup' | 'custom';
+  taskType: 'intelligence' | 'security' | 'research' | 'reflection' | 'brand_task' | 'web_check' | 'memory_capture' | 'memory_archive' | 'rl_training' | 'cleanup' | 'custom';
   schedule: string;
   brandId?: string;
   projectId?: string;
@@ -50,7 +50,6 @@ const TASK_PRIORITIES: Record<ScheduledTask['taskType'], 'critical' | 'high' | '
   security: 'high',          // Important but not urgent
   research: 'low',           // Background task, pause during use
   reflection: 'low',         // Background task, pause during use
-  sam_check: 'normal',       // Periodic check
   brand_task: 'normal',     // User initiated
   web_check: 'low',          // Background monitor
   memory_capture: 'low',     // Background, not time-sensitive
@@ -87,13 +86,6 @@ export const TASK_TEMPLATES: TaskTemplate[] = [
     description: 'Analyze system performance and suggest improvements',
     defaultSchedule: 'every:24:hours', // Reduced from every 6 hours to daily
     promptTemplate: 'Analyze recent system performance and suggest improvements for tool usage efficiency.',
-  },
-  {
-    type: 'sam_check',
-    name: 'SAM.gov Check',
-    description: 'Check SAM.gov for new contracting opportunities',
-    defaultSchedule: 'every:24:hours',
-    promptTemplate: 'Check SAM.gov for new opportunities matching configured keywords.',
   },
   {
     type: 'brand_task',
@@ -391,9 +383,6 @@ class TaskScheduler {
         case 'reflection':
           result = await this.executeReflectionTask(task);
           break;
-        case 'sam_check':
-          result = await this.executeSAMCheckTask(task);
-          break;
         case 'brand_task':
           result = await this.executeBrandTask(task);
           break;
@@ -496,15 +485,6 @@ class TaskScheduler {
       success: true,
       result: `Self-reflection completed. Score: ${report.healthScore}`,
       data: { score: report.healthScore, insights: report.insights?.length || 0 },
-    };
-  }
-
-  private async executeSAMCheckTask(task: ScheduledTask): Promise<TaskExecutionResult> {
-    // SAM.gov integration has been removed
-    return {
-      success: true,
-      result: 'SAM.gov integration has been removed from the system',
-      data: { opportunities: 0, queriesChecked: 0 },
     };
   }
 
