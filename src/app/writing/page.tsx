@@ -51,6 +51,10 @@ export default function WritingAssistantPage() {
     setError(null);
     setResult(null);
 
+    // Use a fallback model if none selected
+    const modelToUse = model || 'qwen3.5:397b';
+    console.log('[Writing] Submitting with model:', modelToUse);
+
     try {
       const response = await fetch('/api/writing', {
         method: 'POST',
@@ -59,12 +63,13 @@ export default function WritingAssistantPage() {
           action,
           text: input,
           style: action === 'rewrite' ? style : undefined,
-          model,
+          model: modelToUse,
           stream: false,
         }),
       });
 
       const data = await response.json();
+      console.log('[Writing] Response:', data);
 
       if (data.success) {
         setResult(data);
@@ -72,6 +77,7 @@ export default function WritingAssistantPage() {
         setError(data.error || 'Failed to process');
       }
     } catch (err) {
+      console.error('[Writing] Error:', err);
       setError(err instanceof Error ? err.message : 'Unknown error');
     }
 
