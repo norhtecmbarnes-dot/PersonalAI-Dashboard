@@ -15,6 +15,7 @@ import { memoryStore } from '@/lib/memory/persistent-store';
 import { rlTrainer, getRLStats, recordFeedback, logConversationTurn } from '@/lib/agent/rl-trainer';
 import { aiSecurityScanner, getSecurityStatus } from '@/lib/security/ai-security-scanner';
 import { deaiify, formatDeaiResult, analyzeText, DeAiMode } from '@/lib/writing/de-ai-ify';
+import { taskScheduler } from '@/lib/services/task-scheduler';
 
 export interface ChatRequest {
   model: string;
@@ -30,6 +31,9 @@ const MAX_MESSAGE_LENGTH = 10000;
 const MAX_HISTORY_LENGTH = 100;
 
 export async function POST(request: Request) {
+  // Mark session as active - pause low-priority background tasks
+  taskScheduler.startSession();
+  
   try {
     const body = await request.json();
 
@@ -869,6 +873,9 @@ Links found: ${result.result.links.join(', ')}`;
         toolCallsExecuted
       );
       
+      // End session - resume background tasks
+      taskScheduler.endSession();
+      
       return NextResponse.json({
         message: finalContent,
         done: true,
@@ -884,6 +891,9 @@ Links found: ${result.result.links.join(', ')}`;
     } catch (logError) {
       // Don't fail the request if logging fails
       console.error('[RL] Failed to log conversation:', logError);
+      
+      // End session - resume background tasks
+      taskScheduler.endSession();
       
       return NextResponse.json({
         message: finalContent,
@@ -902,6 +912,10 @@ Links found: ${result.result.links.join(', ')}`;
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     const errorStack = error instanceof Error ? error.stack : undefined;
     console.error('Chat error stack:', errorStack);
+    
+    // End session on error too
+    taskScheduler.endSession();
+    
     return NextResponse.json(
       {
         error: 'Failed to process chat message',

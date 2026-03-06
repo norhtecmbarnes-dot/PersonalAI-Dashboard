@@ -22,6 +22,7 @@ export interface ScheduledTask {
   config?: Record<string, any>;
   createdAt: number;
   updatedAt: number;
+  priority?: 'low' | 'normal' | 'high' | 'critical';
 }
 
 export interface TaskExecutionResult {
@@ -39,7 +40,25 @@ export interface TaskTemplate {
   promptTemplate?: string;
   requiresBrand?: boolean;
   requiresProject?: boolean;
+  priority?: 'low' | 'normal' | 'high' | 'critical';
 }
+
+// Task priorities - low priority tasks pause during active sessions
+// Critical tasks always run, high runs during idle, normal/low pause during active use
+const TASK_PRIORITIES: Record<ScheduledTask['taskType'], 'critical' | 'high' | 'normal' | 'low'> = {
+  intelligence: 'normal',    // Can wait
+  security: 'high',          // Important but not urgent
+  research: 'low',           // Background task, pause during use
+  reflection: 'low',         // Background task, pause during use
+  sam_check: 'normal',       // Periodic check
+  brand_task: 'normal',     // User initiated
+  web_check: 'low',          // Background monitor
+  memory_capture: 'low',     // Background, not time-sensitive
+  memory_archive: 'low',     // Background, not time-sensitive
+  rl_training: 'low',        // Heavy computation, pause during use
+  cleanup: 'low',            // Maintenance, pause during use
+  custom: 'normal',
+};
 
 export const TASK_TEMPLATES: TaskTemplate[] = [
   {
@@ -126,6 +145,11 @@ class TaskScheduler {
   private isInitialized: boolean = false;
   private intervalId: NodeJS.Timeout | null = null;
   private readonly CHECK_INTERVAL = 60 * 1000; // Check every minute
+  
+  // Session tracking - pause low priority tasks during active sessions
+  private activeSession: boolean = false;
+  private sessionStartTime: number = 0;
+  private readonly SESSION_TIMEOUT = 5 * 60 * 1000; // 5 minutes of inactivity = session ended
 
   private constructor() {}
 
@@ -134,6 +158,59 @@ class TaskScheduler {
       TaskScheduler.instance = new TaskScheduler();
     }
     return TaskScheduler.instance;
+  }
+  
+  // Called when user starts actively using the system (chat, etc.)
+  startSession(): void {
+    this.activeSession = true;
+    this.sessionStartTime = Date.now();
+    // Pause low priority background tasks
+    console.log('[TaskScheduler] Session started - pausing low priority background tasks');
+  }
+  
+  // Called when user stops using the system
+  endSession(): void {
+    this.activeSession = false;
+    console.log('[TaskScheduler] Session ended - resuming all tasks');
+  }
+  
+  // Check if session is still active (auto-ended after timeout)
+  isSessionActive(): boolean {
+    if (!this.activeSession) return false;
+    
+    // Auto-end session after timeout
+    if (Date.now() - this.sessionStartTime > this.SESSION_TIMEOUT) {
+      this.activeSession = false;
+      console.log('[TaskScheduler] Session auto-ended after inactivity timeout');
+      return false;
+    }
+    
+    return true;
+  }
+  
+  // Check if a task should run based on priority and session state
+  shouldRunTask(task: ScheduledTask): boolean {
+    const priority = task.priority || TASK_PRIORITIES[task.taskType] || 'normal';
+    
+    // Critical tasks always run
+    if (priority === 'critical') return true;
+    
+    // High priority tasks run only when not in active session
+    if (priority === 'high') {
+      return !this.isSessionActive();
+    }
+    
+    // Normal priority tasks run during idle time
+    if (priority === 'normal') {
+      return !this.isSessionActive();
+    }
+    
+    // Low priority tasks only run when system is completely idle
+    if (priority === 'low') {
+      return !this.isSessionActive();
+    }
+    
+    return true;
   }
 
   async initialize(): Promise<void> {
@@ -260,13 +337,33 @@ class TaskScheduler {
       
       // Only log if there are tasks to run
       if (dueTasks.length > 0) {
-        console.log(`[TaskScheduler] Running ${dueTasks.length} due task(s)`);
+        const sessionActive = this.isSessionActive();
+        const pausedTasks: ScheduledTask[] = [];
+        const runningTasks: ScheduledTask[] = [];
         
         for (const task of dueTasks) {
-          try {
-            await this.executeTask(task);
-          } catch (error) {
-            console.error(`[TaskScheduler] Task ${task.name} failed:`, error);
+          if (this.shouldRunTask(task)) {
+            runningTasks.push(task);
+          } else {
+            pausedTasks.push(task);
+          }
+        }
+        
+        // Log paused tasks (only if there are some)
+        if (pausedTasks.length > 0 && sessionActive) {
+          // Log paused tasks silently - don't spam console
+        }
+        
+        // Run only appropriate tasks
+        if (runningTasks.length > 0) {
+          console.log(`[TaskScheduler] Running ${runningTasks.length} task(s), ${pausedTasks.length} paused due to active session`);
+          
+          for (const task of runningTasks) {
+            try {
+              await this.executeTask(task);
+            } catch (error) {
+              console.error(`[TaskScheduler] Task ${task.name} failed:`, error);
+            }
           }
         }
       }
@@ -825,10 +922,11 @@ Return JSON array: [{"category": "user|decision|knowledge", "content": "...", "i
     return TASK_TEMPLATES;
   }
 
-  getStatus(): { isRunning: boolean; checkInterval: number } {
+  getStatus(): { isRunning: boolean; checkInterval: number; sessionActive: boolean } {
     return {
       isRunning: this.isRunning,
       checkInterval: this.CHECK_INTERVAL,
+      sessionActive: this.activeSession,
     };
   }
 
