@@ -67,8 +67,8 @@ Your AI Dashboard uses a smart system that automatically picks the right model f
 
 **Models you can use:**
 - `qwen3.5:2b` — Our default, near GPT-4 mini performance
+- `gemma3:4b` — Google's efficient model, runs on CPU
 - `llama3.2:1b` — Meta's tiny model, very fast
-- `gemma2:2b` — Google's efficient model
 - `phi3:mini` — Microsoft's compact model
 
 ### Tier 2: Capable Local (7B-14B Parameters)
@@ -115,6 +115,8 @@ Your AI Dashboard uses a smart system that automatically picks the right model f
 - `qwen3.5:27b` — High quality via Ollama Cloud
 - `llama4:scout` — 108B parameters (requires GPU or patience!)
 - `glm-4.7-flash` — 29B parameters, excellent multilingual
+- `kimi-k2.5` — 1.1T parameters (Claude-distilled), via Ollama Cloud
+- `glm-5` — 756B parameters (GPT-like), via Ollama Cloud
 - Cloud APIs: GPT-4, Claude, etc.
 
 ---
@@ -186,6 +188,49 @@ ollama pull llama4:scout    # 108B parameters (very slow!)
 
 # Use smaller models for speed, large for difficult tasks
 ```
+
+### GPU vs CPU Requirements
+
+**Can run on CPU (no dedicated GPU needed):**
+
+| Model | Size | RAM Needed | Speed |
+|-------|------|-----------|-------|
+| `qwen3.5:2b` | 2B | ~4GB | Very fast |
+| `gemma3:4b` | 4B | ~8GB | Fast |
+| `qwen3.5:9b` | 9B | ~16GB | Moderate |
+
+**Requires GPU with VRAM:**
+
+| Model | Size | VRAM Needed | Notes |
+|-------|------|--------------|-------|
+| `qwen3.5:27b` | 27B | ~24GB | RTX 4090 or better |
+| `qwen3.5:32b` | 32B | ~32GB | High-end GPU |
+| `llama4:scout` | 108B | ~80GB | Multi-GPU or cloud |
+
+**Cloud models (use via API):**
+
+| Model | Provider | Notes |
+|-------|----------|-------|
+| `kimi-k2.5` | Ollama Cloud | Claude-distilled, best for English writing |
+| `glm-5` | Ollama Cloud | GPT-like, 756B parameters |
+| `deepseek-v3.2` | Ollama Cloud | 671B, excellent reasoning |
+
+### Writing Model Fallback Chain
+
+The system automatically selects the best model for writing tasks:
+
+```typescript
+// Writing model priority:
+// 1. kimi-k2.5 (Cloud) - Claude-distilled, best for English
+// 2. glm-5 (Cloud) - GPT-like, excellent quality
+// 3. gpt-oss:20b (Local) - Requires GPU VRAM
+// 4. gemma3:4b (Local) - Runs on CPU, no GPU needed
+```
+
+**Why this chain:**
+- Cloud models give best quality
+- Falls back to local when cloud unavailable
+- `gemma3:4b` ensures writing works without GPU
 
 ### Option D: Enterprise Setup (Future Chapter)
 

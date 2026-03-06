@@ -1,5 +1,49 @@
 # Change Log - AI Dashboard
 
+## Version 2.3.1 (March 6, 2026)
+
+---
+
+### Model Selection and Writing Improvements
+
+**Writing Model Fallback Chain:**
+- Primary: `kimi-k2.5` (Claude-distilled, best for English writing)
+- Fallback 1: `glm-5` (GPT-like, 756B parameters)
+- Fallback 2: `gpt-oss:20b` (requires GPU VRAM)
+- Fallback 3: `gemma3:4b` (runs on CPU, no GPU needed)
+
+**Model Requirements Documented:**
+
+| Model | Size | Hardware | Speed |
+|-------|------|----------|-------|
+| `qwen3.5:2b` | 2B | CPU (4GB RAM) | Very fast |
+| `gemma3:4b` | 4B | CPU (8GB RAM) | Fast |
+| `qwen3.5:9b` | 9B | CPU (16GB RAM) | Moderate |
+| `qwen3.5:27b` | 27B | GPU (24GB VRAM) | Slow on CPU |
+| `gpt-oss:20b` | 20B | GPU (16GB VRAM) | Moderate |
+
+**Ollama Cloud Models Added:**
+- `kimi-k2.5` - 1.1T parameters, Claude-distilled
+- `glm-5` - 756B parameters, GPT-like
+- `deepseek-v3.2`, `cogito-2.1`, `mistral-large-3`, etc.
+- `gemma3:4b`, `gemma3:12b`, `gemma3:27b` available
+
+**Fixes:**
+- Writing assistant now defaults to `kimi-k2.5` for best English
+- Fallback chain ensures writing works without GPU
+- Removed unavailable models (ministral, gemini-3-flash)
+- Task scheduler staggers new tasks to prevent all running at once
+- Writing assistant outputs render correctly in result window
+
+**Files Modified:**
+- `src/lib/models/model-router.ts` - Added getWritingModel() with proper fallbacks
+- `src/app/api/writing/route.ts` - Default to kimi-k2.5
+- `src/app/writing/page.tsx` - Updated default model
+- `src/lib/database/sqlite.ts` - Stagger new tasks on first run
+- `book/chapter-13-model-router.md` - Documented GPU vs CPU requirements
+
+---
+
 ## Version 2.3.0 (March 5, 2026)
 
 ---
