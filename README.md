@@ -1,219 +1,320 @@
 # PersonalAI Dashboard
 
-> A comprehensive, privacy-first AI assistant that runs entirely on your local machine.
+> **Build Your Own AI Assistant - Runs Locally, Uses 32+ AI Models for FREE**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![License: CC BY-SA 4.0](https://img.shields.io/badge/License-CC%20BY--SA%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-sa/4.0/)
 [![Next.js](https://img.shields.io/badge/Next.js-16+-black)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue)](https://www.typescriptlang.org/)
 
-## Overview
+## 🎥 Video Tutorial
 
-PersonalAI Dashboard is a self-hosted AI assistant that gives you complete control over your AI interactions. Unlike cloud-based solutions, your data never leaves your computer, making it ideal for sensitive workflows, research, and enterprise applications.
+**New to this project?** Watch the complete walkthrough on YouTube:
 
-**Why PersonalAI Dashboard?**
-- 🔒 **100% Private** - All data stays on your machine
-- 💰 **Zero Subscription Fees** - Free to run forever
-- 🌐 **Works Offline** - No internet required after setup
-- 🎨 **Fully Customizable** - Modify every aspect
-- 📚 **Open Source** - Free to use, modify, and share
+▶️ **[Build Your Own AI Dashboard - Runs Locally, Uses 32+ AI Models for FREE]()
 
-## Features
+*Learn how to set up, customize, and extend your personal AI assistant.*
 
-### Core Capabilities
+---
 
-- **💬 Intelligent Chat** - Conversational AI with streaming responses
-- **📄 Document Management** - Upload and chat with PDFs, Word docs, and text files
-- **🎨 Canvas Builder** - Generate UI components with natural language
-- **📝 Writing Assistant** - Expand, outline, rewrite, and enhance text
-- **🔍 OCR & Image Recognition** - Extract text from images and documents
-- **📊 Presentation Generator** - Create PowerPoint presentations with AI
-- **📅 Task Scheduler** - Automated recurring tasks
-- **🤖 Self-Reflection** - AI analyzes its own performance
-- **🔐 Security Scanning** - Automatic vulnerability detection
-- **📚 Memory & Notes** - Integrated knowledge management
-
-### Model Support
-
-- **Local Models** (via Ollama): Qwen, Llama, Mistral, and more
-- **Cloud Models**: OpenAI GPT, Anthropic Claude
-- **Smart Routing**: Automatically selects the best model for each task
-
-## Quick Start
-
-### Prerequisites
-
-- Node.js 18+ and npm
-- Git
-- Ollama (for local AI models)
-
-### Installation
+## ⚡ Quick Start (5 Minutes)
 
 ```bash
-# Clone the repository
+# 1. Clone the repository
 git clone https://github.com/norhtecmbarnes-dot/PersonalAI-Dashboard.git
 cd PersonalAI-Dashboard
 
-# Install dependencies
+# 2. Install dependencies
 npm install
 
-# Configure environment
-cp .env.example .env.local
-# Edit .env.local with your API keys (optional)
+# 3. Install Ollama (for local AI)
+# Visit https://ollama.com and download
 
-# Initialize database
-npm run db:init
+# 4. Pull a model
+ollama pull qwen3.5:9b
 
-# Start development server
+# 5. Start the dashboard
 npm run dev
 ```
 
-Visit `http://localhost:3000` to access your dashboard.
+Open **http://localhost:3000** and start chatting!
 
-## Documentation
-
-- 📖 [System Guide](SYSTEM_GUIDE.md) - Complete feature documentation
-- 🚀 [Quick Start](docs/QUICK-START.md) - Get up and running fast
-- 🔧 [API Reference](docs/API-REFERENCE.md) - API endpoints and usage
-- 🎨 [Customization](docs/CUSTOMIZATION.md) - Make it yours
-
-## Architecture
-
+**Want FREE cloud models too?** Get your API key at https://ollama.com/settings/keys and add to `.env.local`:
 ```
-┌─────────────────────────────────────────────┐
-│         PersonalAI Dashboard                 │
-│  ┌───────────────────────────────────────┐  │
-│  │  Next.js + TypeScript Frontend        │  │
-│  │  • React Components                   │  │
-│  │  • Tailwind CSS Styling               │  │
-│  │  • Real-time Streaming                │  │
-│  └───────────────────────────────────────┘  │
-│                    ↕                         │
-│  ┌───────────────────────────────────────┐  │
-│  │  API Routes (Edge + Node.js Runtime)  │  │
-│  │  • Chat Processing                    │  │
-│  │  • Document Generation                │  │
-│  │  • Security Scanning                  │  │
-│  └───────────────────────────────────────┘  │
-│                    ↕                         │
-│  ┌───────────────────────────────────────┐  │
-│  │  Services Layer                        │  │
-│  │  • Model Router (3-tier system)       │  │
-│  │  • SQLite Database                    │  │
-│  │  • Task Scheduler                     │  │
-│  └───────────────────────────────────────┘  │
-│                    ↕                         │
-│  ┌───────────────────────────────────────┐  │
-│  │  AI Models                             │  │
-│  │  • Local (Ollama)                     │  │
-│  │  • Cloud APIs                         │  │
-│  └───────────────────────────────────────┘  │
-└─────────────────────────────────────────────┘
+OLLAMA_API_KEY=your-key-here
 ```
 
-## Project Structure
+---
+
+## 🚀 What's New (v2.3.2)
+
+### Performance Improvements
+- Chat page loads faster with optimized hooks
+- Document context caching (60s TTL)
+- Reduced conversation history for faster API calls
+- Memory context truncation for lower token usage
+
+### Security Enhancements
+- Input sanitization on all API routes
+- Prompt injection protection (`sanitizePrompt()`)
+- SQL injection prevention with parameterized queries
+- Length limits on all user inputs
+
+### Model Updates
+- **Writing Model Chain**: kimi-k2.5 → glm-5 → gpt-oss:20b → gemma3:4b
+- **Ollama Cloud Integration**: 32 FREE cloud models available
+- **Task Scheduler Priority System**: Background tasks pause during active chat
+
+---
+
+## ✨ Features
+
+| Feature | Description |
+|---------|-------------|
+| 💬 **Chat Interface** | Streaming responses, model selection, web search |
+| 📄 **Document Management** | Upload PDFs, Word docs, chat with them |
+| 🎨 **Canvas Builder** | Generate UI components with natural language |
+| ✍️ **Writing Assistant** | Expand, outline, rewrite, simplify text |
+| 📊 **Presentations** | AI-generated PowerPoint slides |
+| 📅 **Task Scheduler** | Automated recurring tasks |
+| 🧠 **Memory System** | Persistent AI knowledge across sessions |
+| 🔐 **Security Scanner** | Automatic vulnerability detection |
+| 📝 **Notes Board** | Drag-and-drop notes with AI organization |
+| 💼 **Brand Workspace** | Manage multiple brands and projects |
+| 🔍 **Web Search** | Real-time web search integrated with chat |
+| 🤖 **Model Router** | Smart model selection based on task |
+
+---
+
+## 🤖 AI Model Support
+
+### FREE Cloud Models (Ollama Cloud)
+
+| Model | Parameters | Best For |
+|-------|------------|----------|
+| `kimi-k2.5` | 1.1T | **Writing** (Claude-distilled, excellent English) |
+| `glm-5` | 756B | Complex reasoning |
+| `deepseek-v3.2` | 671B | Code generation |
+| `qwen3.5:397b` | 397B | General purpose |
+| `devstral-small-2` | 24B | Code agent tasks |
+
+*Get your FREE API key at https://ollama.com/settings/keys*
+
+### Local Models (No API Key Required)
+
+| Model | Size | Hardware | Speed |
+|-------|------|----------|-------|
+| `qwen3.5:2b` | 2B | CPU (4GB RAM) | Very fast |
+| `gemma3:4b` | 4B | CPU (8GB RAM) | Fast |
+| `qwen3.5:9b` | 9B | CPU (16GB RAM) | Moderate |
+| `qwen3.5:27b` | 27B | GPU (24GB VRAM) | Slow on CPU |
+| `gpt-oss:20b` | 20B | GPU (16GB VRAM) | Moderate |
+
+---
+
+## 📚 Documentation
+
+### The Complete Book
+
+📖 **[Building Your AI Dashboard: The Complete Beginner's Guide](book/)**
+
+A comprehensive book for beginners - no programming experience required!
+
+**Chapters:**
+1. Introduction - Your Journey Starts Here
+2. What is an API?
+3. What is a Container?
+4. **Setup Guide** - Step-by-step instructions
+5. What is Programming?
+6. **Database vs Datalake** - Understanding data storage
+7. Project Structure
+8. Prompt Templates
+9. Getting Your First Chat Working
+10. Adding Document Upload
+11. Creating Brand Voice System
+12-20. Advanced Features
+21. **Security System** - Protecting your dashboard
+
+### Additional Docs
+
+- [Quick Start Guide](docs/QUICK-START.md)
+- [API Reference](docs/API-REFERENCE.md)
+- [Customization Guide](docs/CUSTOMIZATION.md)
+
+---
+
+## 🏗️ Architecture
 
 ```
-personala-dashboard/
+┌─────────────────────────────────────────────────────┐
+│                  PersonalAI Dashboard                │
+│                                                      │
+│  ┌─────────────────────────────────────────────┐    │
+│  │        Next.js 16 + TypeScript              │    │
+│  │   • 20+ Pages    • 40+ API Routes          │    │
+│  │   • Tailwind CSS • Real-time Streaming      │    │
+│  └─────────────────────────────────────────────┘    │
+│                         ↕                            │
+│  ┌─────────────────────────────────────────────┐    │
+│  │           Services Layer                     │    │
+│  │   • Model Router (smart model selection)    │    │
+│  │   • Database (SQLite)                       │    │
+│  │   • Datalake (Vector Store)                 │    │
+│  │   • Memory.md (Persistent context)          │    │
+│  │   • Task Scheduler                          │    │
+│  │   • Security Scanner                        │    │
+│  └─────────────────────────────────────────────┘    │
+│                         ↕                            │
+│  ┌─────────────────────────────────────────────┐    │
+│  │              AI Models                       │    │
+│  │   • Ollama Local (free, offline)            │    │
+│  │   • Ollama Cloud (free API, 32 models)      │    │
+│  │   • OpenRouter, DeepSeek, etc. (paid)       │    │
+│  └─────────────────────────────────────────────┘    │
+└─────────────────────────────────────────────────────┘
+```
+
+### Three-Tier Data Storage
+
+| Layer | Purpose | Technology |
+|-------|---------|------------|
+| **Database** | Structured human data | SQLite |
+| **Datalake** | AI-searchable content | Vector Store |
+| **Memory.md** | Persistent AI knowledge | Markdown |
+
+---
+
+## 🔒 Security
+
+The dashboard includes comprehensive security measures:
+
+- **Input Validation** - Type checking, length limits
+- **Prompt Injection Defense** - Sanitization of all user inputs
+- **SQL Injection Prevention** - Parameterized queries
+- **Security Scanner** - Run `/security scan` in chat
+
+See [Chapter 21: Security System](book/chapter-21-security.md) for details.
+
+---
+
+## 📖 Project Structure
+
+```
+PersonalAI-Dashboard/
 ├── src/
-│   ├── app/                 # Next.js App Router
-│   │   ├── api/            # API routes
-│   │   └── [...]/          # Page routes
-│   ├── components/          # React components
-│   ├── lib/                # Core libraries
-│   │   ├── agent/          # AI agents
-│   │   ├── database/       # SQLite wrapper
-│   │   ├── models/         # Model management
-│   │   └── services/       # Business logic
-│   └── hooks/              # React hooks
-├── book/                   # Documentation book
-├── docs/                   # Additional documentation
-├── scripts/                # Build scripts
-└── public/                 # Static assets
+│   ├── app/                    # Next.js App Router
+│   │   ├── api/               # 40+ API endpoints
+│   │   ├── page.tsx           # Home page
+│   │   ├── writing/           # Writing assistant
+│   │   ├── canvas/            # Visual builder
+│   │   ├── brand-workspace/   # Brand management
+│   │   ├── notes/             # Notes board
+│   │   └── ...                # 15+ more pages
+│   │
+│   ├── lib/                   # Core libraries
+│   │   ├── database/          # SQLite operations
+│   │   ├── models/            # Model routing
+│   │   ├── services/          # Business logic
+│   │   ├── security/          # Security scanning
+│   │   ├── utils/             # Utilities (validation, etc.)
+│   │   ├── storage/           # Document storage
+│   │   └── agent/             # AI agents
+│   │
+│   └── components/            # React components
+│
+├── book/                      # Complete documentation book
+├── data/                      # SQLite database + memory
+├── docs/                      # Additional docs
+└── .env.local                # Your configuration
 ```
 
-## Contributing
+---
 
-We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
+## 🛠️ Requirements
 
-### Development Setup
+| Requirement | Minimum | Recommended |
+|-------------|---------|-------------|
+| **OS** | Windows 10, macOS 10.15, Linux | Any modern OS |
+| **RAM** | 8 GB | 16 GB |
+| **Disk** | 10 GB | 20 GB |
+| **Node.js** | v18+ | v20+ |
+
+**For Local AI:**
+- Any computer can run `qwen3.5:2b` (2B parameters, CPU)
+- 16GB+ RAM recommended for larger models
+
+**For Cloud AI:**
+- Just need internet and free Ollama API key
+
+---
+
+## 🌟 Getting Started
+
+### 1. Install Node.js
+
+Download from https://nodejs.org (version 18+ required)
+
+### 2. Install Ollama
 
 ```bash
-# Fork and clone
-git clone https://github.com/norhtecmbarnes-dot/PersonalAI-Dashboard.git
-cd PersonalAI-Dashboard
+# macOS/Linux
+curl -fsSL https://ollama.com/install.sh | sh
 
-# Install dependencies
-npm install
-
-# Create branch
-git checkout -b feature/your-feature
-
-# Make changes and commit
-git commit -m "Add: your feature description"
-
-# Push and create PR
-git push origin feature/your-feature
+# Windows: download from https://ollama.com
 ```
 
-## Roadmap
+### 3. Clone and Run
 
-- [x] Core chat interface
-- [x] Document management
-- [x] Canvas builder
-- [x] Writing assistant
-- [x] Model routing system
-- [x] Security scanning
-- [ ] Voice interface
-- [ ] Plugin system
-- [ ] Mobile app
-- [ ] Multi-language support
+```bash
+git clone https://github.com/norhtecmbarnes-dot/PersonalAI-Dashboard.git
+cd PersonalAI-Dashboard
+npm install
+npm run dev
+```
 
-## Book
+### 4. (Optional) Add Cloud Models
 
-This project includes a complete book that teaches you how to build AI applications:
+Get your FREE API key at https://ollama.com/settings/keys
 
-📚 **[PersonalAI Dashboard: The Complete Guide](book/)**
+```bash
+# Create .env.local
+cp .env.example .env.local
 
-Available formats:
-- Markdown (source)
-- Word (.docx) - generate with `npm run book:generate`
+# Edit and add:
+OLLAMA_API_KEY=your-key-here
+```
 
-## License
+---
 
-**Code**: [MIT License](LICENSE)
+## 📜 License
 
-**Documentation**: [CC BY-SA 4.0](LICENSE-CONTENT)
+**Code:** [MIT License](LICENSE) - Free to use, modify, and distribute
 
-This means:
-- ✅ You can use this commercially
-- ✅ You can modify and distribute
-- ✅ You must give attribution
-- ✅ ShareAlike (if you modify, use same license)
+**Documentation:** [CC BY-SA 4.0](LICENSE-CONTENT) - Free to share with attribution
 
-## Acknowledgments
+---
 
-This project incorporates insights from enterprise AI architecture patterns and builds upon the excellent work of the open source community.
+## 🙏 Acknowledgments
 
-Special thanks to:
-- Next.js team for the framework
-- Ollama team for local AI
-- All contributors and users
+- **Ollama** - Local AI made easy
+- **Next.js** - Amazing framework
+- **Open Source Community** - All contributors
 
-## Support
+---
 
-- 🐛 [Report Issues](../../issues)
-- 💡 [Request Features](../../discussions)
-- 📧 [Discussions](../../discussions)
+## 📞 Support
 
-## Citation
+- 🐛 [Report Issues](https://github.com/norhtecmbarnes-dot/PersonalAI-Dashboard/issues)
+- 💬 [Discussions](https://github.com/norhtecmbarnes-dot/PersonalAI-Dashboard/discussions)
 
-If you use this project in your work, please cite:
+---
+
+## 📖 Citation
 
 ```bibtex
 @software{personala_dashboard_2026,
   title = {PersonalAI Dashboard: Privacy-First AI Assistant},
-  author = {PersonalAI Dashboard Contributors},
+  author = {Michael C. Barnes and Contributors},
   year = {2026},
   url = {https://github.com/norhtecmbarnes-dot/PersonalAI-Dashboard}
 }
@@ -222,11 +323,9 @@ If you use this project in your work, please cite:
 ---
 
 <p align="center">
-  Made with ❤️ by the community
+  <strong>Star ⭐ this repo if you find it helpful!</strong>
 </p>
 
 <p align="center">
-  <a href="https://github.com/norhtecmbarnes-dot/PersonalAI-Dashboard/stargazers">
-    ⭐ Star us on GitHub!
-  </a>
+  Made with ❤️ for privacy-conscious AI users
 </p>
