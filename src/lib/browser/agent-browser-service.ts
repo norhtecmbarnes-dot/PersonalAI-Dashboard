@@ -39,6 +39,26 @@ export interface FormFillOptions {
   waitForNavigation?: boolean;
 }
 
+/**
+ * Sanitize URL to prevent injection
+ */
+function sanitizeUrl(url: string): string {
+  // Only allow http/https/ftp protocols
+  if (!url.match(/^https?:\/\//i) && !url.match(/^ftp:\/\//i)) {
+    return '';
+  }
+  // Remove dangerous characters
+  return url.replace(/[<>"'`|;&$(){}\\]/g, '');
+}
+
+/**
+ * Sanitize selector to prevent injection
+ */
+function sanitizeSelector(selector: string): string {
+  // Remove injection patterns from selectors
+  return selector.replace(/[<>"'`\\]/g, '').slice(0, 200);
+}
+
 class AgentBrowserService {
   private installed: boolean | null = null;
   private currentSession: string | null = null;
@@ -77,11 +97,17 @@ class AgentBrowserService {
       return { success: false, message: 'Agent-browser not installed. Run: npm install -g agent-browser && agent-browser install' };
     }
 
+    // Sanitize URL to prevent injection
+    const sanitizedUrl = sanitizeUrl(url);
+    if (!sanitizedUrl) {
+      return { success: false, message: 'Invalid URL. Only http/https/ftp protocols allowed.' };
+    }
+
     try {
       let cmd = 'agent-browser open';
       if (options.session) cmd += ` --session ${options.session}`;
       if (options.headed) cmd += ' --headed';
-      cmd += ` "${url}"`;
+      cmd += ` "${sanitizedUrl}"`;
 
       const { stdout } = await execAsync(cmd, { timeout: options.timeout || 30000 });
       this.currentSession = options.session || 'default';
@@ -121,8 +147,11 @@ class AgentBrowserService {
   async click(ref: string, options: AgentBrowserOptions = {}): Promise<boolean> {
     if (!await this.checkInstalled()) return false;
 
+    // Sanitize ref to prevent injection
+    const sanitizedRef = ref.replace(/[<>"'`\\;|&]/g, '').slice(0, 100);
+
     try {
-      let cmd = `agent-browser click ${ref}`;
+      let cmd = `agent-browser click ${sanitizedRef}`;
       if (options.session) cmd += ` --session ${options.session}`;
       
       await execAsync(cmd, { timeout: options.timeout || 5000 });
@@ -135,8 +164,12 @@ class AgentBrowserService {
   async fill(ref: string, value: string, options: AgentBrowserOptions = {}): Promise<boolean> {
     if (!await this.checkInstalled()) return false;
 
+    // Sanitize inputs
+    const sanitizedRef = ref.replace(/[<>"'`\\;|&]/g, '').slice(0, 100);
+    const sanitizedValue = value.replace(/"/g, '\\"').replace(/[<>\\]/g, '').slice(0, 5000);
+
     try {
-      let cmd = `agent-browser fill ${ref} "${value.replace(/"/g, '\\"')}"`;
+      let cmd = `agent-browser fill ${sanitizedRef} "${sanitizedValue}"`;
       if (options.session) cmd += ` --session ${options.session}`;
       
       await execAsync(cmd, { timeout: options.timeout || 5000 });
@@ -149,8 +182,12 @@ class AgentBrowserService {
   async type(ref: string, value: string, options: AgentBrowserOptions = {}): Promise<boolean> {
     if (!await this.checkInstalled()) return false;
 
+    // Sanitize inputs
+    const sanitizedRef = ref.replace(/[<>"'`\\;|&]/g, '').slice(0, 100);
+    const sanitizedValue = value.replace(/"/g, '\\"').replace(/[<>\\]/g, '').slice(0, 5000);
+
     try {
-      let cmd = `agent-browser type ${ref} "${value.replace(/"/g, '\\"')}"`;
+      let cmd = `agent-browser type ${sanitizedRef} "${sanitizedValue}"`;
       if (options.session) cmd += ` --session ${options.session}`;
       
       await execAsync(cmd, { timeout: options.timeout || 5000 });
@@ -163,8 +200,12 @@ class AgentBrowserService {
   async press(key: string, options: AgentBrowserOptions = {}): Promise<boolean> {
     if (!await this.checkInstalled()) return false;
 
+    // Only allow valid keys
+    const validKeys = ['Enter', 'Tab', 'Escape', 'Backspace', 'Delete', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space'];
+    const sanitizedKey = validKeys.includes(key) ? key : '';
+
     try {
-      let cmd = `agent-browser press ${key}`;
+      let cmd = `agent-browser press ${sanitizedKey}`;
       if (options.session) cmd += ` --session ${options.session}`;
       
       await execAsync(cmd, { timeout: options.timeout || 5000 });

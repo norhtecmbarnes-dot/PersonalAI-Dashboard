@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { canvasService, CanvasComponent } from '@/lib/services/canvas';
 import { chatCompletion } from '@/lib/models/sdk.server';
 import { sqlDatabase } from '@/lib/database/sqlite';
+import { sanitizePrompt } from '@/lib/utils/validation';
 
 const CANVAS_SYSTEM_PROMPT = `You are an expert frontend developer. Generate HTML/CSS/JS code for dashboards, landing pages, and diagrams.
 
