@@ -126,10 +126,18 @@ export async function POST(request: Request) {
           body.assistantName = sanitizeString(body.assistantName);
         }
         
+        // Note: Don't overwrite telegram unless explicitly provided
+        const updateData = { ...body, updatedAt: Date.now() };
+        // Remove undefined fields to prevent overwriting with undefined
+        Object.keys(updateData).forEach(key => {
+          if (updateData[key] === undefined) {
+            delete updateData[key];
+          }
+        });
+        
         preferences = {
           ...preferences,
-          ...body,
-          updatedAt: Date.now(),
+          ...updateData,
         };
         
         await savePreferences(preferences);

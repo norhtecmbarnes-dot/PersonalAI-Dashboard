@@ -180,29 +180,26 @@ mkdir projects
 cd projects
 
 # Clone the repository
-git clone https://github.com/norhtecmbarnes/PersonalAI-Dashboard.git
+git clone https://github.com/norhtecmbarnes-dot/PersonalAI-Dashboard.git
 
-# Enter the project
+# Enter the project folder
 cd PersonalAI-Dashboard
 ```
 
 ### Option B: Download ZIP
 
-1. Go to: https://github.com/norhtecmbarnes/PersonalAI-Dashboard
+If you don't want to use Git:
+
+1. Go to: https://github.com/norhtecmbarnes-dot/PersonalAI-Dashboard
 2. Click the green "Code" button
 3. Select "Download ZIP"
-4. Extract to your projects folder
-5. Open the extracted folder in VS Code
-
----
-
-## Step 5: Install Dependencies
-
-Dependencies are packages your project needs.
-
+4. Extract the ZIP file
+5. Open the folder in VS Code
+6. Open terminal and run:
 ```bash
-# In the project folder
 npm install
+cp .env.example .env.local
+npm run dev
 ```
 
 **What this does:**

@@ -186,7 +186,7 @@ PersonalAI-Dashboard/
 
 ```bash
 # Clone the repo
-git clone https://github.com/norhtecmbarnes/PersonalAI-Dashboard.git
+git clone https://github.com/norhtecmbarnes-dot/PersonalAI-Dashboard.git
 cd PersonalAI-Dashboard
 
 # Install dependencies
@@ -221,7 +221,7 @@ This book is open-source under CC BY-SA 4.0 / MIT license:
 
 ## Support
 
-- **Issues:** https://github.com/norhtecmbarnes/PersonalAI-Dashboard/issues
+- **Issues:** https://github.com/norhtecmbarnes-dot/PersonalAI-Dashboard/issues
 - **Discussions:** Use GitHub Discussions for questions
 - **Security Issues:** See Chapter 21 for security best practices
 

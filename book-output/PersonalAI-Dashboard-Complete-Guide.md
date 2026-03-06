@@ -1429,10 +1429,10 @@ The complete code for this book is on GitHub. Here's how to get it:
 cd ~/projects
 
 # Clone the repository
-git clone https://github.com/norhtecmbarnes/personalai-dashboard.git
+git clone https://github.com/norhtecmbarnes-dot/PersonalAI-Dashboard.git
 
 # Enter the project folder
-cd personalai-dashboard
+cd PersonalAI-Dashboard
 
 # Install dependencies
 npm install
@@ -1454,7 +1454,7 @@ npm run dev
 
 If you don't want to use Git:
 
-1. Go to: https://github.com/norhtecmbarnes/personalai-dashboard
+1. Go to: https://github.com/norhtecmbarnes-dot/PersonalAI-Dashboard
 2. Click the green "Code" button
 3. Select "Download ZIP"
 4. Extract the ZIP file
@@ -1473,7 +1473,7 @@ If you prefer a graphical interface:
 1. Download GitHub Desktop: https://desktop.github.com
 2. Sign in with your GitHub account
 3. Click "Clone a repository from the Internet"
-4. Paste: `https://github.com/norhtecmbarnes/personalai-dashboard`
+4. Paste: `https://github.com/norhtecmbarnes-dot/PersonalAI-Dashboard`
 5. Click "Clone"
 
 ---
@@ -1634,7 +1634,7 @@ git stash pop
 
 Found a bug? Want a feature?
 
-1. Go to: https://github.com/norhtecmbarnes/personalai-dashboard/issues
+1. Go to: https://github.com/norhtecmbarnes-dot/PersonalAI-Dashboard/issues
 2. Click "New Issue"
 3. Describe the problem or feature
 4. Submit
@@ -1666,7 +1666,7 @@ git clone https://github.com/YOUR-USERNAME/personalai-dashboard.git
 **Keep Your Fork Updated:**
 ```bash
 # Add the original as "upstream"
-git remote add upstream https://github.com/norhtecmbarnes/personalai-dashboard.git
+git remote add upstream https://github.com/norhtecmbarnes-dot/PersonalAI-Dashboard.git
 
 # Get updates from upstream
 git fetch upstream
