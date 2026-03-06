@@ -138,8 +138,8 @@ export async function POST(request: NextRequest) {
       content: memoryContext + '\n\nYou are a skilled writing assistant. Follow instructions precisely and provide only the requested output.'
     };
 
-    // Use Gemma 3 27B by default - excellent for English writing via Ollama Cloud
-    const useModel = model || 'gemma3:27b';
+    // Use GPT-OSS 20B by default - GPT-based, excellent for English writing via Ollama Cloud
+    const useModel = model || 'gpt-oss:20b';
     
     console.log('[Writing] Processing:', action, 'with model:', useModel);
     

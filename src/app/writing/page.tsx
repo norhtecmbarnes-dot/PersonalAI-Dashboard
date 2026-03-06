@@ -51,8 +51,8 @@ export default function WritingAssistantPage() {
     setError(null);
     setResult(null);
 
-    // Use Gemma 3 27B by default - excellent for English writing via Ollama Cloud
-    const modelToUse = model || 'gemma3:27b';
+    // Use GPT-OSS 20B by default - GPT-based, excellent for English writing via Ollama Cloud
+    const modelToUse = model || 'gpt-oss:20b';
     console.log('[Writing] Submitting with model:', modelToUse);
 
     try {
