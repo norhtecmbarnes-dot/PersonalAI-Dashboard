@@ -73,7 +73,7 @@ export function NotesBoard({ onEditNote }: NotesBoardProps) {
 
   const saveNotePosition = useCallback(async (id: string, positionX: number, positionY: number, width?: number, height?: number) => {
     try {
-      await fetch('/api/database', {
+      const response = await fetch('/api/database', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -81,8 +81,12 @@ export function NotesBoard({ onEditNote }: NotesBoardProps) {
           data: { id, updates: { positionX, positionY, width: width || 300, height: height || 200 } },
         }),
       });
+      const result = await response.json();
+      if (!result.success) {
+        console.error('[NotesBoard] Failed to save position:', result.error);
+      }
     } catch (error) {
-      console.error('Error saving note position:', error);
+      console.error('[NotesBoard] Error saving note position:', error);
     }
   }, []);
 
@@ -134,23 +138,28 @@ export function NotesBoard({ onEditNote }: NotesBoardProps) {
   }, [dragState, resizeState]);
 
   const handleMouseUp = useCallback(() => {
-    if (dragState.noteId) {
-      const note = notes.find(n => n.id === dragState.noteId);
-      if (note) {
-        saveNotePosition(note.id, note.positionX, note.positionY, note.width, note.height);
+    // Get current note state using functional update
+    setNotes(currentNotes => {
+      if (dragState.noteId) {
+        const note = currentNotes.find(n => n.id === dragState.noteId);
+        if (note) {
+          saveNotePosition(note.id, note.positionX, note.positionY, note.width, note.height);
+        }
       }
-    }
-    
-    if (resizeState.noteId) {
-      const note = notes.find(n => n.id === resizeState.noteId);
-      if (note) {
-        saveNotePosition(note.id, note.positionX, note.positionY, note.width, note.height);
+      
+      if (resizeState.noteId) {
+        const note = currentNotes.find(n => n.id === resizeState.noteId);
+        if (note) {
+          saveNotePosition(note.id, note.positionX, note.positionY, note.width, note.height);
+        }
       }
-    }
+      
+      return currentNotes; // Return unchanged state
+    });
     
     setDragState({ noteId: null, startX: 0, startY: 0, startLeft: 0, startTop: 0 });
     setResizeState({ noteId: null, startX: 0, startY: 0, startWidth: 0, startHeight: 0 });
-  }, [dragState, resizeState, notes, saveNotePosition]);
+  }, [dragState, resizeState, saveNotePosition]);
 
   useEffect(() => {
     if (dragState.noteId || resizeState.noteId) {
@@ -265,16 +274,24 @@ export function NotesBoard({ onEditNote }: NotesBoardProps) {
                     ));
                   }}
                   onBlur={async () => {
-                    const updatedNote = notes.find(n => n.id === note.id);
-                    if (updatedNote) {
-                      await fetch('/api/database', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                          action: 'updateNote',
-                          data: { id: note.id, updates: { title: updatedNote.title } },
-                        }),
-                      });
+                    const noteToUpdate = notes.find(n => n.id === note.id);
+                    if (noteToUpdate) {
+                      try {
+                        const response = await fetch('/api/database', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({
+                            action: 'updateNote',
+                            data: { id: note.id, updates: { title: noteToUpdate.title } },
+                          }),
+                        });
+                        const result = await response.json();
+                        if (!result.success) {
+                          console.error('[NotesBoard] Failed to save title:', result.error);
+                        }
+                      } catch (err) {
+                        console.error('[NotesBoard] Error saving title:', err);
+                      }
                     }
                   }}
                   className={`flex-1 font-medium ${colorStyle.text} bg-transparent border-none focus:outline-none text-sm mr-2`}
@@ -316,20 +333,27 @@ export function NotesBoard({ onEditNote }: NotesBoardProps) {
                        n.id === note.id ? { ...n, content: newContent } : n
                      ));
                    }}
-                   onBlur={async () => {
-                     const updatedNote = notes.find(n => n.id === note.id);
-                     if (updatedNote) {
-                       await saveNotePosition(note.id, note.positionX, note.positionY, note.width, note.height);
-                       await fetch('/api/database', {
-                         method: 'POST',
-                         headers: { 'Content-Type': 'application/json' },
-                         body: JSON.stringify({
-                           action: 'updateNote',
-                           data: { id: note.id, updates: { content: updatedNote.content } },
-                         }),
-                       });
-                     }
-                   }}
+                    onBlur={async () => {
+                      const noteToUpdate = notes.find(n => n.id === note.id);
+                      if (noteToUpdate) {
+                        try {
+                          const response = await fetch('/api/database', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              action: 'updateNote',
+                              data: { id: note.id, updates: { content: noteToUpdate.content } },
+                            }),
+                          });
+                          const result = await response.json();
+                          if (!result.success) {
+                            console.error('[NotesBoard] Failed to save content:', result.error);
+                          }
+                        } catch (err) {
+                          console.error('[NotesBoard] Error saving content:', err);
+                        }
+                      }
+                    }}
                    className={`w-full h-full bg-transparent ${colorStyle.text} text-sm resize-none focus:outline-none placeholder-gray-500/50`}
                    placeholder="Start typing..."
                    onClick={(e) => e.stopPropagation()}
