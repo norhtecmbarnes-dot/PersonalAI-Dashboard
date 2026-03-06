@@ -905,7 +905,14 @@ export default function Home() {
             {isLoading && (
               <div className="flex justify-start">
                 <div className="bg-slate-700 text-gray-100 rounded-lg px-4 py-3">
-                  <p>Thinking...</p>
+                  <div className="flex items-center gap-3">
+                    <div className="flex gap-1">
+                      <span className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></span>
+                      <span className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></span>
+                      <span className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></span>
+                    </div>
+                    <span className="text-gray-300">Thinking...</span>
+                  </div>
                 </div>
               </div>
             )}
@@ -1021,10 +1028,24 @@ export default function Home() {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             placeholder={searchMode ? "Search the web..." : "Type your message..."}
-            className="w-full bg-slate-700 text-white border-0 rounded-lg px-4 py-3 resize-none focus:ring-2 focus:ring-purple-500 mb-3"
+            className="w-full bg-slate-700 text-white border-0 rounded-lg px-4 py-3 resize-none focus:ring-2 focus:ring-purple-500 mb-3 disabled:opacity-50 disabled:cursor-not-allowed"
             rows={3}
             disabled={isLoading || isListening}
           />
+          
+          {/* Loading indicator below input */}
+          {isLoading && (
+            <div className="flex items-center gap-2 mb-3 px-2">
+              <div className="flex gap-1">
+                <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
+                <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" style={{ animationDelay: '200ms' }}></span>
+                <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse" style={{ animationDelay: '400ms' }}></span>
+              </div>
+              <span className="text-sm text-gray-400">
+                {searchMode ? 'Searching and generating response...' : 'AI is thinking...'}
+              </span>
+            </div>
+          )}
 
           {/* Action Buttons Row */}
           <div className="flex gap-2 items-center flex-wrap">
