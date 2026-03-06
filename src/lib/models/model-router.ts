@@ -470,6 +470,34 @@ class ModelRouter {
     
     return this.models.find(m => m.id === 'glm-4.7-flash') || this.models[0];
   }
+  
+  /**
+   * Get model for writing tasks
+   * Prefers Gemma 3 27B for excellent English writing
+   */
+  getWritingModel(): ModelInfo {
+    // Prefer Gemma 3 27B for English writing
+    const gemma27b = this.models.find(m => m.id === 'gemma3:27b' && m.available);
+    if (gemma27b) {
+      console.log(`[ModelRouter] Using gemma3:27b for writing (excellent English)`);
+      return gemma27b;
+    }
+    
+    // Fallback to mistral-large-3 for quality writing
+    const mistral = this.models.find(m => m.id === 'mistral-large-3:675b' && m.available);
+    if (mistral) {
+      console.log(`[ModelRouter] Using mistral-large-3:675b for writing`);
+      return mistral;
+    }
+    
+    // Fallback to qwen3.5:27b
+    const qwen27b = this.models.find(m => m.id === 'qwen3.5:27b' && m.available);
+    if (qwen27b) {
+      return qwen27b;
+    }
+    
+    return this.getChatModel();
+  }
 
   /**
    * Get model for embedding

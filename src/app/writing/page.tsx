@@ -51,8 +51,8 @@ export default function WritingAssistantPage() {
     setError(null);
     setResult(null);
 
-    // Use a fallback model if none selected
-    const modelToUse = model || 'qwen3.5:397b';
+    // Use Gemma 3 27B by default - excellent for English writing via Ollama Cloud
+    const modelToUse = model || 'gemma3:27b';
     console.log('[Writing] Submitting with model:', modelToUse);
 
     try {
