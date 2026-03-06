@@ -45,10 +45,8 @@ export interface ModelRoutingConfig {
 }
 
 const AVAILABLE_MODELS: ModelInfo[] = [
-  // Local models (free) - Small models that run on CPU
-  { id: 'ministral-3:3b', name: 'Ministral 3B', tier: 'local-fast', provider: 'ollama', maxTokens: 32768, costPerToken: 0, available: true, capabilities: ['chat'], description: 'Tiny 3B model, runs on CPU, no GPU needed' },
-  { id: 'gemma3:4b', name: 'Gemma 3 4B', tier: 'local-fast', provider: 'ollama', maxTokens: 32768, costPerToken: 0, available: true, capabilities: ['chat', 'code'], description: 'Small 4B model, runs on CPU, excellent for modest hardware' },
-  { id: 'ministral-3:8b', name: 'Ministral 8B', tier: 'local-fast', provider: 'ollama', maxTokens: 32768, costPerToken: 0, available: true, capabilities: ['chat', 'code'], description: 'Small 8B model, runs on most hardware' },
+  // Local models (free) - Small models that run on most hardware
+  { id: 'gemma3:4b', name: 'Gemma 3 4B', tier: 'local-fast', provider: 'ollama', maxTokens: 32768, costPerToken: 0, available: true, capabilities: ['chat', 'code'], description: 'Small 4B model, runs on CPU, no GPU needed' },
   
   // Local models (free)
   // Ultra-lightweight models (CPU-friendly, no GPU required)
@@ -64,6 +62,7 @@ const AVAILABLE_MODELS: ModelInfo[] = [
   { id: 'qwen3.5:27b', name: 'Qwen 3.5 27B', tier: 'local-capable', provider: 'ollama', maxTokens: 32768, costPerToken: 0, available: true, capabilities: ['chat', 'code', 'analysis'], description: 'Large 27B multimodal model' },
   { id: 'lfm2:latest', name: 'LFM2', tier: 'local-capable', provider: 'ollama', maxTokens: 32768, costPerToken: 0, available: true, capabilities: ['chat', 'code'] },
   { id: 'glm-ocr', name: 'GLM OCR', tier: 'local-capable', provider: 'ollama', maxTokens: 8192, costPerToken: 0, available: true, capabilities: ['chat'] },
+  { id: 'gpt-oss:20b', name: 'GPT-OSS 20B', tier: 'local-capable', provider: 'ollama', maxTokens: 32768, costPerToken: 0, available: true, capabilities: ['chat', 'code', 'analysis'], description: 'GPT-based 20B model, requires GPU' },
   
   // Ollama Cloud models (require OLLAMA_API_KEY)
   { id: 'qwen3.5:397b', name: 'Qwen 3.5 397B (Cloud)', tier: 'cloud-thinking', provider: 'cloud', maxTokens: 128000, costPerToken: 0, available: true, capabilities: ['chat', 'code', 'analysis'], description: 'Massive 397B Qwen 3.5 on Ollama Cloud' },
@@ -481,32 +480,32 @@ class ModelRouter {
    * Prefers Kimi K2.5 (distilled from Claude) for excellent English writing
    */
   getWritingModel(): ModelInfo {
-    // Prefer Kimi K2.5 for writing - distilled from Claude
+    // 1. Primary: Kimi K2.5 for writing - distilled from Claude
     const kimi = this.models.find(m => m.id === 'kimi-k2.5' && m.available);
     if (kimi) {
       console.log(`[ModelRouter] Using kimi-k2.5 for writing (Claude-distilled)`);
       return kimi;
     }
     
-    // Fallback to GLM-5 (similar to GPT)
+    // 2. Fallback: GLM-5 (similar to GPT)
     const glm5 = this.models.find(m => m.id === 'glm-5' && m.available);
     if (glm5) {
       console.log(`[ModelRouter] Using glm-5 for writing (GPT-like)`);
       return glm5;
     }
     
-    // Fallback to small local model: gemma3:4b (runs on CPU, no GPU needed)
+    // 3. Fallback: GPT-OSS 20B (requires GPU VRAM)
+    const gptOss = this.models.find(m => m.id === 'gpt-oss:20b' && m.available);
+    if (gptOss) {
+      console.log(`[ModelRouter] Using gpt-oss:20b for writing`);
+      return gptOss;
+    }
+    
+    // 4. Fallback: Gemma 3 4B (small, runs on CPU)
     const gemma4b = this.models.find(m => m.id === 'gemma3:4b' && m.available);
     if (gemma4b) {
       console.log(`[ModelRouter] Using gemma3:4b for writing (local, no GPU)`);
       return gemma4b;
-    }
-    
-    // Fallback to ministral-3:3b (very small, runs anywhere)
-    const ministral3b = this.models.find(m => m.id === 'ministral-3:3b' && m.available);
-    if (ministral3b) {
-      console.log(`[ModelRouter] Using ministral-3:3b for writing (local, tiny)`);
-      return ministral3b;
     }
     
     return this.getChatModel();
