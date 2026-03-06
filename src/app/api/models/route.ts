@@ -26,22 +26,10 @@ export async function GET() {
     };
     
     // Filter external models to only those with configured API keys
-    let filteredExternalModels = externalModels.filter(m => {
+    const filteredExternalModels = externalModels.filter(m => {
       const provider = m.provider as keyof typeof availableApiKeys;
       return availableApiKeys[provider] === true;
     });
-    
-    // If no models available at all, add fallback options that work without API keys
-    const hasOllamaKey = !!process.env.OLLAMA_API_KEY || !!sqlDatabase.getApiKey('ollama');
-    if (ollamaModels.length === 0 && filteredExternalModels.length === 0) {
-      // Add Ollama Cloud models if OLLAMA_API_KEY is set
-      if (hasOllamaKey) {
-        filteredExternalModels = [
-          { id: 'ollama-cloud/llama3.2', name: 'Llama 3.2 (Ollama Cloud)', provider: 'ollama-cloud', description: 'Via Ollama Cloud' },
-          { id: 'ollama-cloud/qwen2.5', name: 'Qwen 2.5 (Ollama Cloud)', provider: 'ollama-cloud', description: 'Via Ollama Cloud' },
-        ];
-      }
-    }
 
     // Determine default model based on preferences
     let defaultModel = modelPrefs.defaultModel || 'glm-4.7-flash';
@@ -52,13 +40,18 @@ export async function GET() {
     }
     
     // If cloud for chat is enabled, use cloud model
-    if (modelPrefs.cloudForChat) {
-      defaultModel = 'glm-5:cloud';
+    if (modelPrefs.cloudForChat && filteredExternalModels.length > 0) {
+      defaultModel = filteredExternalModels[0].id;
     }
     
     // If Ollama is offline but we have external models, use first external
     if (!ollamaHealthy && filteredExternalModels.length > 0) {
       defaultModel = filteredExternalModels[0].id;
+    }
+    
+    // If no models at all, provide helpful defaults based on what might work
+    if (ollamaModels.length === 0 && filteredExternalModels.length === 0) {
+      defaultModel = 'glm-4.7-flash'; // Most commonly available
     }
 
     return NextResponse.json({
@@ -74,6 +67,10 @@ export async function GET() {
       defaultModel,
       preferences: modelPrefs,
       timestamp: Date.now(),
+      // Add hint about what's available/no keys
+      availableProviders: Object.entries(availableApiKeys)
+        .filter(([_, has]) => has)
+        .map(([provider]) => provider),
     });
   } catch (error) {
     console.error('Models API error:', error);

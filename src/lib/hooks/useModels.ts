@@ -69,6 +69,10 @@ export function useModels() {
         // Pick the best available model
         const bestModel = findBestModel(allModels);
         setSelectedModel(bestModel);
+      } else if (!selectedModel && allModels.length === 0) {
+        // No models available - this means Ollama is offline and no API keys set
+        // The fallback list below will be used
+        console.warn('[useModels] No models available - Ollama may be offline and no cloud API keys configured');
       }
       
       setOllamaHealthy(data.ollama?.available || false);
