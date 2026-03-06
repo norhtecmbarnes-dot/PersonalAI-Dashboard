@@ -83,58 +83,72 @@ The AI learns from these examples, just like a new employee would learn by readi
 
 ## Step 1: Database Schema
 
-First, let's add the database tables:
+The database tables are automatically created when you first run the application. Here's what they look like:
 
 ```sql
--- Brands table
-CREATE TABLE IF NOT EXISTS brands (
+-- Brands table (for organizations)
+CREATE TABLE IF NOT EXISTS brands_v2 (
   id TEXT PRIMARY KEY,
   name TEXT NOT NULL,
   description TEXT,
-  voice_profile TEXT, -- JSON with tone, vocabulary, etc.
-  created_at INTEGER,
-  updated_at INTEGER
+  industry TEXT,
+  website TEXT,
+  logo TEXT,
+  voice_profile TEXT,    -- JSON: tone, vocabulary, style
+  settings TEXT,          -- JSON: brand-specific settings
+  tags TEXT,              -- JSON: array of tags
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
 );
 
--- Projects table
-CREATE TABLE IF NOT EXISTS projects (
+-- Projects table (work under a brand)
+CREATE TABLE IF NOT EXISTS projects_v2 (
   id TEXT PRIMARY KEY,
-  brand_id TEXT NOT NULL,
+  brand_id TEXT NOT NULL,     -- Links to brand
   name TEXT NOT NULL,
   description TEXT,
+  type TEXT NOT NULL,         -- 'proposal', 'website', 'campaign', etc.
   status TEXT DEFAULT 'active',
-  created_at INTEGER,
-  updated_at INTEGER,
-  FOREIGN KEY (brand_id) REFERENCES brands(id)
+  requirements TEXT,          -- JSON: project requirements
+  deliverables TEXT,          -- JSON: expected deliverables
+  deadline INTEGER,
+  metadata TEXT,
+  tags TEXT,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
 );
 
--- Brand documents table
+-- Brand documents (for AI context)
 CREATE TABLE IF NOT EXISTS brand_documents (
   id TEXT PRIMARY KEY,
-  brand_id TEXT,
-  project_id TEXT,
+  brand_id TEXT NOT NULL,
   title TEXT NOT NULL,
-  content TEXT,
-  file_type TEXT,
-  document_type TEXT, -- 'brand_voice' or 'project'
-  metadata TEXT, -- JSON
-  created_at INTEGER,
-  updated_at INTEGER,
-  FOREIGN KEY (brand_id) REFERENCES brands(id),
-  FOREIGN KEY (project_id) REFERENCES projects(id)
+  original_filename TEXT,
+  type TEXT NOT NULL,        -- 'brand_voice', 'project_doc', etc.
+  source TEXT NOT NULL,
+  project_id TEXT,           -- Optional: link to specific project
+  content TEXT,              -- Full document text
+  compacted_content TEXT,    -- Summarized version
+  metadata TEXT,             -- JSON
+  vectorized INTEGER DEFAULT 0,
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
 );
 
--- Chat sessions table
-CREATE TABLE IF NOT EXISTS brand_chat_sessions (
+-- Chat sessions (context-aware conversations)
+CREATE TABLE IF NOT EXISTS chat_sessions (
   id TEXT PRIMARY KEY,
   project_id TEXT NOT NULL,
+  brand_id TEXT NOT NULL,
   title TEXT,
-  messages TEXT, -- JSON array
-  created_at INTEGER,
-  updated_at INTEGER,
-  FOREIGN KEY (project_id) REFERENCES projects(id)
+  messages TEXT,             -- JSON array of messages
+  context TEXT,              -- JSON: active context
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
 );
 ```
+
+**Key Insight:** Documents can belong to a brand (global context) or a specific project (targeted context).
 
 ---
 
