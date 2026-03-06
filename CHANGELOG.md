@@ -1,5 +1,82 @@
 # Change Log - AI Dashboard
 
+## Version 2.3.0 (March 5, 2026)
+
+---
+
+### Task Priority System - Session-Aware Background Tasks
+
+Background tasks now pause automatically during active chat sessions:
+
+**Priority Levels:**
+- `critical` - Always runs (system-critical operations)
+- `high` - Runs when idle (security scans)
+- `normal` - Runs when idle (intelligence, brand tasks)
+- `low` - Runs when idle (research, reflection, memory, RL training, cleanup)
+
+**How It Works:**
+- `taskScheduler.startSession()` called when user sends message
+- Low/normal/high tasks pause during active session
+- `taskScheduler.endSession()` called after response completes
+- 5-minute auto-timeout for inactive sessions
+
+**Benefits:**
+- Faster chat responses (no background task contention)
+- Lower memory usage during interactions
+- Better resource prioritization
+
+**Files Modified:**
+- `src/lib/services/task-scheduler.ts` - Added priority system and session tracking
+- `src/app/api/chat/route.ts` - Added session start/end calls
+
+---
+
+### Web Search Improvements
+
+**Ollama Web Search Prioritized:**
+- Now checks Ollama API first (requires `OLLAMA_API_KEY`)
+- Falls back to Tavily → DuckDuckGo → Brave → SearXNG
+
+**Search Toggle Control:**
+- Web search via function calling only works when toggle is ON
+- When OFF, AI cannot auto-search the web
+
+**Fixes:**
+- Fixed duplicate `fetchTimeout` declaration error in `web-search-tool.ts`
+- Fixed TypeScript error for missing `description` field
+
+**Files Modified:**
+- `src/lib/websearch.ts` - Added Ollama priority, search mode parameter
+- `src/lib/browser/web-search-tool.ts` - Fixed duplicate declaration
+- `src/app/api/chat/route.ts` - Search mode controls tool availability
+
+---
+
+### Model Selection Improvements
+
+**Cloud Models in Dropdown:**
+- External models (Gemini, OpenAI, Claude, Groq, etc.) now appear in model selector
+- Only models with configured API keys are shown
+
+**Fixes:**
+- Fixed double provider prefix bug (`gemini/gemini/...`)
+- Filtered models to show only those with valid API keys
+
+**Files Modified:**
+- `src/app/api/models/route.ts` - Filter external models by API key availability
+- `src/lib/hooks/useModels.ts` - Fixed ID prefix handling
+- `src/app/page.tsx` - Load external models into dropdown
+
+---
+
+### SAM.gov Removal
+
+- Removed `sam_check` from task scheduler (integration previously disabled)
+- Removed from task types, priorities, and templates
+- Removed `executeSAMCheckTask` method stub
+
+---
+
 ## Version 2.2.0 (March 3, 2026)
 
 ---

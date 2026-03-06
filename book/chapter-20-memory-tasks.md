@@ -8,9 +8,79 @@ Your AI assistant doesn't just respond to queries — it maintains itself. Memor
 
 - **Memory Capture** - Extracting knowledge from conversations automatically
 - **Memory Archive** - Compressing and storing long-term memories
-- **Task Scheduler** - How scheduled tasks work
+- **Task Scheduler** - How scheduled tasks work with priority system
+- **Session-Aware Task Pausing** - Background tasks pause during active use
 - **Memory Persistence** - How memories survive across sessions
 - **System Health** - Monitoring automated task execution
+
+---
+
+## Task Priority System (March 2026)
+
+**Critical Update:** Tasks now have priorities that control when they run:
+
+### Priority Levels
+
+| Priority | When Runs | Use Case |
+|----------|-----------|----------|
+| `critical` | Always, even during active sessions | Essential system operations |
+| `high` | Only when session is idle (5+ min of inactivity) | Security scans |
+| `normal` | Only when session is idle | Intelligence reports, brand tasks |
+| `low` | Only when session is idle | Research, reflection, memory tasks |
+
+### How It Works
+
+When you're actively chatting with the AI:
+1. **Session starts** - `taskScheduler.startSession()` called
+2. **Background tasks pause** - Low/normal priority tasks wait
+3. **Chat completes** - `taskScheduler.endSession()` called
+4. **Tasks resume** - After 5 minutes of inactivity, all tasks run normally
+
+```typescript
+// In chat API - src/app/api/chat/route.ts
+export async function POST(request: Request) {
+  // Mark session as active - pause low-priority background tasks
+  taskScheduler.startSession();
+  
+  try {
+    // ... process chat ...
+    
+    // End session - resume background tasks
+    taskScheduler.endSession();
+    
+    return NextResponse.json({ message: finalContent });
+  } catch (error) {
+    // Always end session, even on error
+    taskScheduler.endSession();
+    throw error;
+  }
+}
+```
+
+### Priority Assignment
+
+```typescript
+const TASK_PRIORITIES: Record<ScheduledTask['taskType'], 'critical' | 'high' | 'normal' | 'low'> = {
+  intelligence: 'normal',    // Can wait
+  security: 'high',          // Important but not urgent
+  research: 'low',           // Background, pause during use
+  reflection: 'low',        // Background, pause during use
+  brand_task: 'normal',     // User initiated
+  web_check: 'low',         // Background monitor
+  memory_capture: 'low',    // Background, not time-sensitive
+  memory_archive: 'low',    // Background, not time-sensitive
+  rl_training: 'low',       // Heavy computation, pause during use
+  cleanup: 'low',           // Maintenance, pause during use
+  custom: 'normal',
+};
+```
+
+### Benefits
+
+- **Faster Chat Responses** - No background tasks competing for CPU
+- **Lower Memory Usage** - Heavy tasks don't run during interactions
+- **Better Resource Management** - AI prioritizes user over maintenance
+- **Smoother Experience** - No lag from research or training tasks
 
 ---
 
