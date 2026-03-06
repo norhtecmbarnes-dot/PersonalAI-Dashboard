@@ -12,6 +12,26 @@ export async function GET() {
     const externalModels = getExternalModels();
     const ollamaHealthy = await checkOllamaHealth();
     const modelPrefs = sqlDatabase.getModelPreferences();
+    
+    // Filter external models to only show those with API keys configured
+    const availableApiKeys = {
+      gemini: !!process.env.GEMINI_API_KEY || !!sqlDatabase.getApiKey('gemini'),
+      openai: !!process.env.OPENAI_API_KEY || !!sqlDatabase.getApiKey('openai'),
+      anthropic: !!process.env.ANTHROPIC_API_KEY || !!sqlDatabase.getApiKey('anthropic'),
+      groq: !!process.env.GROQ_API_KEY || !!sqlDatabase.getApiKey('groq'),
+      mistral: !!process.env.MISTRAL_API_KEY || !!sqlDatabase.getApiKey('mistral'),
+      deepseek: !!process.env.DEEPSEEK_API_KEY || !!sqlDatabase.getApiKey('deepseek'),
+      openrouter: !!process.env.OPENROUTER_API_KEY || !!sqlDatabase.getApiKey('openrouter'),
+    };
+    
+    // GLM models use OLLAMA_API_KEY which we already have checked
+    const hasOllamaKey = !!process.env.OLLAMA_API_KEY || !!sqlDatabase.getApiKey('ollama');
+    
+    // Filter external models to only those with configured API keys
+    const filteredExternalModels = externalModels.filter(m => {
+      if (m.provider === 'glm') return hasOllamaKey;
+      return availableApiKeys[m.provider as keyof typeof availableApiKeys] === true;
+    });
 
     // Determine default model based on preferences
     let defaultModel = modelPrefs.defaultModel || 'glm-4.7-flash';
@@ -31,10 +51,10 @@ export async function GET() {
         available: ollamaHealthy,
         models: ollamaModels,
       },
-      external: externalModels,
+      external: filteredExternalModels,
       allModels: [
         ...ollamaModels.map(m => ({ ...m, provider: 'ollama' })),
-        ...externalModels.map(m => ({ ...m, provider: m.provider })),
+        ...filteredExternalModels.map(m => ({ ...m, provider: m.provider })),
       ],
       defaultModel,
       preferences: modelPrefs,

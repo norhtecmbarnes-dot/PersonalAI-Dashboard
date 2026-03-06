@@ -243,12 +243,17 @@ export default function Home() {
       // Get available models from Ollama
       const ollamaModels = (data.ollama?.models || []).map((m: any) => m.name || m.id);
       
-      // Use local models, prefer glm-4.7-flash as default
-      if (ollamaModels.length > 0) {
-        setModels(ollamaModels);
-        // Set first available model as default
-        if (!ollamaModels.includes(selectedModel)) {
-          setSelectedModel(ollamaModels[0]);
+      // Get external/cloud models
+      const externalModels = (data.external || []).map((m: any) => m.id);
+      
+      // Combine all models: Ollama first, then external
+      const allModels = [...ollamaModels, ...externalModels];
+      
+      if (allModels.length > 0) {
+        setModels(allModels);
+        // Set first available model as default if current not in list
+        if (!allModels.includes(selectedModel)) {
+          setSelectedModel(ollamaModels.length > 0 ? ollamaModels[0] : externalModels[0]);
         }
       }
       

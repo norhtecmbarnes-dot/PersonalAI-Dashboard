@@ -30,11 +30,17 @@ export interface SearXNGResult {
 
 const OLLAMA_SEARCH_URL = 'https://ollama.com/api/web_search';
 const OLLAMA_CLOUD_URL = 'https://api.ollama.com/v1/web_search';
+const fetchTimeout = 10000;
 
-/**
- * Perform web search using Ollama's official API
- * Works with GLM-5 and other cloud models
- */
+const withTimeout = (ms: number, promise: Promise<any>) => {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => 
+      setTimeout(() => reject(new Error(`Request timed out after ${ms}ms`)), ms)
+    ),
+  ]);
+};
+
 export async function ollamaWebSearch(
   query: string,
   options?: {
@@ -50,8 +56,8 @@ export async function ollamaWebSearch(
     console.log('[OllamaWebSearch] To enable web search:');
     console.log('[OllamaWebSearch] 1. Get a free API key at https://ollama.com/settings/keys');
     console.log('[OllamaWebSearch] 2. Add OLLAMA_API_KEY=your-key to .env.local');
-    console.log('[OllamaWebSearch] Falling back to browser search...');
-    return fallbackToBrowserSearch(query, options?.maxResults || 5);
+    console.log('[OllamaWebSearch] Falling back to SearXNG...');
+    return searXNGSearch(query, 'http://localhost:8888', options?.maxResults || 5);
   }
 
   const maxResults = options?.maxResults || 5;
@@ -59,74 +65,67 @@ export async function ollamaWebSearch(
   try {
     console.log(`[OllamaWebSearch] Searching for: ${query}`);
     
-    // Try ollama.com endpoint first (more reliable)
-    const response = await fetch(OLLAMA_SEARCH_URL, {
-      method: 'POST',
+    const searchBody = {
+      query,
+      max_results: maxResults,
+      region: options?.region || 'us',
+      freshness: options?.freshness,
+    };
+
+    const options1 = {
+      method: 'POST' as const,
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        query,
-        max_results: maxResults,
-      }),
-    });
+      body: JSON.stringify(searchBody),
+    };
 
-    if (response.ok) {
-      const data = await response.json();
-      console.log(`[OllamaWebSearch] Found ${data.results?.length || 0} results via ollama.com`);
-      return {
-        results: (data.results || []).map((r: any) => ({
-          title: r.title || '',
-          url: r.url || '',
-          snippet: r.snippet || r.content || '',
-          source: r.source || 'ollama',
-        })),
-        query,
-      };
-    }
-    
-    console.log(`[OllamaWebSearch] ollama.com failed: ${response.status}`);
-
-    // Try api.ollama.com as alternative
-    const cloudResponse = await fetch(OLLAMA_CLOUD_URL, {
-      method: 'POST',
+    const options2 = {
+      method: 'POST' as const,
       headers: {
         'Authorization': `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        query,
-        max_results: maxResults,
-        region: options?.region || 'us',
-        freshness: options?.freshness,
-      }),
-    });
+      body: JSON.stringify(searchBody),
+    };
 
-    if (cloudResponse.ok) {
-      const data = await cloudResponse.json();
-      console.log(`[OllamaWebSearch] Found ${data.results?.length || 0} results via api.ollama.com`);
-      return {
-        results: (data.results || []).map((r: any) => ({
-          title: r.title || r.name || '',
-          url: r.url || r.link || '',
-          snippet: r.snippet || r.content || r.description || '',
-          source: r.source || r.engine || 'ollama',
-          published_date: r.published_date || r.date,
-        })),
-        query,
-        search_time_ms: data.search_time_ms,
-      };
+    const promise1 = withTimeout(fetchTimeout, fetch(OLLAMA_SEARCH_URL, options1));
+    const promise2 = withTimeout(fetchTimeout, fetch(OLLAMA_CLOUD_URL, options2));
+
+    const results = await Promise.allSettled([promise1, promise2]);
+
+    for (const result of results) {
+      if (result.status === 'fulfilled' && result.value.ok) {
+        const data = await result.value.json();
+        const endpoint = result.value.url.includes('ollama.com') ? 'ollama.com' : 'api.ollama.com';
+        console.log(`[OllamaWebSearch] Found ${data.results?.length || 0} results via ${endpoint}`);
+        
+        const rawResults = data.results || [];
+        const processedResults = rawResults
+          .slice(0, maxResults)
+          .map((r: { title?: string; url?: string; snippet?: string; content?: string; source?: string; link?: string; published_date?: string; date?: string; engine?: string; name?: string; description?: string }) => ({
+            title: r.title || r.name || '',
+            url: r.url || r.link || '',
+            snippet: r.snippet || r.content || r.description || '',
+            source: r.source || r.engine || 'ollama',
+            published_date: r.published_date || r.date,
+          }));
+
+        return {
+          results: processedResults,
+          query,
+          search_time_ms: data.search_time_ms,
+        };
+      }
     }
-    
-    console.log('[OllamaWebSearch] Both endpoints failed, falling back to browser search');
 
-    // If both fail, fall back to browser search
-    return fallbackToBrowserSearch(query, maxResults);
+    console.log('[OllamaWebSearch] All endpoints failed, falling back to SearXNG');
+    return searXNGSearch(query, 'http://localhost:8888', maxResults);
 
   } catch (error) {
     console.error('[OllamaWebSearch] Error:', error);
-    return fallbackToBrowserSearch(query, maxResults);
+    return searXNGSearch(query, 'http://localhost:8888', maxResults);
   }
 }
 

@@ -46,10 +46,10 @@ export function useModels() {
       }));
       setOllamaModels(processedOllama);
       
-      // Process external models
+      // Process external models - they already have provider prefix in ID
       const external = data.external || [];
       const processedExternal = external.map((m: any) => ({
-        id: `${m.provider}/${m.name || m.id}`,
+        id: m.id, // Already has provider prefix from EXTERNAL_MODELS
         name: m.name || m.id,
         provider: m.provider,
         description: m.description || `${m.name || m.id} (${m.provider})`,

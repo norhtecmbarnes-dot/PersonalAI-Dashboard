@@ -19,12 +19,14 @@ export interface DuckDuckGoResponse {
  * Web Search Provider
  * 
  * Priority order:
- * 1. DuckDuckGo Instant Answers (Free, no API key) - Best for facts, definitions, known topics
+ * 1. Ollama Web Search (Recommended - Free tier available at ollama.com)
  * 2. Tavily API (Requires TAVILY_API_KEY) - Full web search
- * 3. Brave Search API (Requires BRAVE_API_KEY) - Full web search
+ * 3. DuckDuckGo Instant Answers (Free, no API key) - Best for facts, definitions
+ * 4. Brave Search API (Requires BRAVE_API_KEY) - Full web search
+ * 5. SerpAPI (Requires SERPAPI_KEY) - Full web search
+ * 6. Playwright Browser Search (Fallback)
  * 
- * For general web search (news, latest results), set TAVILY_API_KEY or BRAVE_API_KEY
- * DuckDuckGo works best for: definitions, facts, known entities, Wikipedia topics
+ * For best results, set OLLAMA_API_KEY (free from https://ollama.com/settings/keys)
  */
 function validateQuery(query: string): void {
   if (!query || typeof query !== 'string') {
@@ -67,6 +69,7 @@ export async function performWebSearch(query: string): Promise<SearchResult[]> {
     let tavilyKey = process.env.TAVILY_API_KEY;
     let braveKey = process.env.BRAVE_API_KEY;
     let serpapiKey = process.env.SERPAPI_KEY;
+    let ollamaKey = process.env.OLLAMA_API_KEY;
     
     try {
       const { sqlDatabase } = await import('./database/sqlite');
@@ -75,15 +78,38 @@ export async function performWebSearch(query: string): Promise<SearchResult[]> {
       const dbTavily = sqlDatabase.getApiKey('tavily');
       const dbBrave = sqlDatabase.getApiKey('brave');
       const dbSerpapi = sqlDatabase.getApiKey('serpapi');
+      const dbOllama = sqlDatabase.getApiKey('ollama');
       
       if (dbTavily) tavilyKey = dbTavily;
       if (dbBrave) braveKey = dbBrave;
       if (dbSerpapi) serpapiKey = dbSerpapi;
+      if (dbOllama) ollamaKey = dbOllama;
     } catch (dbError) {
       console.log('[WebSearch] Could not load keys from database, using env vars');
     }
 
-    // Priority 1: Tavily API (requires API key) - Best quality
+    // Priority 0: Ollama Web Search (recommended, built into Ollama Cloud)
+    if (ollamaKey) {
+      try {
+        console.log('[WebSearch] Trying Ollama Web Search...');
+        const { ollamaWebSearch } = await import('./browser/web-search-tool');
+        const ollamaResults = await ollamaWebSearch(query, { maxResults: 5 });
+        
+        if (ollamaResults.results && ollamaResults.results.length > 0) {
+          console.log(`[WebSearch] Ollama returned ${ollamaResults.results.length} results`);
+          return ollamaResults.results.map(r => ({
+            title: r.title,
+            url: r.url,
+            excerpt: r.snippet?.slice(0, 300) || '',
+            source: r.source || 'Ollama',
+          }));
+        }
+      } catch (error) {
+        errors.push(`Ollama: ${error instanceof Error ? error.message : 'failed'}`);
+      }
+    }
+
+    // Priority 1: Tavily API (requires API key)
     if (tavilyKey) {
       try {
         console.log('[WebSearch] Trying Tavily API...');
@@ -330,7 +356,9 @@ export async function performWebSearch(query: string): Promise<SearchResult[]> {
     }
     
     if (errors.length > 0) {
-      const providersTried: string[] = ['DuckDuckGo'];
+      const providersTried: string[] = [];
+      if (ollamaKey) providersTried.push('Ollama');
+      providersTried.push('DuckDuckGo');
       if (tavilyKey) providersTried.push('Tavily');
       if (braveKey) providersTried.push('Brave');
       if (serpapiKey) providersTried.push('SerpAPI');
@@ -340,7 +368,7 @@ export async function performWebSearch(query: string): Promise<SearchResult[]> {
         {
           title: 'Search providers available but no results',
           url: 'https://duckduckgo.com/?q=' + encodeURIComponent(query),
-          excerpt: `Tried: ${providersTried.join(', ')}. Errors: ${errors.join('; ')}. For better results, add TAVILY_API_KEY in Settings.`,
+          excerpt: `Tried: ${providersTried.join(', ')}. Errors: ${errors.join('; ')}. For best results, add OLLAMA_API_KEY (free from ollama.com) in Settings.`,
         },
       ];
     }
@@ -349,7 +377,7 @@ export async function performWebSearch(query: string): Promise<SearchResult[]> {
       {
         title: 'Configure a search API key for real results',
         url: 'https://duckduckgo.com/?q=' + encodeURIComponent(query),
-        excerpt: `No search API keys configured. Go to Settings to add TAVILY_API_KEY, BRAVE_API_KEY, or SERPAPI_KEY for real web search results. DuckDuckGo only provides facts/definitions without an API key.`,
+        excerpt: `No search API keys configured. Go to Settings to add OLLAMA_API_KEY (free from ollama.com/settings/keys) for built-in web search. Or add TAVILY_API_KEY, BRAVE_API_KEY, or SERPAPI_KEY.`,
       },
     ];
   } catch (error) {

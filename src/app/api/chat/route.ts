@@ -21,6 +21,7 @@ export interface ChatRequest {
   message: string;
   conversationHistory?: any[];
   useVectorLake?: boolean;
+  searchMode?: boolean;
   userName?: string;
   assistantName?: string;
 }
@@ -67,6 +68,7 @@ export async function POST(request: Request) {
     const model = sanitizeString(body.model);
     const conversationHistory = sanitizeObject(body.conversationHistory || []);
     const useVectorLake = Boolean(body.useVectorLake);
+    const searchMode = Boolean(body.searchMode);
     const clientUserName = body.userName ? sanitizeString(body.userName) : undefined;
     const clientAssistantName = body.assistantName ? sanitizeString(body.assistantName) : undefined;
 
@@ -586,7 +588,8 @@ Generate appropriate chart type (line, bar, pie, doughnut, etc.) based on the re
     ];
 
     // Define tools for AI models that support function calling
-    const tools = [
+    // Web search tool is ONLY included when searchMode is enabled
+    const tools = searchMode ? [
       webSearchToolDefinition,
       {
         type: 'function',
@@ -644,6 +647,9 @@ Generate appropriate chart type (line, bar, pie, doughnut, etc.) based on the re
           },
         },
       },
+      agentBrowserToolDefinition,
+    ] : [
+      // When search is OFF, only provide memory tools (no web access)
       {
         type: 'function',
         function: {
@@ -697,7 +703,6 @@ Generate appropriate chart type (line, bar, pie, doughnut, etc.) based on the re
           },
         },
       },
-      agentBrowserToolDefinition,
     ];
 
     // Tool call execution loop - limit to 2 iterations for speed
