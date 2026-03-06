@@ -235,16 +235,20 @@ PersonalAI-Dashboard/
 | Requirement | Minimum | Recommended |
 |-------------|---------|-------------|
 | **OS** | Windows 10, macOS 10.15, Linux | Any modern OS |
-| **RAM** | 8 GB | 16 GB |
+| **RAM** | 4 GB | 16 GB |
 | **Disk** | 10 GB | 20 GB |
 | **Node.js** | v18+ | v20+ |
 
 **For Local AI:**
-- Any computer can run `qwen3.5:2b` (2B parameters, CPU)
-- 16GB+ RAM recommended for larger models
+- **4GB RAM:** `qwen2.5:1.5b` (small, fast, CPU-only)
+- **8GB RAM:** `qwen2.5:3b` (better quality)
+- **16GB+ RAM:** `qwen2.5:7b` or `qwen2.5:9b` (best local quality)
 
-**For Cloud AI:**
+**For Cloud AI (Recommended for Low-RAM Systems):**
 - Just need internet and free Ollama API key
+- Models like `kimi-k2.5` and `glm-5` are FREE and better than local small models
+
+📖 **[CPU-Only Setup Guide (4GB RAM)](docs/CPU-ONLY-SETUP.md)** - Complete guide for low-RAM systems
 
 ---
 
@@ -263,7 +267,20 @@ curl -fsSL https://ollama.com/install.sh | sh
 # Windows: download from https://ollama.com
 ```
 
-### 3. Clone and Run
+### 3. Pull a Model (Choose Based on Your RAM)
+
+```bash
+# 4GB RAM - Best choice
+ollama pull qwen2.5:1.5b
+
+# 8GB RAM - Better quality
+ollama pull qwen2.5:3b
+
+# 16GB+ RAM - Best local quality
+ollama pull qwen2.5:9b
+```
+
+### 4. Clone and Run
 
 ```bash
 git clone https://github.com/norhtecmbarnes-dot/PersonalAI-Dashboard.git
@@ -272,9 +289,9 @@ npm install
 npm run dev
 ```
 
-### 4. (Optional) Add Cloud Models
+### 5. (Recommended) Add FREE Cloud Models
 
-Get your FREE API key at https://ollama.com/settings/keys
+Get your FREE API key at https://ollama.com/settings/keys - this gives you access to powerful models that don't use your RAM!
 
 ```bash
 # Create .env.local
