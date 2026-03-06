@@ -22,16 +22,26 @@ export async function GET() {
       mistral: !!process.env.MISTRAL_API_KEY || !!sqlDatabase.getApiKey('mistral'),
       deepseek: !!process.env.DEEPSEEK_API_KEY || !!sqlDatabase.getApiKey('deepseek'),
       openrouter: !!process.env.OPENROUTER_API_KEY || !!sqlDatabase.getApiKey('openrouter'),
+      glm: !!process.env.GLM_API_KEY || !!sqlDatabase.getApiKey('glm'),
     };
     
-    // GLM models use OLLAMA_API_KEY which we already have checked
-    const hasOllamaKey = !!process.env.OLLAMA_API_KEY || !!sqlDatabase.getApiKey('ollama');
-    
     // Filter external models to only those with configured API keys
-    const filteredExternalModels = externalModels.filter(m => {
-      if (m.provider === 'glm') return hasOllamaKey;
-      return availableApiKeys[m.provider as keyof typeof availableApiKeys] === true;
+    let filteredExternalModels = externalModels.filter(m => {
+      const provider = m.provider as keyof typeof availableApiKeys;
+      return availableApiKeys[provider] === true;
     });
+    
+    // If no models available at all, add fallback options that work without API keys
+    const hasOllamaKey = !!process.env.OLLAMA_API_KEY || !!sqlDatabase.getApiKey('ollama');
+    if (ollamaModels.length === 0 && filteredExternalModels.length === 0) {
+      // Add Ollama Cloud models if OLLAMA_API_KEY is set
+      if (hasOllamaKey) {
+        filteredExternalModels = [
+          { id: 'ollama-cloud/llama3.2', name: 'Llama 3.2 (Ollama Cloud)', provider: 'ollama-cloud', description: 'Via Ollama Cloud' },
+          { id: 'ollama-cloud/qwen2.5', name: 'Qwen 2.5 (Ollama Cloud)', provider: 'ollama-cloud', description: 'Via Ollama Cloud' },
+        ];
+      }
+    }
 
     // Determine default model based on preferences
     let defaultModel = modelPrefs.defaultModel || 'glm-4.7-flash';
@@ -44,6 +54,11 @@ export async function GET() {
     // If cloud for chat is enabled, use cloud model
     if (modelPrefs.cloudForChat) {
       defaultModel = 'glm-5:cloud';
+    }
+    
+    // If Ollama is offline but we have external models, use first external
+    if (!ollamaHealthy && filteredExternalModels.length > 0) {
+      defaultModel = filteredExternalModels[0].id;
     }
 
     return NextResponse.json({
