@@ -7,6 +7,8 @@
  * Docs: https://docs.ollama.com/capabilities/web-search
  */
 
+import { sanitizePrompt } from '@/lib/utils/validation';
+
 export interface WebSearchResult {
   title: string;
   url: string;
@@ -51,22 +53,25 @@ export async function ollamaWebSearch(
 ): Promise<WebSearchResponse> {
   const apiKey = process.env.OLLAMA_API_KEY;
   
+  // Sanitize query to prevent injection
+  const safeQuery = sanitizePrompt(query, 500);
+  
   if (!apiKey) {
     console.log('[OllamaWebSearch] No OLLAMA_API_KEY found');
     console.log('[OllamaWebSearch] To enable web search:');
     console.log('[OllamaWebSearch] 1. Get a free API key at https://ollama.com/settings/keys');
     console.log('[OllamaWebSearch] 2. Add OLLAMA_API_KEY=your-key to .env.local');
     console.log('[OllamaWebSearch] Falling back to SearXNG...');
-    return searXNGSearch(query, 'http://localhost:8888', options?.maxResults || 5);
+    return searXNGSearch(safeQuery, 'http://localhost:8888', options?.maxResults || 5);
   }
 
   const maxResults = options?.maxResults || 5;
 
   try {
-    console.log(`[OllamaWebSearch] Searching for: ${query}`);
+    console.log(`[OllamaWebSearch] Searching for: ${safeQuery}`);
     
     const searchBody = {
-      query,
+      query: safeQuery,
       max_results: maxResults,
       region: options?.region || 'us',
       freshness: options?.freshness,

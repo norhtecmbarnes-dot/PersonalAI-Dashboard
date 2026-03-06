@@ -7,6 +7,7 @@
 import { sqlDatabase } from '@/lib/database/sqlite';
 import { deaiify, analyzeText, DeAiMode } from '@/lib/writing/de-ai-ify';
 import { chatCompletion } from '@/lib/models/sdk.server';
+import { sanitizePrompt } from '@/lib/utils/validation';
 
 export interface BookChapter {
   id: string;

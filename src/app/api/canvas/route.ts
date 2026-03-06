@@ -131,7 +131,9 @@ export async function POST(request: NextRequest) {
       case 'generateWithAI':
         // Use LLM to generate HTML from description
         const { description: prompt, model } = body;
-        const aiHtml = await generateAIHTML(prompt, model || 'glm-4.7-flash');
+        // Sanitize user input to prevent prompt injection
+        const safePrompt = sanitizePrompt(prompt, 2000);
+        const aiHtml = await generateAIHTML(safePrompt, model || 'glm-4.7-flash');
         return NextResponse.json({ 
           success: true, 
           html: aiHtml 
@@ -141,23 +143,28 @@ export async function POST(request: NextRequest) {
         // Generate HTML with data from SQLite table
         const { description: dataPrompt, tableName, model: dataModel } = body;
         
+        // Sanitize user input
+        const safeDataPrompt = sanitizePrompt(dataPrompt, 2000);
+        // Sanitize table name to prevent SQL injection
+        const safeTableName = tableName ? tableName.replace(/[^a-zA-Z0-9_]/g, '').slice(0, 50) : '';
+        
         // Get table data
         let tableData: any[] = [];
         let tableSchema: any[] = [];
         
-        if (tableName) {
+        if (safeTableName) {
           await sqlDatabase.initialize();
           try {
-            tableData = await sqlDatabase.all(`SELECT * FROM ${tableName} LIMIT 100`);
-            tableSchema = await sqlDatabase.all(`PRAGMA table_info(${tableName})`);
+            tableData = await sqlDatabase.all(`SELECT * FROM ${safeTableName} LIMIT 100`);
+            tableSchema = await sqlDatabase.all(`PRAGMA table_info(${safeTableName})`);
           } catch (e) {
             console.error('Failed to get table data:', e);
           }
         }
         
         const dataHtml = await generateAIHTMLWithData(
-          dataPrompt, 
-          tableName, 
+          safeDataPrompt, 
+          safeTableName, 
           tableSchema, 
           tableData,
           dataModel || 'glm-4.7-flash'
@@ -172,7 +179,10 @@ export async function POST(request: NextRequest) {
         // Generate a form for a SQLite table
         const { tableName: formTable } = body;
         
-        if (!formTable) {
+        // Sanitize table name
+        const safeFormTable = formTable ? formTable.replace(/[^a-zA-Z0-9_]/g, '').slice(0, 50) : '';
+        
+        if (!safeFormTable) {
           return NextResponse.json({ 
             success: false, 
             error: 'tableName required' 
@@ -180,8 +190,8 @@ export async function POST(request: NextRequest) {
         }
         
         await sqlDatabase.initialize();
-        const formSchema = await sqlDatabase.all(`PRAGMA table_info(${formTable})`);
-        const formHtml = generateFormHTML(formTable, formSchema);
+        const formSchema = await sqlDatabase.all(`PRAGMA table_info(${safeFormTable})`);
+        const formHtml = generateFormHTML(safeFormTable, formSchema);
         
         return NextResponse.json({ 
           success: true, 
@@ -193,22 +203,27 @@ export async function POST(request: NextRequest) {
         // Generate a full dashboard with widgets from description
         const { description: dashPrompt, dataSources, model: dashModel } = body;
         
+        // Sanitize user input
+        const safeDashPrompt = sanitizePrompt(dashPrompt, 2000);
+        
         // Get data from specified tables
         const dashboardData: Record<string, any[]> = {};
         
         if (dataSources && Array.isArray(dataSources)) {
           await sqlDatabase.initialize();
           for (const source of dataSources) {
+            // Sanitize each source name
+            const safeSource = source.replace(/[^a-zA-Z0-9_]/g, '').slice(0, 50);
             try {
-              dashboardData[source] = await sqlDatabase.all(`SELECT * FROM ${source} LIMIT 50`);
+              dashboardData[safeSource] = await sqlDatabase.all(`SELECT * FROM ${safeSource} LIMIT 50`);
             } catch (e) {
-              console.error(`Failed to get data from ${source}:`, e);
+              console.error(`Failed to get data from ${safeSource}:`, e);
             }
           }
         }
         
         const dashboardHtml = await generateDashboardHTML(
-          dashPrompt,
+          safeDashPrompt,
           dashboardData,
           dashModel || 'glm-4.7-flash'
         );
