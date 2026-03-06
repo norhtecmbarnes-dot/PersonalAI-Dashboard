@@ -7,6 +7,65 @@ export interface ValidationResult {
   error?: string;
 }
 
+/**
+ * Sanitize user input for use in prompts
+ * Prevents prompt injection attacks
+ */
+export function sanitizePrompt(input: string, maxLength: number = 4000): string {
+  if (!input || typeof input !== 'string') return '';
+  
+  // Truncate to max length
+  let sanitized = input.slice(0, maxLength);
+  
+  // Remove potential prompt injection patterns
+  const injectionPatterns = [
+    /```[\s\S]*?```/g,                    // Remove code blocks
+    /<\|.*?\|>/g,                          // Remove special tokens
+    /\[INST\].*?\[\/INST\]/gi,             // Remove instruction tags
+    /<<.*?>>/g,                            // Remove angle bracket tags
+    /system\s*:/gi,                        // Remove "system:" prefixes
+    /assistant\s*:/gi,                     // Remove "assistant:" prefixes
+    /user\s*:/gi,                           // Remove "user:" prefixes
+    /ignore\s+previous\s+instructions/gi,  // Common injection phrase
+    /ignore\s+all\s+instructions/gi,       // Common injection phrase
+    /disregard\s+all/gi,                    // Common injection phrase
+    /forget\s+everything/gi,               // Common injection phrase
+    /you\s+are\s+now/gi,                    // Role manipulation
+    /new\s+instructions/gi,                // Instruction injection
+    /\[SYSTEM\]/gi,                         // System tag injection
+    /\[AI\]/gi,                             // AI tag injection
+    /\[HUMAN\]/gi,                          // Human tag injection
+  ];
+  
+  for (const pattern of injectionPatterns) {
+    sanitized = sanitized.replace(pattern, '');
+  }
+  
+  // Escape special characters that could be interpreted as prompt syntax
+  sanitized = sanitized
+    .replace(/\\/g, '\\\\')
+    .replace(/\n{3,}/g, '\n\n');  // Limit consecutive newlines
+  
+  // Remove any control characters except newlines and tabs
+  sanitized = sanitized.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+  
+  return sanitized.trim();
+}
+
+/**
+ * Sanitize for display/HTML contexts
+ */
+export function sanitizeDisplay(input: string): string {
+  if (!input || typeof input !== 'string') return '';
+  
+  return input
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 export function validateString(value: any, fieldName: string, options?: {
   minLength?: number;
   maxLength?: number;

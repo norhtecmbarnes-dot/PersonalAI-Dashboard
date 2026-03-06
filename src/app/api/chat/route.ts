@@ -9,7 +9,7 @@ import { mathTools } from '@/lib/utils/math-tools';
 import { SYSTEM_PROMPT, GREETING } from '@/lib/config/system-prompt';
 import { userPreferences } from '@/lib/config/user-preferences';
 import { memoryFileService } from '@/lib/services/memory-file';
-import { validateString, validateArray, sanitizeString, sanitizeObject } from '@/lib/utils/validation';
+import { validateString, validateArray, sanitizeString, sanitizeObject, sanitizePrompt } from '@/lib/utils/validation';
 import { injectMemoryContext } from '@/lib/memory/memory-injector';
 import { memoryStore } from '@/lib/memory/persistent-store';
 import { rlTrainer, getRLStats, recordFeedback, logConversationTurn } from '@/lib/agent/rl-trainer';
@@ -67,14 +67,14 @@ export async function POST(request: Request) {
       );
     }
 
-    // Sanitize inputs
-    const message = sanitizeString(body.message);
+    // Sanitize inputs - use sanitizePrompt for user message to prevent injection
+    const message = sanitizePrompt(sanitizeString(body.message));
     const model = sanitizeString(body.model);
     const conversationHistory = sanitizeObject(body.conversationHistory || []);
     const useVectorLake = Boolean(body.useVectorLake);
     const searchMode = Boolean(body.searchMode);
-    const clientUserName = body.userName ? sanitizeString(body.userName) : undefined;
-    const clientAssistantName = body.assistantName ? sanitizeString(body.assistantName) : undefined;
+    const clientUserName = body.userName ? sanitizePrompt(sanitizeString(body.userName)) : undefined;
+    const clientAssistantName = body.assistantName ? sanitizePrompt(sanitizeString(body.assistantName)) : undefined;
 
     // Handle commands
     // Web search - uses Ollama web search (default)
