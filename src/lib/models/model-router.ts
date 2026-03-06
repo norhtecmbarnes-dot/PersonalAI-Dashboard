@@ -45,6 +45,11 @@ export interface ModelRoutingConfig {
 }
 
 const AVAILABLE_MODELS: ModelInfo[] = [
+  // Local models (free) - Small models that run on CPU
+  { id: 'ministral-3:3b', name: 'Ministral 3B', tier: 'local-fast', provider: 'ollama', maxTokens: 32768, costPerToken: 0, available: true, capabilities: ['chat'], description: 'Tiny 3B model, runs on CPU, no GPU needed' },
+  { id: 'gemma3:4b', name: 'Gemma 3 4B', tier: 'local-fast', provider: 'ollama', maxTokens: 32768, costPerToken: 0, available: true, capabilities: ['chat', 'code'], description: 'Small 4B model, runs on CPU, excellent for modest hardware' },
+  { id: 'ministral-3:8b', name: 'Ministral 8B', tier: 'local-fast', provider: 'ollama', maxTokens: 32768, costPerToken: 0, available: true, capabilities: ['chat', 'code'], description: 'Small 8B model, runs on most hardware' },
+  
   // Local models (free)
   // Ultra-lightweight models (CPU-friendly, no GPU required)
   { id: 'qwen3.5:2b', name: 'Qwen 3.5 2B', tier: 'local-fast', provider: 'ollama', maxTokens: 32768, costPerToken: 0, available: true, capabilities: ['chat', 'code'], description: 'Ultra-lightweight model (2B params), runs on CPU, near GPT-4 mini performance' },
@@ -64,9 +69,9 @@ const AVAILABLE_MODELS: ModelInfo[] = [
   { id: 'qwen3.5:397b', name: 'Qwen 3.5 397B (Cloud)', tier: 'cloud-thinking', provider: 'cloud', maxTokens: 128000, costPerToken: 0, available: true, capabilities: ['chat', 'code', 'analysis'], description: 'Massive 397B Qwen 3.5 on Ollama Cloud' },
   { id: 'qwen3-coder-next', name: 'Qwen 3 Coder Next (Cloud)', tier: 'cloud-thinking', provider: 'cloud', maxTokens: 128000, costPerToken: 0, available: true, capabilities: ['chat', 'code'], description: '79.7B code specialist on Ollama Cloud' },
   { id: 'qwen3-coder:480b', name: 'Qwen 3 Coder 480B (Cloud)', tier: 'cloud-thinking', provider: 'cloud', maxTokens: 128000, costPerToken: 0, available: true, capabilities: ['chat', 'code'], description: '480B code model on Ollama Cloud' },
-  { id: 'glm-5', name: 'GLM-5 (Cloud)', tier: 'cloud-thinking', provider: 'cloud', maxTokens: 128000, costPerToken: 0, available: true, capabilities: ['chat', 'code', 'analysis'], description: '756B GLM-5 on Ollama Cloud' },
+  { id: 'glm-5', name: 'GLM-5 (Cloud)', tier: 'cloud-thinking', provider: 'cloud', maxTokens: 128000, costPerToken: 0, available: true, capabilities: ['chat', 'code', 'analysis'], description: '756B GLM-5 on Ollama Cloud, GPT-like' },
   { id: 'glm-4.7', name: 'GLM-4.7 (Cloud)', tier: 'cloud-thinking', provider: 'cloud', maxTokens: 128000, costPerToken: 0, available: true, capabilities: ['chat', 'code', 'analysis'], description: 'GLM-4.7 on Ollama Cloud' },
-  { id: 'kimi-k2.5', name: 'Kimi K2.5 (Cloud)', tier: 'cloud-thinking', provider: 'cloud', maxTokens: 128000, costPerToken: 0, available: true, capabilities: ['chat', 'analysis'], description: '1.1T parameter model on Ollama Cloud' },
+  { id: 'kimi-k2.5', name: 'Kimi K2.5 (Cloud)', tier: 'cloud-thinking', provider: 'cloud', maxTokens: 128000, costPerToken: 0, available: true, capabilities: ['chat', 'analysis'], description: '1.1T parameter, Claude-distilled on Ollama Cloud' },
   { id: 'kimi-k2-thinking', name: 'Kimi K2 Thinking (Cloud)', tier: 'cloud-thinking', provider: 'cloud', maxTokens: 128000, costPerToken: 0, available: true, capabilities: ['chat', 'analysis'], description: 'Thinking model on Ollama Cloud' },
   { id: 'deepseek-v3.2', name: 'DeepSeek V3.2 (Cloud)', tier: 'cloud-thinking', provider: 'cloud', maxTokens: 128000, costPerToken: 0, available: true, capabilities: ['chat', 'code', 'analysis'], description: '671B DeepSeek on Ollama Cloud' },
   { id: 'deepseek-v3.1:671b', name: 'DeepSeek V3.1 671B (Cloud)', tier: 'cloud-thinking', provider: 'cloud', maxTokens: 128000, costPerToken: 0, available: true, capabilities: ['chat', 'code', 'analysis'], description: '671B DeepSeek on Ollama Cloud' },
@@ -490,10 +495,18 @@ class ModelRouter {
       return glm5;
     }
     
-    // Fallback to qwen3.5:27b
-    const qwen27b = this.models.find(m => m.id === 'qwen3.5:27b' && m.available);
-    if (qwen27b) {
-      return qwen27b;
+    // Fallback to small local model: gemma3:4b (runs on CPU, no GPU needed)
+    const gemma4b = this.models.find(m => m.id === 'gemma3:4b' && m.available);
+    if (gemma4b) {
+      console.log(`[ModelRouter] Using gemma3:4b for writing (local, no GPU)`);
+      return gemma4b;
+    }
+    
+    // Fallback to ministral-3:3b (very small, runs anywhere)
+    const ministral3b = this.models.find(m => m.id === 'ministral-3:3b' && m.available);
+    if (ministral3b) {
+      console.log(`[ModelRouter] Using ministral-3:3b for writing (local, tiny)`);
+      return ministral3b;
     }
     
     return this.getChatModel();
