@@ -473,21 +473,21 @@ class ModelRouter {
   
   /**
    * Get model for writing tasks
-   * Prefers Gemma 3 27B for excellent English writing
+   * Prefers Kimi K2.5 (distilled from Claude) for excellent English writing
    */
   getWritingModel(): ModelInfo {
-    // Prefer Gemma 3 27B for English writing
-    const gemma27b = this.models.find(m => m.id === 'gemma3:27b' && m.available);
-    if (gemma27b) {
-      console.log(`[ModelRouter] Using gemma3:27b for writing (excellent English)`);
-      return gemma27b;
+    // Prefer Kimi K2.5 for writing - distilled from Claude
+    const kimi = this.models.find(m => m.id === 'kimi-k2.5' && m.available);
+    if (kimi) {
+      console.log(`[ModelRouter] Using kimi-k2.5 for writing (Claude-distilled)`);
+      return kimi;
     }
     
-    // Fallback to mistral-large-3 for quality writing
-    const mistral = this.models.find(m => m.id === 'mistral-large-3:675b' && m.available);
-    if (mistral) {
-      console.log(`[ModelRouter] Using mistral-large-3:675b for writing`);
-      return mistral;
+    // Fallback to GLM-5 (similar to GPT)
+    const glm5 = this.models.find(m => m.id === 'glm-5' && m.available);
+    if (glm5) {
+      console.log(`[ModelRouter] Using glm-5 for writing (GPT-like)`);
+      return glm5;
     }
     
     // Fallback to qwen3.5:27b

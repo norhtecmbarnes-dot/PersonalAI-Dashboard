@@ -138,8 +138,8 @@ export async function POST(request: NextRequest) {
       content: memoryContext + '\n\nYou are a skilled writing assistant. Follow instructions precisely and provide only the requested output.'
     };
 
-    // Use GPT-OSS 20B by default - GPT-based, excellent for English writing via Ollama Cloud
-    const useModel = model || 'gpt-oss:20b';
+    // Use Kimi K2.5 by default - distilled from Claude, excellent for English writing via Ollama Cloud
+    const useModel = model || 'kimi-k2.5';
     
     console.log('[Writing] Processing:', action, 'with model:', useModel);
     

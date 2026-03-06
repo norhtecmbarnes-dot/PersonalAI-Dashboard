@@ -51,8 +51,8 @@ export default function WritingAssistantPage() {
     setError(null);
     setResult(null);
 
-    // Use GPT-OSS 20B by default - GPT-based, excellent for English writing via Ollama Cloud
-    const modelToUse = model || 'gpt-oss:20b';
+    // Use Kimi K2.5 by default - distilled from Claude, excellent for English writing via Ollama Cloud
+    const modelToUse = model || 'kimi-k2.5';
     console.log('[Writing] Submitting with model:', modelToUse);
 
     try {
