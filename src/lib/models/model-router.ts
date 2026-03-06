@@ -60,7 +60,24 @@ const AVAILABLE_MODELS: ModelInfo[] = [
   { id: 'lfm2:latest', name: 'LFM2', tier: 'local-capable', provider: 'ollama', maxTokens: 32768, costPerToken: 0, available: true, capabilities: ['chat', 'code'] },
   { id: 'glm-ocr', name: 'GLM OCR', tier: 'local-capable', provider: 'ollama', maxTokens: 8192, costPerToken: 0, available: true, capabilities: ['chat'] },
   
-  // Cloud models (paid)
+  // Ollama Cloud models (require OLLAMA_API_KEY)
+  { id: 'qwen3.5:397b', name: 'Qwen 3.5 397B (Cloud)', tier: 'cloud-thinking', provider: 'cloud', maxTokens: 128000, costPerToken: 0, available: true, capabilities: ['chat', 'code', 'analysis'], description: 'Massive 397B Qwen 3.5 on Ollama Cloud' },
+  { id: 'qwen3-coder-next', name: 'Qwen 3 Coder Next (Cloud)', tier: 'cloud-thinking', provider: 'cloud', maxTokens: 128000, costPerToken: 0, available: true, capabilities: ['chat', 'code'], description: '79.7B code specialist on Ollama Cloud' },
+  { id: 'qwen3-coder:480b', name: 'Qwen 3 Coder 480B (Cloud)', tier: 'cloud-thinking', provider: 'cloud', maxTokens: 128000, costPerToken: 0, available: true, capabilities: ['chat', 'code'], description: '480B code model on Ollama Cloud' },
+  { id: 'glm-5', name: 'GLM-5 (Cloud)', tier: 'cloud-thinking', provider: 'cloud', maxTokens: 128000, costPerToken: 0, available: true, capabilities: ['chat', 'code', 'analysis'], description: '756B GLM-5 on Ollama Cloud' },
+  { id: 'glm-4.7', name: 'GLM-4.7 (Cloud)', tier: 'cloud-thinking', provider: 'cloud', maxTokens: 128000, costPerToken: 0, available: true, capabilities: ['chat', 'code', 'analysis'], description: 'GLM-4.7 on Ollama Cloud' },
+  { id: 'kimi-k2.5', name: 'Kimi K2.5 (Cloud)', tier: 'cloud-thinking', provider: 'cloud', maxTokens: 128000, costPerToken: 0, available: true, capabilities: ['chat', 'analysis'], description: '1.1T parameter model on Ollama Cloud' },
+  { id: 'kimi-k2-thinking', name: 'Kimi K2 Thinking (Cloud)', tier: 'cloud-thinking', provider: 'cloud', maxTokens: 128000, costPerToken: 0, available: true, capabilities: ['chat', 'analysis'], description: 'Thinking model on Ollama Cloud' },
+  { id: 'deepseek-v3.2', name: 'DeepSeek V3.2 (Cloud)', tier: 'cloud-thinking', provider: 'cloud', maxTokens: 128000, costPerToken: 0, available: true, capabilities: ['chat', 'code', 'analysis'], description: '671B DeepSeek on Ollama Cloud' },
+  { id: 'deepseek-v3.1:671b', name: 'DeepSeek V3.1 671B (Cloud)', tier: 'cloud-thinking', provider: 'cloud', maxTokens: 128000, costPerToken: 0, available: true, capabilities: ['chat', 'code', 'analysis'], description: '671B DeepSeek on Ollama Cloud' },
+  { id: 'cogito-2.1:671b', name: 'Cogito 2.1 (Cloud)', tier: 'cloud-thinking', provider: 'cloud', maxTokens: 128000, costPerToken: 0, available: true, capabilities: ['chat', 'analysis'], description: '671B thinking model on Ollama Cloud' },
+  { id: 'minimax-m2.5', name: 'MiniMax M2.5 (Cloud)', tier: 'cloud-thinking', provider: 'cloud', maxTokens: 128000, costPerToken: 0, available: true, capabilities: ['chat', 'analysis'], description: 'MiniMax on Ollama Cloud' },
+  { id: 'mistral-large-3:675b', name: 'Mistral Large 3 (Cloud)', tier: 'cloud-thinking', provider: 'cloud', maxTokens: 128000, costPerToken: 0, available: true, capabilities: ['chat', 'code'], description: '675B Mistral on Ollama Cloud' },
+  { id: 'devstral-small-2:24b', name: 'Devstral Small 2 (Cloud)', tier: 'cloud-fast', provider: 'cloud', maxTokens: 128000, costPerToken: 0, available: true, capabilities: ['chat', 'code'], description: '24B code agent on Ollama Cloud' },
+  { id: 'gemma3:27b', name: 'Gemma 3 27B (Cloud)', tier: 'cloud-fast', provider: 'cloud', maxTokens: 32768, costPerToken: 0, available: true, capabilities: ['chat', 'code'], description: '27B Gemma on Ollama Cloud' },
+  { id: 'gemini-3-flash-preview', name: 'Gemini 3 Flash (Cloud)', tier: 'cloud-fast', provider: 'cloud', maxTokens: 128000, costPerToken: 0, available: true, capabilities: ['chat', 'code', 'analysis'], description: 'Gemini 3 Flash on Ollama Cloud' },
+  
+  // Cloud models (paid via other providers)
   { id: 'qwen3.5:full', name: 'Qwen 3.5 Full (Cloud)', tier: 'cloud-thinking', provider: 'cloud', maxTokens: 128000, costPerToken: 0.00001, available: true, capabilities: ['chat', 'code', 'analysis'], description: 'Full-size Qwen 3.5 multimodal model in the cloud' },
   { id: 'glm-5:cloud', name: 'GLM-5 Cloud', tier: 'cloud-thinking', provider: 'cloud', maxTokens: 128000, costPerToken: 0.00001, available: true, capabilities: ['chat', 'code', 'analysis'] },
   { id: 'kimi-k2.5:cloud', name: 'Kimi K2.5 Cloud', tier: 'cloud-fast', provider: 'cloud', maxTokens: 128000, costPerToken: 0.00001, available: true, capabilities: ['chat', 'analysis'] },

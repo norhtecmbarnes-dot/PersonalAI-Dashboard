@@ -860,6 +860,23 @@ export interface ExternalModel {
 }
 
 const EXTERNAL_MODELS: ExternalModel[] = [
+    // Ollama Cloud models (require OLLAMA_API_KEY)
+    { id: 'qwen3.5:397b', name: 'Qwen 3.5 397B', provider: 'ollama-cloud', description: 'Massive 397B model on Ollama Cloud' },
+    { id: 'qwen3-coder-next', name: 'Qwen 3 Coder Next', provider: 'ollama-cloud', description: '79.7B code specialist' },
+    { id: 'qwen3-coder:480b', name: 'Qwen 3 Coder 480B', provider: 'ollama-cloud', description: '480B code model' },
+    { id: 'glm-5', name: 'GLM-5', provider: 'ollama-cloud', description: '756B GLM model' },
+    { id: 'glm-4.7', name: 'GLM-4.7', provider: 'ollama-cloud', description: 'GLM-4.7 on Ollama Cloud' },
+    { id: 'kimi-k2.5', name: 'Kimi K2.5', provider: 'ollama-cloud', description: '1.1T parameter model' },
+    { id: 'kimi-k2-thinking', name: 'Kimi K2 Thinking', provider: 'ollama-cloud', description: 'Thinking model' },
+    { id: 'deepseek-v3.2', name: 'DeepSeek V3.2', provider: 'ollama-cloud', description: '671B DeepSeek' },
+    { id: 'deepseek-v3.1:671b', name: 'DeepSeek V3.1 671B', provider: 'ollama-cloud', description: '671B DeepSeek' },
+    { id: 'cogito-2.1:671b', name: 'Cogito 2.1', provider: 'ollama-cloud', description: '671B thinking model' },
+    { id: 'minimax-m2.5', name: 'MiniMax M2.5', provider: 'ollama-cloud', description: 'MiniMax model' },
+    { id: 'mistral-large-3:675b', name: 'Mistral Large 3', provider: 'ollama-cloud', description: '675B Mistral' },
+    { id: 'devstral-small-2:24b', name: 'Devstral Small 2', provider: 'ollama-cloud', description: '24B code agent' },
+    { id: 'gemma3:27b', name: 'Gemma 3 27B', provider: 'ollama-cloud', description: '27B Gemma' },
+    { id: 'gemini-3-flash-preview', name: 'Gemini 3 Flash', provider: 'ollama-cloud', description: 'Gemini 3 Flash preview' },
+    
     // Gemini models
     { id: 'gemini/gemini-2.0-flash', name: 'Gemini 2.0 Flash', provider: 'gemini', description: 'Fast, efficient, free tier available' },
     { id: 'gemini/gemini-1.5-pro', name: 'Gemini 1.5 Pro', provider: 'gemini', description: 'Advanced reasoning, large context' },
@@ -887,7 +904,7 @@ const EXTERNAL_MODELS: ExternalModel[] = [
     { id: 'deepseek/deepseek-chat', name: 'DeepSeek Chat', provider: 'deepseek', description: 'DeepSeek Chat Model' },
     { id: 'deepseek/deepseek-reasoner', name: 'DeepSeek Reasoner', provider: 'deepseek', description: 'Advanced reasoning model' },
     
-    // GLM models
+    // GLM models (via GLM API)
     { id: 'glm-4.7-flash', name: 'GLM-4.7 Flash', provider: 'glm', description: 'Fast multilingual chat model' },
     
     // OpenRouter (aggregator)

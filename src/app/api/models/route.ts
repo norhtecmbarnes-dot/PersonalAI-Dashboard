@@ -23,6 +23,7 @@ export async function GET() {
       deepseek: !!process.env.DEEPSEEK_API_KEY || !!sqlDatabase.getApiKey('deepseek'),
       openrouter: !!process.env.OPENROUTER_API_KEY || !!sqlDatabase.getApiKey('openrouter'),
       glm: !!process.env.GLM_API_KEY || !!sqlDatabase.getApiKey('glm'),
+      'ollama-cloud': !!process.env.OLLAMA_API_KEY || !!sqlDatabase.getApiKey('ollama'),
     };
     
     // Filter external models to only those with configured API keys
