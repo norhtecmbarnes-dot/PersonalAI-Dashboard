@@ -15,48 +15,100 @@ When you first see all the folders and files, it can feel overwhelming. Let's br
 
 ## The Big Picture
 
-Here's your AI Dashboard structure:
+Here's your AI Dashboard structure (as of March 2026):
 
 ```
 ai-dashboard/
-├── .env.local              # Secret settings (API keys, passwords)
+├── .env.local              # Secret settings (API keys)
+├── .env.example            # Template for .env.local
 ├── .gitignore              # Files Git should ignore
 ├── next.config.js          # Next.js configuration
 ├── package.json            # Project dependencies
 ├── tsconfig.json           # TypeScript settings
 ├── README.md               # Project documentation
+├── CHANGELOG.md            # Version history
 │
 ├── src/
-│   ├── app/                # Next.js pages (what users see)
-│   │   ├── page.tsx        # Home page
-│   │   ├── layout.tsx      # Page wrapper
-│   │   ├── api/            # API routes
+│   ├── app/                # Next.js App Router
+│   │   ├── page.tsx        # Home page (/)
+│   │   ├── layout.tsx      # Root layout
+│   │   ├── globals.css     # Global styles
+│   │   │
+│   │   ├── api/            # Backend API routes
+│   │   │   ├── chat/       # Chat API (/api/chat)
+│   │   │   ├── models/     # Models API (/api/models)
+│   │   │   ├── writing/    # Writing API (/api/writing)
+│   │   │   ├── database/   # Database API (/api/database)
+│   │   │   ├── documents/  # Documents API
+│   │   │   ├── canvas/     # Canvas API
+│   │   │   ├── security/   # Security scan API
+│   │   │   └── ...         # 40+ API endpoints
+│   │   │
 │   │   ├── documents/      # Documents page
-│   │   ├── brand-workspace/ # Brand workspace page
-│   │   └── ...
+│   │   ├── brand-workspace/ # Brand workspace
+│   │   ├── notes/          # Notes board
+│   │   ├── calendar/       # Calendar
+│   │   ├── tasks/          # Task scheduler
+│   │   ├── canvas/         # Visual builder
+│   │   ├── writing/        # Writing assistant
+│   │   ├── memory/         # Memory management
+│   │   ├── settings/       # Settings page
+│   │   ├── intelligence/   # Intelligence reports
+│   │   ├── security/       # Security dashboard
+│   │   ├── office/         # OnlyOffice integration
+│   │   ├── book-writer/    # Book writing
+│   │   ├── research/       # Research agent
+│   │   └── ...             # 20+ pages total
 │   │
-│   ├── lib/                # Shared code and utilities
-│   │   ├── agent/          # AI agents (book writer, security, etc.)
-│   │   ├── database/       # Database operations
-│   │   ├── models/         # AI model integrations
+│   ├── lib/                # Core libraries
+│   │   ├── database/       # SQLite operations
+│   │   │   └── sqlite.ts   # Main database (3500+ lines)
+│   │   ├── models/         # AI model integration
+│   │   │   ├── sdk.server.ts # Model SDK (server)
+│   │   │   ├── sdk.ts      # Model SDK (client)
+│   │   │   └── model-router.ts # Smart model selection
 │   │   ├── services/       # Business logic
-│   │   └── writing/        # Writing tools
+│   │   │   ├── task-scheduler.ts # Scheduled tasks
+│   │   │   ├── memory-file.ts # Persistent memory
+│   │   │   └── ...         # 15+ services
+│   │   ├── agent/          # AI agents
+│   │   │   ├── book-writer.ts
+│   │   │   ├── security-agent.ts
+│   │   │   └── ...         # 10+ agents
+│   │   ├── security/       # Security scanning
+│   │   │   └── ai-security-scanner.ts
+│   │   ├── utils/          # Utilities
+│   │   │   └── validation.ts # Input sanitization
+│   │   ├── storage/        # Data storage
+│   │   │   ├── vector-lake.ts # Semantic search
+│   │   │   └── documents.ts # Document storage
+│   │   ├── memory/         # Memory system
+│   │   ├── browser/        # Browser automation
+│   │   ├── integrations/   # External services
+│   │   ├── writing/        # Writing tools
+│   │   ├── config/         # Configuration
+│   │   ├── middleware/     # Express middleware
+│   │   ├── hooks/          # React hooks
+│   │   └── components/     # React components
 │   │
-│   ├── components/         # Reusable UI components
-│   │   ├── chat/           # Chat-related components
-│   │   ├── documents/      # Document components
-│   │   └── ui/             # Generic UI components
-│   │
-│   └── instrumentation.ts  # Server startup code
+│   └── instrumentation.ts  # Server startup
 │
 ├── data/                   # Data storage
 │   ├── assistant.db        # SQLite database
-│   ├── MEMORY.md           # Persistent memory
-│   └── ...
+│   ├── MEMORY.md           # AI persistent memory
+│   └── uploads/            # Uploaded files
 │
-├── docs/                   # Documentation
-├── public/                 # Static files (images, etc.)
-└── scripts/                # Utility scripts
+├── book/                   # This book
+│   ├── README.md           # Book overview
+│   ├── chapter-01-introduction.md
+│   ├── chapter-04-setup.md # Detailed setup
+│   ├── chapter-06-database.md # Database guide
+│   ├── chapter-21-security.md # Security guide
+│   └── ...                 # 21 chapters
+│
+├── docs/                   # Technical docs
+├── public/                 # Static files
+└── CHANGELOG.md            # Version history
 ```
 
 ---

@@ -432,29 +432,69 @@ Your Dashboard → Ollama API (for AI chat)
 
 ### Real Example from Your Dashboard
 
-Here's how your chat feature will work:
+Here's how your chat feature works (simplified):
 
-```javascript
-// When user sends a message
-async function sendMessage(userMessage) {
-  // Call the Ollama API (the AI model)
-  const response = await fetch('/api/chat', {
+```typescript
+// Location: src/app/page.tsx (frontend)
+
+async function sendMessage(userMessage: string) {
+  // Call your backend API
+  const response = await fetch('/api/chat/stream', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
+      model: 'qwen3.5:9b',   // AI model to use
       message: userMessage,
-      model: 'glm-4.7-flash'
+      searchMode: false      // Web search toggle
     })
   });
   
-  const data = await response.json();
+  // Stream the response
+  const reader = response.body?.getReader();
+  const decoder = new TextDecoder();
+  let fullResponse = '';
   
-  // Display the AI's response
-  displayMessage(data.message.content);
+  while (true) {
+    const { done, value } = await reader!.read();
+    if (done) break;
+    
+    const chunk = decoder.decode(value);
+    // Parse SSE data and update UI
+    fullResponse += chunk;
+  }
+  
+  return fullResponse;
 }
 ```
 
-**Every feature in your Dashboard uses APIs internally or externally.**
+And here's the backend API (simplified):
+
+```typescript
+// Location: src/app/api/chat/stream/route.ts
+
+import { streamChatCompletion } from '@/lib/models/sdk.server';
+import { sanitizePrompt } from '@/lib/utils/validation';
+
+export async function POST(request: Request) {
+  const body = await request.json();
+  
+  // 1. Validate and sanitize input
+  const message = sanitizePrompt(body.message);  // Remove injection attempts
+  
+  // 2. Call the AI model
+  const stream = await streamChatCompletion({
+    model: body.model || 'qwen3.5:9b',
+    messages: [
+      { role: 'user', content: message }
+    ]
+  });
+  
+  // 3. Return streaming response
+  return new Response(stream, {
+    headers: { 'Content-Type': 'text/event-stream' }
+  });
+}
+```
 
 ---
 

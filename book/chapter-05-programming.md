@@ -101,12 +101,12 @@ Hello, World!
 
 Think of variables as labeled boxes where you store things:
 
-```javascript
-// Creating variables
-const name = 'Alice';           // Text (string)
-const age = 30;                 // Number
-const isStudent = true;         // Boolean (true/false)
-const hobbies = ['reading', 'coding'];  // List (array)
+```typescript
+// Creating variables (TypeScript style)
+const name: string = 'Alice';           // Text (string)
+const age: number = 30;                 // Number
+const isStudent: boolean = true;        // Boolean (true/false)
+const hobbies: string[] = ['reading', 'coding'];  // Array
 
 // Using variables
 console.log(name);        // Alice
@@ -114,50 +114,107 @@ console.log(age);         // 30
 console.log(hobbies[0]);  // reading
 ```
 
+**Key Type Annotations:**
+- `: string` - Text
+- `: number` - Numbers (integers and decimals)
+- `: boolean` - True or false
+- `: string[]` - Array of strings
+- `: any` - Any type (avoid when possible)
+
 ### 2. Functions (Reusable Instructions)
 
 Functions are like recipes — instructions you can use over and over:
 
-```javascript
-// Define a function
-function greet(name) {
-  return 'Hello, ' + name + '!';
+```typescript
+// Define a function with types
+function greet(name: string): string {
+  return `Hello, ${name}!`;
 }
+
+// Arrow function syntax (common in this project)
+const greetArrow = (name: string): string => {
+  return `Hello, ${name}!`;
+};
 
 // Use the function
 console.log(greet('Alice'));  // Hello, Alice!
 console.log(greet('Bob'));    // Hello, Bob!
 ```
 
+**Real Example from the Dashboard:**
+
+```typescript
+// Location: src/lib/utils/validation.ts
+
+export function sanitizePrompt(input: string, maxLength: number = 4000): string {
+  if (!input || typeof input !== 'string') return '';
+  
+  // Truncate to max length
+  let sanitized = input.slice(0, maxLength);
+  
+  // Remove potential injection patterns
+  const patterns = [
+    /ignore\s+previous\s+instructions/gi,
+    /system\s*:/gi,
+  ];
+  
+  for (const pattern of patterns) {
+    sanitized = sanitized.replace(pattern, '');
+  }
+  
+  return sanitized.trim();
+}
+
+// Usage
+const safeInput = sanitizePrompt(userInput, 1000);
+```
+
 ### 3. Conditionals (Making Decisions)
 
-```javascript
-function checkAge(age) {
+```typescript
+function checkAge(age: number): string {
   if (age >= 18) {
     return 'You are an adult';
+  } else if (age >= 13) {
+    return 'You are a teenager';
   } else {
-    return 'You are a minor';
+    return 'You are a child';
   }
 }
 
+// Using ternary operator (shorthand)
+const status = age >= 18 ? 'adult' : 'minor';
+
 console.log(checkAge(25));  // You are an adult
-console.log(checkAge(15));  // You are a minor
+console.log(checkAge(15));  // You are a teenager
 ```
 
 ### 4. Loops (Doing Things Repeatedly)
 
-```javascript
-// Count from 1 to 5
+```typescript
+// For loop
 for (let i = 1; i <= 5; i++) {
   console.log(i);
 }
 
-// Output:
-// 1
-// 2
-// 3
-// 4
-// 5
+// For...of loop (iterate over array)
+const fruits = ['apple', 'banana', 'orange'];
+for (const fruit of fruits) {
+  console.log(fruit);
+}
+
+// ForEach method
+fruits.forEach((fruit, index) => {
+  console.log(`${index + 1}. ${fruit}`);
+});
+
+// Map (transform each item)
+const upperFruits = fruits.map(fruit => fruit.toUpperCase());
+// ['APPLE', 'BANANA', 'ORANGE']
+
+// Filter (keep items that pass test)
+const longFruits = fruits.filter(fruit => fruit.length > 5);
+// ['banana', 'orange']
 ```
 
 ---
