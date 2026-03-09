@@ -55,7 +55,23 @@ export async function GET(request: Request) {
 
       case 'status': {
         const status = taskScheduler.getStatus();
-        return NextResponse.json(status);
+        return NextResponse.json({
+          ...status,
+          sessionTimeout: 5 * 60 * 1000, // 5 minutes in ms
+          taskTimeouts: {
+            intelligence: '10 minutes',
+            security: '5 minutes',
+            research: '15 minutes',
+            reflection: '5 minutes',
+            brand_task: '10 minutes',
+            web_check: '2 minutes',
+            memory_capture: '3 minutes',
+            memory_archive: '5 minutes',
+            rl_training: '30 minutes',
+            cleanup: '10 minutes',
+            custom: '10 minutes',
+          },
+        });
       }
 
       case 'due': {

@@ -1,5 +1,6 @@
+import fs from 'fs';
+import path from 'path';
 import https from 'https';
-import { sqlDatabase } from '@/lib/database/sqlite';
 
 export interface TelegramConfig {
   botToken: string;
@@ -10,78 +11,36 @@ export interface TelegramConfig {
   chatWithAI?: boolean;
 }
 
-interface UserPrefs {
-  userName: string;
-  assistantName: string;
-  createdAt: number;
-  updatedAt: number;
-  hasCompletedSetup: boolean;
-  telegram?: TelegramConfig;
-  apiKeys?: Record<string, {
-    key: string;
-    enabled: boolean;
-    addedAt?: number;
-  }>;
-}
+const TELEGRAM_CONFIG_FILE = path.join(process.cwd(), 'data', 'telegram_config.json');
 
-const DEFAULT_PREFS: UserPrefs = {
-  userName: 'User',
-  assistantName: 'AI Assistant',
-  createdAt: Date.now(),
-  updatedAt: Date.now(),
-  hasCompletedSetup: false,
-};
-
-async function getPreferences(): Promise<UserPrefs> {
-  await sqlDatabase.initialize();
-  
-  const docs = sqlDatabase.getDocuments(undefined, 'user_preference');
-  if (docs && docs.length > 0) {
-    try {
-      const prefs = JSON.parse(docs[0].content || '{}');
-      return { ...DEFAULT_PREFS, ...prefs };
-    } catch {
-      return DEFAULT_PREFS;
-    }
-  }
-  return DEFAULT_PREFS;
-}
-
-async function savePreferences(prefs: UserPrefs): Promise<void> {
-  await sqlDatabase.initialize();
-  
-  const docs = sqlDatabase.getDocuments(undefined, 'user_preference');
-  const content = JSON.stringify(prefs);
-  
-  if (docs && docs.length > 0) {
-    sqlDatabase.updateDocument(docs[0].id, { content });
-  } else {
-    sqlDatabase.addDocument({
-      title: 'User Preferences',
-      content,
-      category: 'user_preference',
-    });
+function ensureDataDir() {
+  const dataDir = path.join(process.cwd(), 'data');
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
   }
 }
 
 export async function saveTelegramConfig(config: TelegramConfig): Promise<void> {
-  try {
-    const preferences = await getPreferences();
-    preferences.telegram = config;
-    preferences.updatedAt = Date.now();
-    await savePreferences(preferences);
-    console.log('[Telegram Config] Saved to database');
-  } catch (error) {
-    console.error('[Telegram Config] Error saving:', error);
-    throw error;
-  }
+  ensureDataDir();
+  const content = JSON.stringify({
+    telegram: config,
+    updatedAt: Date.now(),
+  }, null, 2);
+  fs.writeFileSync(TELEGRAM_CONFIG_FILE, content, 'utf-8');
+  console.log('[Telegram Config] Saved to', TELEGRAM_CONFIG_FILE);
 }
 
 export async function loadTelegramConfig(): Promise<TelegramConfig | null> {
   try {
-    const preferences = await getPreferences();
-    console.log('[Telegram Config] Loaded from database, has telegram:', !!preferences.telegram);
-    return preferences.telegram || null;
+    ensureDataDir();
+    if (!fs.existsSync(TELEGRAM_CONFIG_FILE)) {
+      console.log('[Telegram Config] Config file does not exist');
+      return null;
+    }
+    const content = fs.readFileSync(TELEGRAM_CONFIG_FILE, 'utf-8');
+    const data = JSON.parse(content);
+    console.log('[Telegram Config] Loaded from file, has telegram:', !!data.telegram);
+    return data.telegram || null;
   } catch (error) {
     console.error('[Telegram Config] Error loading:', error);
     return null;
@@ -93,7 +52,7 @@ export function verifyTelegramToken(botToken: string): Promise<{ id: number; use
     const url = `https://api.telegram.org/bot${botToken}/getMe`;
     
     const options = {
-      timeout: 10000, // 10 second timeout
+      timeout: 10000,
       headers: {
         'User-Agent': 'PersonalAI-Dashboard/1.0'
       }

@@ -3,7 +3,7 @@ export const runtime = 'nodejs';
 import { NextResponse } from 'next/server';
 import { streamChatCompletion, checkOllamaHealth } from '@/lib/models/sdk.server';
 import { taskScheduler } from '@/lib/services/task-scheduler';
-import { sqlDatabase } from '@/lib/database/sqlite';
+import sqlDatabase from '@/lib/database/sqlite-edge';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -26,9 +26,14 @@ export async function GET(request: Request) {
       }, { status: 503 });
     }
 
-    // Only initialize once
-    if (!sqlDatabase['initialized']) {
+    let dbInitialized = false;
+    // Try to initialize database
+    try {
       await sqlDatabase.initialize();
+      dbInitialized = true;
+    } catch (error) {
+      console.error('[Heartbeat] Database initialization failed:', error);
+      dbInitialized = false;
     }
     
     // Only initialize scheduler once
@@ -38,21 +43,10 @@ export async function GET(request: Request) {
       taskScheduler.start();
     }
 
-    // If run=true, execute all due tasks immediately
-    if (runNow) {
-      try {
-        await sqlDatabase.initialize();
-        const dueTasks = sqlDatabase.getTasksDueNow();
-        for (const task of dueTasks) {
-          try {
-            await taskScheduler.executeTask(task);
-          } catch (err) {
-            console.error(`[Heartbeat] Task ${task.name} failed:`, err);
-          }
-        }
-      } catch (error) {
-        console.error('[Heartbeat] Error running tasks:', error);
-      }
+    // If run=true, execute all due tasks immediately (only if db initialized)
+    // Note: sqlite-edge doesn't have getTasksDueNow method, skip task execution for now
+    if (runNow && dbInitialized) {
+      console.log('[Heartbeat] runNow requested but task execution not implemented for edge database');
     }
 
     // Get task statuses - only if already initialized
@@ -74,6 +68,11 @@ export async function GET(request: Request) {
     return NextResponse.json({
       ...healthCheck,
       schedulerRunning: status.isRunning,
+      sessionActive: status.sessionActive,
+      runningTasks: status.runningTasks,
+      maxConcurrentTasks: status.maxConcurrentTasks,
+      resources: status.resources,
+      databaseInitialized: dbInitialized,
       tasks: taskResults,
       totalTasks: Object.keys(taskResults).length,
     });

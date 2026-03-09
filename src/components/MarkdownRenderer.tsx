@@ -17,8 +17,8 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
           h1: ({ children }) => <h1 className="text-xl font-bold mb-2">{children}</h1>,
           h2: ({ children }) => <h2 className="text-lg font-bold mb-2">{children}</h2>,
           h3: ({ children }) => <h3 className="text-md font-bold mb-1">{children}</h3>,
-          ul: ({ children }) => <ul className="list-disc ml-4 mb-2">{children}</ul>,
-          ol: ({ children }) => <ol className="list-decimal ml-4 mb-2">{children}</ol>,
+           ul: ({ children }) => <ul className="list-disc ml-4 mb-2" style={{ listStyleType: 'disc' }}>{children}</ul>,
+           ol: ({ children }) => <ol className="list-decimal ml-4 mb-2" style={{ listStyleType: 'decimal' }}>{children}</ol>,
           li: ({ children }) => <li className="mb-1">{children}</li>,
           code: ({ className, children }) => {
             const isInline = !className;
@@ -42,16 +42,16 @@ export function MarkdownRenderer({ content }: MarkdownRendererProps) {
               {children}
             </blockquote>
           ),
-          table: ({ children }) => (
-            <table className="w-full border-collapse my-2 text-xs">
-              {children}
-            </table>
-          ),
+           table: ({ children }) => (
+             <table className="w-full border border-gray-700 border-collapse my-2 text-xs table-auto">
+               {children}
+             </table>
+           ),
           thead: ({ children }) => <thead className="bg-gray-700">{children}</thead>,
           tbody: ({ children }) => <tbody>{children}</tbody>,
           tr: ({ children }) => <tr className="border-b border-gray-700">{children}</tr>,
-          th: ({ children }) => <th className="text-left p-2 border-r border-gray-700">{children}</th>,
-          td: ({ children }) => <td className="p-2 border-r border-gray-700">{children}</td>
+           th: ({ children }) => <th className="text-left p-2 border border-gray-600">{children}</th>,
+           td: ({ children }) => <td className="p-2 border border-gray-600">{children}</td>
         }}
       >
         {content}

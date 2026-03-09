@@ -12,7 +12,7 @@ import { NextRequest, NextResponse } from 'next/server';
  */
 
 // Stripe integration - returns error if not configured
-export async function createStripePaymentIntent(amount: number, currency: string = 'usd') {
+async function createStripePaymentIntent(amount: number, currency: string = 'usd') {
   if (!process.env.STRIPE_SECRET_KEY) {
     return { success: false, error: 'Stripe not configured. Set STRIPE_SECRET_KEY environment variable.' };
   }
@@ -47,7 +47,7 @@ export async function createStripePaymentIntent(amount: number, currency: string
 }
 
 // PayPal integration
-export async function createPayPalOrder(amount: number, currency: string = 'USD') {
+async function createPayPalOrder(amount: number, currency: string = 'USD') {
   const clientId = process.env.PAYPAL_CLIENT_ID;
   const clientSecret = process.env.PAYPAL_CLIENT_SECRET;
   

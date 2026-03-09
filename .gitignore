@@ -70,3 +70,9 @@ temp/
 *.pem
 *.key
 secrets.json
+
+# Test files (temporary)
+test-*.mjs
+test-*.js
+test-*.ts
+test-*.tsx

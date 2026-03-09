@@ -171,7 +171,7 @@ A web-based AI research assistant with modular architecture, supporting both "ou
 
 #### 13. Database & Information Management
 - **SQLite Database** (`src/lib/database/sqlite.ts`):
-  - SQL database using sql.js (pure JavaScript SQLite)
+  - SQL database using @sqlite.org/sqlite-wasm (Node.js) and sql.js (Edge Runtime)
   - Persistent storage in `data/assistant.db`
   - Contacts management (add, update, delete, search)
   - Calendar events management
@@ -885,7 +885,7 @@ ai_dashboard/
 - **Custom Mode**: Users can add API keys for OpenRouter, DeepSeek, etc.
 - **LLM-Controlled**: The LLM can enable/disable features and customize the solution
 - **SAM.gov Integration**: Government contracting opportunities with keyword search and 90-day API key rotation
-- **Database**: SQLite (sql.js) for persistent data storage with LLM-powered email/message processing
+- **Database**: SQLite (@sqlite.org/sqlite-wasm) for persistent data storage with LLM-powered email/message processing
 - **Vector Lake**: Smart caching system that stores query results, uses embeddings for similarity matching, automatically organizes search results into SQL database
 - **Feature Request System**: Users describe features, OpenCode directly implements them (no LLM middleman)
 - **Note Taking**: Rich text editor with LLM-powered contextualization, categorization, and tagging

@@ -143,6 +143,30 @@ class TaskScheduler {
   private sessionStartTime: number = 0;
   private readonly SESSION_TIMEOUT = 5 * 60 * 1000; // 5 minutes of inactivity = session ended
 
+  // Concurrency protection
+  private runningTasks: Set<string> = new Set();
+  private readonly MAX_CONCURRENT_TASKS = 3;
+
+  // Task timeout protection
+  private taskTimeouts: Map<string, NodeJS.Timeout> = new Map();
+  private readonly TASK_TIMEOUTS: Record<ScheduledTask['taskType'], number> = {
+    intelligence: 10 * 60 * 1000,   // 10 minutes
+    security: 5 * 60 * 1000,        // 5 minutes
+    research: 15 * 60 * 1000,       // 15 minutes
+    reflection: 5 * 60 * 1000,      // 5 minutes
+    brand_task: 10 * 60 * 1000,     // 10 minutes
+    web_check: 2 * 60 * 1000,       // 2 minutes
+    memory_capture: 3 * 60 * 1000,  // 3 minutes
+    memory_archive: 5 * 60 * 1000,  // 5 minutes
+    rl_training: 30 * 60 * 1000,    // 30 minutes (heavy computation)
+    cleanup: 10 * 60 * 1000,        // 10 minutes
+    custom: 10 * 60 * 1000,         // 10 minutes
+  };
+
+  // Resource thresholds
+  private readonly MAX_MEMORY_USAGE_MB = 500;  // Don't run tasks if memory > 500MB above baseline
+  private readonly MAX_CPU_PERCENT = 80;        // Don't run tasks if CPU > 80%
+
   private constructor() {}
 
   static getInstance(): TaskScheduler {
@@ -184,25 +208,66 @@ class TaskScheduler {
   shouldRunTask(task: ScheduledTask): boolean {
     const priority = task.priority || TASK_PRIORITIES[task.taskType] || 'normal';
     
-    // Critical tasks always run
+    // Check if already running (concurrency protection)
+    if (this.runningTasks.has(task.id)) {
+      return false;
+    }
+
+    // Check concurrency limit
+    if (this.runningTasks.size >= this.MAX_CONCURRENT_TASKS) {
+      console.log(`[TaskScheduler] Max concurrent tasks (${this.MAX_CONCURRENT_TASKS}) reached, skipping ${task.name}`);
+      return false;
+    }
+    
+    // Critical tasks always run (unless at concurrency limit)
     if (priority === 'critical') return true;
     
-    // High priority tasks run only when not in active session
-    if (priority === 'high') {
-      return !this.isSessionActive();
+    // Check session state for non-critical tasks
+    if (this.isSessionActive()) {
+      return false;
     }
-    
-    // Normal priority tasks run during idle time
-    if (priority === 'normal') {
-      return !this.isSessionActive();
-    }
-    
-    // Low priority tasks only run when system is completely idle
-    if (priority === 'low') {
-      return !this.isSessionActive();
+
+    // Check resource usage before running
+    if (!this.checkResourcesAvailable()) {
+      console.log(`[TaskScheduler] Resources constrained, skipping ${task.name}`);
+      return false;
     }
     
     return true;
+  }
+
+  // Check if system has enough resources to run tasks
+  private checkResourcesAvailable(): boolean {
+    try {
+      // Check memory usage
+      const memUsage = process.memoryUsage();
+      const heapUsedMB = memUsage.heapUsed / 1024 / 1024;
+      
+      // If heap usage is very high, don't start new tasks
+      if (heapUsedMB > this.MAX_MEMORY_USAGE_MB) {
+        console.log(`[TaskScheduler] Memory usage high (${heapUsedMB.toFixed(0)}MB), deferring tasks`);
+        return false;
+      }
+
+      // CPU check would require a separate module like `os-utils` or `systeminformation`
+      // For now, we just check memory which is the most common constraint
+      return true;
+    } catch (error) {
+      // If we can't check resources, allow task to run
+      return true;
+    }
+  }
+
+  // Get current resource status
+  getResourceStatus(): { memoryMB: number; runningTasks: number; canRunMore: boolean } {
+    const memUsage = process.memoryUsage();
+    const memoryMB = Math.round(memUsage.heapUsed / 1024 / 1024);
+    
+    return {
+      memoryMB,
+      runningTasks: this.runningTasks.size,
+      canRunMore: this.runningTasks.size < this.MAX_CONCURRENT_TASKS && memoryMB < this.MAX_MEMORY_USAGE_MB,
+    };
   }
 
   async initialize(): Promise<void> {
@@ -365,8 +430,74 @@ class TaskScheduler {
   }
 
   async executeTask(task: ScheduledTask): Promise<TaskExecutionResult> {
-    // Only log on error, not on every execution
+    // Check if task can run
+    if (!this.shouldRunTask(task)) {
+      return { success: false, error: 'Task cannot run: concurrency limit reached or resource constraints' };
+    }
+
+    // Mark task as running
+    this.runningTasks.add(task.id);
+    const timeoutMs = this.TASK_TIMEOUTS[task.taskType] || 10 * 60 * 1000;
     
+    // Set up timeout
+    let timeoutId: NodeJS.Timeout | null = null;
+    let timedOut = false;
+    
+    try {
+      // Create timeout promise
+      const timeoutPromise = new Promise<TaskExecutionResult>((_, reject) => {
+        timeoutId = setTimeout(() => {
+          timedOut = true;
+          reject(new Error(`Task timed out after ${timeoutMs / 60000} minutes`));
+        }, timeoutMs);
+      });
+
+      // Race between task execution and timeout
+      const result = await Promise.race([
+        this.executeTaskInternal(task),
+        timeoutPromise,
+      ]);
+
+      // Clear timeout on success
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+
+      // Save result
+      sqlDatabase.recordTaskRun(task.id, result.success, result.result, result.error);
+      sqlDatabase.addTaskResult(task.id, {
+        result: result.result,
+        data: result.data,
+        success: result.success,
+      });
+
+      return result;
+    } catch (error) {
+      // Clear timeout on error
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+        timeoutId = null;
+      }
+
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      const finalError = timedOut ? errorMessage : errorMessage;
+      
+      sqlDatabase.recordTaskRun(task.id, false, undefined, finalError);
+      sqlDatabase.addTaskResult(task.id, {
+        result: undefined,
+        data: { error: finalError, timedOut },
+        success: false,
+      });
+
+      return { success: false, error: finalError };
+    } finally {
+      // Always remove from running set
+      this.runningTasks.delete(task.id);
+    }
+  }
+
+  private async executeTaskInternal(task: ScheduledTask): Promise<TaskExecutionResult> {
     try {
       let result: TaskExecutionResult;
 
@@ -408,28 +539,9 @@ class TaskScheduler {
           throw new Error(`Unknown task type: ${task.taskType}`);
       }
 
-      // Save result for viewing
-      sqlDatabase.recordTaskRun(task.id, result.success, result.result, result.error);
-      
-      // Also save detailed result to task_results table
-      sqlDatabase.addTaskResult(task.id, {
-        result: result.result,
-        data: result.data,
-        success: result.success,
-      });
-      
       return result;
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      sqlDatabase.recordTaskRun(task.id, false, undefined, errorMessage);
-      
-      // Save error result
-      sqlDatabase.addTaskResult(task.id, {
-        result: undefined,
-        data: { error: errorMessage },
-        success: false,
-      });
-      
       return { success: false, error: errorMessage };
     }
   }
@@ -902,11 +1014,21 @@ Return JSON array: [{"category": "user|decision|knowledge", "content": "...", "i
     return TASK_TEMPLATES;
   }
 
-  getStatus(): { isRunning: boolean; checkInterval: number; sessionActive: boolean } {
+  getStatus(): { 
+    isRunning: boolean; 
+    checkInterval: number; 
+    sessionActive: boolean;
+    runningTasks: string[];
+    maxConcurrentTasks: number;
+    resources: { memoryMB: number; canRunMore: boolean };
+  } {
     return {
       isRunning: this.isRunning,
       checkInterval: this.CHECK_INTERVAL,
       sessionActive: this.activeSession,
+      runningTasks: Array.from(this.runningTasks),
+      maxConcurrentTasks: this.MAX_CONCURRENT_TASKS,
+      resources: this.getResourceStatus(),
     };
   }
 

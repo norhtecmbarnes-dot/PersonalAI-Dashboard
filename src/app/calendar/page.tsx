@@ -165,25 +165,25 @@ export default function CalendarPage() {
             {/* Quick Stats */}
             <div className="grid grid-cols-3 gap-4 mb-4">
               <div className="bg-slate-800/50 rounded-lg p-3">
-                <div className="text-2xl font-bold text-white">{tickler.today.eventCount}</div>
+                <div className="text-2xl font-bold text-white">{tickler?.today?.eventCount ?? 0}</div>
                 <div className="text-gray-400 text-sm">Today's Events</div>
               </div>
               <div className="bg-slate-800/50 rounded-lg p-3">
-                <div className="text-2xl font-bold text-white">{tickler.upcoming.eventCount}</div>
+                <div className="text-2xl font-bold text-white">{tickler?.upcoming?.eventCount ?? 0}</div>
                 <div className="text-gray-400 text-sm">This Week</div>
               </div>
               <div className="bg-slate-800/50 rounded-lg p-3">
-                <div className="text-2xl font-bold text-white">{tickler.tasks.pending}</div>
+                <div className="text-2xl font-bold text-white">{tickler?.tasks?.pending ?? 0}</div>
                 <div className="text-gray-400 text-sm">Pending Tasks</div>
               </div>
             </div>
 
             {/* Today's Schedule */}
-            {tickler.today.events.length > 0 && (
+            {tickler?.today?.events?.length > 0 && (
               <div className="mb-4">
                 <h3 className="text-sm font-semibold text-purple-400 mb-2">Today's Schedule</h3>
                 <div className="space-y-2">
-                  {tickler.today.events.map((event) => (
+                  {tickler?.today?.events?.map((event) => (
                     <div key={event.id} className="flex items-center gap-3 bg-slate-800/30 rounded p-2">
                       <span className="text-purple-400 font-mono text-sm w-16">{event.time}</span>
                       <span className="text-white">{event.title}</span>

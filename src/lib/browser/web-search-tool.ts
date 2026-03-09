@@ -158,9 +158,9 @@ export async function searXNGSearch(
   maxResults: number = 5
 ): Promise<WebSearchResponse> {
   try {
-    const response = await fetch(
+    const response = await withTimeout(fetchTimeout, fetch(
       `${searxngUrl}/search?q=${encodeURIComponent(query)}&format=json&engines=google,bing,duckduckgo`
-    );
+    ));
 
     if (!response.ok) {
       throw new Error(`SearXNG error: ${response.status}`);
@@ -293,14 +293,14 @@ export async function checkOllamaSearchAvailable(): Promise<{
 
   if (apiKey) {
     try {
-      const response = await fetch(OLLAMA_CLOUD_URL, {
+      const response = await withTimeout(fetchTimeout, fetch(OLLAMA_CLOUD_URL, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({ query: 'test', max_results: 1 }),
-      });
+      }));
 
       if (response.ok || response.status === 429) {
         return {

@@ -9,7 +9,7 @@ AI Dashboard is a self-improving AI productivity assistant built with Next.js 16
 ### Technology Stack
 - **Framework**: Next.js 16 with App Router
 - **Language**: TypeScript
-- **Database**: SQLite (sql.js) with persistent storage in `data/assistant.db`
+- **Database**: SQLite (@sqlite.org/sqlite-wasm) with persistent storage in `data/assistant.db`
 - **AI Models**: Multi-model support via `src/lib/models/sdk.server.ts`
   - Primary: Ollama with local models (GLM-4.7-flash, Qwen, etc.)
   - Cloud: GLM API, OpenRouter, DeepSeek

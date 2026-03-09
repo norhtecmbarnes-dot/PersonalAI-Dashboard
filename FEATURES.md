@@ -167,7 +167,7 @@ This project is a personal AI productivity suite focused on business use cases. 
 - Perfect for personal/single-user applications
 - Easy backup (single file)
 - Fast for local queries
-- sql.js runs in browser or Node
+- @sqlite.org/sqlite-wasm runs in Node.js, sql.js runs in Edge Runtime
 
 **Tables:**
 ```sql

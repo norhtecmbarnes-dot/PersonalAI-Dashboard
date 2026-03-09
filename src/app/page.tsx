@@ -445,6 +445,7 @@ export default function Home() {
 
     try {
       const recognition = new SpeechRecognition();
+      recognitionRef.current = recognition;
       
       recognition.continuous = false;
       recognition.interimResults = true; // Enable interim results for better UX

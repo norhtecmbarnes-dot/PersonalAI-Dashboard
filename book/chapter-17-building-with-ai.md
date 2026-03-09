@@ -59,7 +59,7 @@ A Next.js application with:
    - data/ for SQLite database storage
 
 2. **Database Foundation**
-   - SQLite database (using sql.js for browser/edge compatibility)
+    - SQLite database (using @sqlite.org/sqlite-wasm for Node.js and sql.js for Edge Runtime compatibility)
    - Tables for: messages, documents, brands, projects, tasks, notes
    - A database service (src/lib/database/sqlite.ts)
    - Save/load from data/assistant.db
@@ -88,7 +88,7 @@ A Next.js application with:
 - TypeScript (strict mode)
 - Next.js 15+ (App Router)
 - React 18+
-- SQLite with sql.js
+ - SQLite with @sqlite.org/sqlite-wasm (Node.js) and sql.js (Edge Runtime)
 - Streaming responses
 - No authentication (local use)
 

@@ -23,7 +23,7 @@ export function TopNav() {
             <NavLink href="/calendar">Calendar</NavLink>
             <NavLink href="/tasks">Tasks</NavLink>
             <NavLink href="/notes">Notes</NavLink>
-            <NavLink href="/writing">Writing</NavLink>
+            <NavLink href="/writing/workspace">Writing</NavLink>
             <NavLink href="/office">Office</NavLink>
             <NavLink href="/database/forms">Forms</NavLink>
             <NavLink href="/brand-workspace">Brands</NavLink>

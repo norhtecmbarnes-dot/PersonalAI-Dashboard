@@ -87,7 +87,7 @@ All core APIs tested and verified working:
 │  └── Vector Lake (smart caching)                              │
 ├──────────────────────────────────────────────────────────────┤
 │  Database                                                     │
-│  └── SQLite (sql.js) - data/assistant.db                     │
+│  └── SQLite (@sqlite.org/sqlite-wasm) - data/assistant.db    │
 ├──────────────────────────────────────────────────────────────┤
 │  AI Models (via Ollama + External APIs)                       │
 │  ├── qwen3-coder-next:latest (79.7B) - Code Specialist       │

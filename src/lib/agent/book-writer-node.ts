@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { deaiify, analyzeText, DeAiMode } from '@/lib/writing/de-ai-ify';
 import { chatCompletion } from '@/lib/models/sdk.server';
+import { sanitizePrompt } from '@/lib/utils/validation';
 
 export interface BookChapter {
   id: string;
@@ -688,7 +689,7 @@ WRITING STYLE:
   }
 
   private getChapterPrompt(title: string, requirements: string): string {
-    return `Write a chapter titled "${title}" for the book "${BOOK_TITLE}" by ${AUTHOR}.
+    return `Write a chapter titled "${sanitizePrompt(title)}" for the book "${BOOK_TITLE}" by ${AUTHOR}.
 
 ${requirements}
 
@@ -727,7 +728,7 @@ WRITING STYLE:
     
     const details = chapterDetails[chapter.number] || `Cover: The topic thoroughly for beginners. Include practical examples and sample prompts.`;
     
-    return `Write Chapter ${chapter.number}: "${chapter.title}" for the book "${BOOK_TITLE}" by ${AUTHOR}.
+    return `Write Chapter ${chapter.number}: "${sanitizePrompt(chapter.title)}" for the book "${BOOK_TITLE}" by ${AUTHOR}.
 
 ${details}
 
@@ -752,21 +753,21 @@ WRITING STYLE:
   getFullBook(): string {
     if (!this.progress) return '';
 
-    let fullBook = `# ${this.progress.title}\n\n`;
-    fullBook += `## ${this.progress.subtitle}\n\n`;
-    fullBook += `*By ${this.progress.author}*\n\n`;
+    let fullBook = `# ${sanitizePrompt(this.progress.title)}\n\n`;
+    fullBook += `## ${sanitizePrompt(this.progress.subtitle)}\n\n`;
+    fullBook += `*By ${sanitizePrompt(this.progress.author)}*\n\n`;
     fullBook += `---\n\n`;
     fullBook += `**Dedication:** ${DEDICATION}\n\n`;
     fullBook += `**Credits:** ${CREDITS}\n\n`;
     fullBook += `---\n\n`;
-    fullBook += `${this.progress.description}\n\n`;
+    fullBook += `${sanitizePrompt(this.progress.description)}\n\n`;
     fullBook += `*${GOVBOTICS}*\n\n`;
     fullBook += `---\n\n`;
 
     for (const chapter of this.progress.chapters) {
       if (chapter.content) {
-        fullBook += `## Chapter ${chapter.number}: ${chapter.title}\n\n`;
-        fullBook += chapter.content + '\n\n';
+        fullBook += `## Chapter ${chapter.number}: ${sanitizePrompt(chapter.title)}\n\n`;
+        fullBook += sanitizePrompt(chapter.content) + '\n\n';
         fullBook += `---\n\n`;
       }
     }

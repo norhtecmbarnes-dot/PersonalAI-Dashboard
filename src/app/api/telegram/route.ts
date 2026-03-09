@@ -4,36 +4,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { telegramService, TelegramUpdate, TelegramMessage, DEFAULT_COMMANDS, TelegramConfig } from '@/lib/integrations/telegram';
 import { streamChatCompletion, getOllamaModels } from '@/lib/models/sdk.server';
 import { performWebSearch } from '@/lib/websearch';
+import { loadTelegramConfig as loadTelegramConfigFromFile } from '@/lib/storage/telegram-config';
 import { sqlDatabase } from '@/lib/database/sqlite';
-
-interface TelegramPrefs {
-  botToken: string;
-  enabled: boolean;
-  webhookUrl?: string;
-  username?: string;
-}
-
-async function loadTelegramConfig(): Promise<TelegramConfig | null> {
-  try {
-    await sqlDatabase.initialize();
-    const docs = sqlDatabase.getDocuments(undefined, 'user_preference');
-    if (docs && docs.length > 0) {
-      const prefs = JSON.parse(docs[0].content || '{}');
-      if (prefs.telegram?.botToken) {
-        return {
-          botToken: prefs.telegram.botToken,
-          enabled: prefs.telegram.enabled || false,
-          webhookUrl: prefs.telegram.webhookUrl,
-          chatWithAI: true,
-          allowedUsers: [],
-        };
-      }
-    }
-  } catch (error) {
-    console.error('[Telegram] Error loading config:', error);
-  }
-  return null;
-}
 
 export async function POST(request: NextRequest) {
   try {
@@ -53,12 +25,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
-    await sqlDatabase.initialize();
-
-    const config = await loadTelegramConfig();
-    if (!config || !config.enabled) {
+    const fileConfig = await loadTelegramConfigFromFile();
+    if (!fileConfig || !fileConfig.enabled) {
       return NextResponse.json({ ok: true });
     }
+    
+    const config: TelegramConfig = {
+      botToken: fileConfig.botToken,
+      enabled: fileConfig.enabled,
+      webhookUrl: fileConfig.webhookUrl,
+      chatWithAI: true,
+      allowedUsers: [],
+    };
     
     telegramService.setConfig(config);
 
@@ -172,32 +150,66 @@ export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const action = searchParams.get('action');
 
+  // Load config for all actions that require bot token
+  const loadConfigForAction = async (): Promise<boolean> => {
+    const fileConfig = await loadTelegramConfigFromFile();
+    if (!fileConfig?.botToken) {
+      return false;
+    }
+    
+    const config: TelegramConfig = {
+      botToken: fileConfig.botToken,
+      enabled: fileConfig.enabled,
+      webhookUrl: fileConfig.webhookUrl,
+      chatWithAI: true,
+      allowedUsers: [],
+    };
+    
+    telegramService.setConfig(config);
+    return true;
+  };
+
   switch (action) {
     case 'setWebhook': {
       const webhookUrl = searchParams.get('url');
       if (!webhookUrl) {
         return NextResponse.json({ error: 'Webhook URL required' }, { status: 400 });
       }
+      if (!await loadConfigForAction()) {
+        return NextResponse.json({ error: 'Bot not configured' }, { status: 400 });
+      }
       const success = await telegramService.setWebhook(webhookUrl);
       return NextResponse.json({ success });
     }
 
     case 'deleteWebhook': {
+      if (!await loadConfigForAction()) {
+        return NextResponse.json({ error: 'Bot not configured' }, { status: 400 });
+      }
       const success = await telegramService.deleteWebhook();
       return NextResponse.json({ success });
     }
 
     case 'webhookInfo': {
+      if (!await loadConfigForAction()) {
+        return NextResponse.json({ error: 'Bot not configured' }, { status: 400 });
+      }
       const info = await telegramService.getWebhookInfo();
       return NextResponse.json(info);
     }
 
     case 'botInfo': {
+      if (!await loadConfigForAction()) {
+        return NextResponse.json({ error: 'Bot not configured' }, { status: 400 });
+      }
       const info = await telegramService.getMe();
       return NextResponse.json(info);
     }
 
     case 'setup': {
+      if (!await loadConfigForAction()) {
+        return NextResponse.json({ error: 'Bot not configured' }, { status: 400 });
+      }
       await telegramService.setCommands(DEFAULT_COMMANDS);
       return NextResponse.json({ success: true, message: 'Commands registered' });
     }

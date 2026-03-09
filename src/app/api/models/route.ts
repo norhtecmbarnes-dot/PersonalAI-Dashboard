@@ -2,28 +2,34 @@ export const runtime = 'nodejs';
 
 import { NextResponse } from 'next/server';
 import { listModels, checkOllamaHealth, getOllamaModels, getExternalModels } from '@/lib/models/sdk.server';
-import { sqlDatabase } from '@/lib/database/sqlite';
+
 
 export async function GET() {
   try {
-    await sqlDatabase.initialize();
-    
     const ollamaModels = await getOllamaModels();
     const externalModels = getExternalModels();
     const ollamaHealthy = await checkOllamaHealth();
-    const modelPrefs = sqlDatabase.getModelPreferences();
+    
+    // Default model preferences (since database may not be available)
+    const modelPrefs = {
+      defaultModel: 'glm-4.7-flash',
+      autoRoute: false,
+      preferLocal: true,
+      cloudForChat: false,
+    };
     
     // Filter external models to only show those with API keys configured
+    // Only use environment variables (database may not be available)
     const availableApiKeys = {
-      gemini: !!process.env.GEMINI_API_KEY || !!sqlDatabase.getApiKey('gemini'),
-      openai: !!process.env.OPENAI_API_KEY || !!sqlDatabase.getApiKey('openai'),
-      anthropic: !!process.env.ANTHROPIC_API_KEY || !!sqlDatabase.getApiKey('anthropic'),
-      groq: !!process.env.GROQ_API_KEY || !!sqlDatabase.getApiKey('groq'),
-      mistral: !!process.env.MISTRAL_API_KEY || !!sqlDatabase.getApiKey('mistral'),
-      deepseek: !!process.env.DEEPSEEK_API_KEY || !!sqlDatabase.getApiKey('deepseek'),
-      openrouter: !!process.env.OPENROUTER_API_KEY || !!sqlDatabase.getApiKey('openrouter'),
-      glm: !!process.env.GLM_API_KEY || !!sqlDatabase.getApiKey('glm'),
-      'ollama-cloud': !!process.env.OLLAMA_API_KEY || !!sqlDatabase.getApiKey('ollama'),
+      gemini: !!process.env.GEMINI_API_KEY,
+      openai: !!process.env.OPENAI_API_KEY,
+      anthropic: !!process.env.ANTHROPIC_API_KEY,
+      groq: !!process.env.GROQ_API_KEY,
+      mistral: !!process.env.MISTRAL_API_KEY,
+      deepseek: !!process.env.DEEPSEEK_API_KEY,
+      openrouter: !!process.env.OPENROUTER_API_KEY,
+      glm: !!process.env.GLM_API_KEY,
+      'ollama-cloud': !!process.env.OLLAMA_API_KEY,
     };
     
     // Filter external models to only those with configured API keys
@@ -33,7 +39,7 @@ export async function GET() {
     });
 
     // Determine default model based on preferences
-    let defaultModel = modelPrefs.defaultModel || 'glm-4.7-flash';
+    let defaultModel = modelPrefs.defaultModel;
     
     // If auto-routing is enabled and local models are preferred
     if (modelPrefs.autoRoute && modelPrefs.preferLocal && ollamaModels.length > 0) {
@@ -74,7 +80,7 @@ export async function GET() {
         .map(([provider]) => provider),
     });
   } catch (error) {
-    console.error('Models API error:', error);
+    console.error('Models API error:', error, error instanceof Error ? error.stack : undefined);
     return NextResponse.json(
       {
         error: 'Failed to fetch models',

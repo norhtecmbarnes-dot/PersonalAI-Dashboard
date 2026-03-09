@@ -11,7 +11,9 @@ const MAX_MESSAGE_LENGTH = 10000;
 const MAX_HISTORY_LENGTH = 50;
 
 let cachedDocumentContext: { data: string; timestamp: number } | null = null;
-const DOC_CACHE_TTL = 60000;
+let cachedMemoryPrompt: { data: string; timestamp: number } | null = null;
+const DOC_CACHE_TTL = 300000;
+const MEMORY_CACHE_TTL = 300000;
 
 async function getDocumentContext(): Promise<string> {
   if (cachedDocumentContext && Date.now() - cachedDocumentContext.timestamp < DOC_CACHE_TTL) {
@@ -35,6 +37,21 @@ async function getDocumentContext(): Promise<string> {
     
     const result = `\n\n### Available Documents\n${docContext}\n\n`;
     cachedDocumentContext = { data: result, timestamp: Date.now() };
+    return result;
+  } catch (error) {
+    return '';
+  }
+}
+
+async function getMemoryPrompt(): Promise<string> {
+  if (cachedMemoryPrompt && Date.now() - cachedMemoryPrompt.timestamp < MEMORY_CACHE_TTL) {
+    return cachedMemoryPrompt.data;
+  }
+
+  try {
+    const memoryPrompt = memoryFileService.getSystemPrompt();
+    const result = `\n\n--- MEMORY CONTEXT ---\n${memoryPrompt.slice(0, 2000)}\n\n`;
+    cachedMemoryPrompt = { data: result, timestamp: Date.now() };
     return result;
   } catch (error) {
     return '';
@@ -79,12 +96,7 @@ export async function POST(request: NextRequest) {
     const conversationHistory = sanitizeObject(body.conversationHistory || []);
     const isSearchMode = body.searchMode === true;
 
-    let memoryContext = '';
-    try {
-      const memoryPrompt = memoryFileService.getSystemPrompt();
-      memoryContext = `\n\n--- MEMORY CONTEXT ---\n${memoryPrompt.slice(0, 2000)}\n\n`;
-    } catch (memError) {
-    }
+    const memoryContext = await getMemoryPrompt();
     
     const documentContext = await getDocumentContext();
 

@@ -1,4 +1,5 @@
-import initSqlJs, { Database as SqlJsDatabase } from 'sql.js';
+import { SQLiteWasmDatabase } from './sqlite-wasm-compat';
+type SqlJsDatabase = SQLiteWasmDatabase;
 import { v4 as uuidv4 } from 'uuid';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -9,13 +10,11 @@ let dbPath: string = '';
 async function initDb(): Promise<SqlJsDatabase> {
   if (db) return db;
   
-  let SQL: any;
-  
   // Runtime detection
   const isNodeRuntime = typeof process !== 'undefined' && 
                         typeof process.cwd === 'function' &&
                         typeof require !== 'undefined';
-  
+
   if (!isNodeRuntime) {
     throw new Error(
       'Database cannot be initialized in Edge Runtime. ' +
@@ -23,47 +22,32 @@ async function initDb(): Promise<SqlJsDatabase> {
       'Add export const runtime = "nodejs"; to your API route.'
     );
   }
-  
-  // Node.js runtime - use file-based storage ONLY
-  const wasmPath = path.join(process.cwd(), 'node_modules', 'sql.js', 'dist', 'sql-wasm.wasm');
-  const wasmBinary = fs.readFileSync(wasmPath);
-  
-  SQL = await initSqlJs({ wasmBinary });
-  
+
+  // Node.js runtime - use file-based storage
   dbPath = process.env.DATABASE_PATH || path.join(process.cwd(), 'data', 'assistant.db');
   const dataDir = path.dirname(dbPath);
-  
+
   if (!fs.existsSync(dataDir)) {
     fs.mkdirSync(dataDir, { recursive: true });
   }
-  
-  if (fs.existsSync(dbPath)) {
-    const fileBuffer = fs.readFileSync(dbPath);
-    db = new SQL.Database(fileBuffer);
-    console.log('[SQLite] Loaded existing database from:', dbPath);
-  } else {
-    db = new SQL.Database();
-    console.log('[SQLite] Created new database at:', dbPath);
-  }
+
+  // Initialize SQLite Wasm database
+  const sqliteDb = new SQLiteWasmDatabase(dbPath);
+  await sqliteDb.init();
+  db = sqliteDb;
+
+  console.log('[SQLite] Loaded database from:', dbPath);
   
   if (!db) {
     throw new Error('Database initialization failed');
   }
-  
+
   return db;
 }
 
 function saveDb(): void {
-  if (db && dbPath) {
-    const data = db.export();
-    const buffer = Buffer.from(data);
-    try {
-      fs.writeFileSync(dbPath, buffer);
-    } catch (e) {
-      console.error('[SQLite] Failed to save database:', e);
-      throw new Error('Failed to save database: ' + (e instanceof Error ? e.message : 'Unknown error'));
-    }
-  }
+  // Database is file-backed, changes are already persisted
+  // No need to export and write to file
 }
 
 export interface Contact {
@@ -1467,12 +1451,12 @@ export class SQLDatabase {
     const pendingTasksCount = db.exec("SELECT COUNT(*) as count FROM tasks WHERE status != 'completed'");
 
     return {
-      contacts: contactsCount[0]?.values[0]?.[0] || 0,
-      events: eventsCount[0]?.values[0]?.[0] || 0,
-      tasks: tasksCount[0]?.values[0]?.[0] || 0,
-      notes: notesCount[0]?.values[0]?.[0] || 0,
-      activities: activitiesCount[0]?.values[0]?.[0] || 0,
-      pendingTasks: pendingTasksCount[0]?.values[0]?.[0] || 0,
+      contacts: (contactsCount[0]?.values[0]?.[0] as number) || 0,
+      events: (eventsCount[0]?.values[0]?.[0] as number) || 0,
+      tasks: (tasksCount[0]?.values[0]?.[0] as number) || 0,
+      notes: (notesCount[0]?.values[0]?.[0] as number) || 0,
+      activities: (activitiesCount[0]?.values[0]?.[0] as number) || 0,
+      pendingTasks: (pendingTasksCount[0]?.values[0]?.[0] as number) || 0,
       upcomingEvents: this.getUpcomingEvents(7).length,
     };
   }
@@ -1624,8 +1608,8 @@ export class SQLDatabase {
     const count = db.exec('SELECT COUNT(*) as count FROM vector_lake');
     const accesses = db.exec('SELECT SUM(access_count) as total FROM vector_lake');
     return {
-      total: count[0]?.values[0]?.[0] || 0,
-      totalAccesses: accesses[0]?.values[0]?.[0] || 0,
+      total: (count[0]?.values[0]?.[0] as number) || 0,
+      totalAccesses: (accesses[0]?.values[0]?.[0] as number) || 0,
       avgSimilarity: 0,
     };
   }
@@ -3117,7 +3101,7 @@ export class SQLDatabase {
     if (!db) throw new Error('Database not initialized');
     
     const existing = db.exec('SELECT COUNT(*) as count FROM experts');
-    if (existing.length > 0 && existing[0].values[0][0] > 0) return;
+    if (existing.length > 0 && existing[0].values[0][0] != null && (existing[0].values[0][0] as number) > 0) return;
     
     // Add default experts
     const defaultExperts = [

@@ -132,7 +132,7 @@
 
 ### Technical Points to Mention
 - Built with Next.js 16, TypeScript, Tailwind CSS
-- SQLite database via sql.js (runs in browser)
+- SQLite database via @sqlite.org/sqlite-wasm (Node.js) and sql.js (Edge Runtime)
 - Multi-model support (Ollama, GLM, OpenRouter)
 - Memory stored in MEMORY.md file
 - Heartbeat automation system

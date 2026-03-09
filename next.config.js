@@ -2,17 +2,7 @@
 const nextConfig = {
   reactStrictMode: true,
   
-  // Handle font files for Turbopack
-  turbopack: {
-    rules: {
-      '*.ttf': ['file-loader'],
-      '*.woff': ['file-loader'],
-      '*.woff2': ['file-loader'],
-      '*.eot': ['file-loader'],
-    },
-  },
-  
-  // Webpack fallback for non-Turbopack builds
+  // Webpack configuration for font files
   webpack: (config) => {
     config.module.rules.push({
       test: /\.(ttf|woff|woff2|eot)$/,

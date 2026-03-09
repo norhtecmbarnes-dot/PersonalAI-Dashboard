@@ -80,10 +80,11 @@ export async function POST(request: Request) {
     // Web search - uses Ollama web search (default)
     if (message.startsWith('/search ')) {
       const query = message.replace('/search ', '').trim();
+      const sanitizedQuery = sanitizePrompt(query);
       // Removed verbose logging to reduce console spam
       
       try {
-        const result = await executeWebSearchTool({ query, max_results: 5 });
+        const result = await executeWebSearchTool({ query: sanitizedQuery, max_results: 5 });
         return NextResponse.json({
           message: result,
           done: true,
@@ -92,18 +93,18 @@ export async function POST(request: Request) {
         console.error('[Chat] Ollama search failed:', error);
         // Fallback to legacy search if Ollama search fails
         try {
-          const results = await performWebSearch(query);
+          const results = await performWebSearch(sanitizedQuery);
           const formattedResults = results.map((r, i) => 
-            `${i + 1}. **${r.title}**\n   ${r.url}\n   ${r.excerpt.slice(0, 200)}...`
+            `${i + 1}. **${sanitizePrompt(r.title)}**\n   ${sanitizePrompt(r.url)}\n   ${sanitizePrompt(r.excerpt.slice(0, 200))}...`
           ).join('\n\n');
           return NextResponse.json({
-            message: `## Web Search Results for "${query}"\n\n${formattedResults}`,
+            message: `## Web Search Results for "${sanitizedQuery}"\n\n${formattedResults}`,
             done: true,
           });
         } catch (fallbackError) {
           console.error('[Chat] Fallback search also failed:', fallbackError);
           return NextResponse.json({
-            message: `## Web Search Error\n\nOllama search: ${error instanceof Error ? error.message : 'Unknown error'}\n\nFallback search: ${fallbackError instanceof Error ? fallbackError.message : 'Unknown error'}\n\n**To fix:**\n1. Get a free API key at https://ollama.com/settings/keys\n2. Add to .env.local: OLLAMA_API_KEY=your-key\n3. Restart the server`,
+            message: `## Web Search Error\n\nOllama search: ${error instanceof Error ? sanitizePrompt(error.message) : 'Unknown error'}\n\nFallback search: ${fallbackError instanceof Error ? sanitizePrompt(fallbackError.message) : 'Unknown error'}\n\n**To fix:**\n1. Get a free API key at https://ollama.com/settings/keys\n2. Add to .env.local: OLLAMA_API_KEY=your-key\n3. Restart the server`,
             done: true,
           });
         }
@@ -113,15 +114,16 @@ export async function POST(request: Request) {
     // Legacy web search command (kept for compatibility)
     if (message.startsWith('/web ')) {
       const query = message.replace('/web ', '').trim();
+      const sanitizedQuery = sanitizePrompt(query);
       try {
-        const result = await executeWebSearchTool({ query, max_results: 5 });
+        const result = await executeWebSearchTool({ query: sanitizedQuery, max_results: 5 });
         return NextResponse.json({
           message: result,
           done: true,
         });
       } catch (error) {
         return NextResponse.json({
-          message: `## Web Search Error\n\nFailed to search: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          message: `## Web Search Error\n\nFailed to search: ${error instanceof Error ? sanitizePrompt(error.message) : 'Unknown error'}`,
           done: true,
         });
       }
@@ -129,11 +131,12 @@ export async function POST(request: Request) {
 
     if (message.startsWith('/memory ')) {
       const query = message.replace('/memory ', '').trim();
+      const sanitizedQuery = sanitizePrompt(query);
       try {
-        const vlResult = await vectorLake.processQuery(query);
+        const vlResult = await vectorLake.processQuery(sanitizedQuery);
         if (vlResult.context) {
           return NextResponse.json({
-            message: `## Memory Search Results\n\n${vlResult.context}`,
+            message: `## Memory Search Results\n\n${sanitizePrompt(vlResult.context)}`,
             done: true,
           });
         }
@@ -148,6 +151,8 @@ export async function POST(request: Request) {
       const feedbackType = parts[0].toLowerCase();
       const conversationId = parts[1];
       const correction = parts.slice(2).join(' ');
+      const sanitizedConversationId = sanitizeString(conversationId);
+      const sanitizedCorrection = sanitizePrompt(correction);
 
       if (!['good', 'bad', 'correction'].includes(feedbackType)) {
         return NextResponse.json({
@@ -157,18 +162,18 @@ export async function POST(request: Request) {
       }
 
       try {
-        if (feedbackType === 'correction' && correction) {
-          await recordFeedback(conversationId, 'correction', correction);
+        if (feedbackType === 'correction' && sanitizedCorrection) {
+          await recordFeedback(sanitizedConversationId, 'correction', sanitizedCorrection);
         } else {
-          await recordFeedback(conversationId, feedbackType as 'good' | 'bad');
+          await recordFeedback(sanitizedConversationId, feedbackType as 'good' | 'bad');
         }
         return NextResponse.json({
-          message: `## Feedback Recorded\n\nFeedback type: **${feedbackType}**\nConversation: ${conversationId}\n\nThe AI will learn from this feedback. Thank you!`,
+          message: `## Feedback Recorded\n\nFeedback type: **${sanitizePrompt(feedbackType)}**\nConversation: ${sanitizedConversationId}\n\nThe AI will learn from this feedback. Thank you!`,
           done: true,
         });
       } catch (error) {
         return NextResponse.json({
-          message: `## Feedback Error\n\nFailed to record feedback: ${error instanceof Error ? error.message : 'Unknown error'}`,
+          message: `## Feedback Error\n\nFailed to record feedback: ${error instanceof Error ? sanitizePrompt(error.message) : 'Unknown error'}`,
           done: true,
         });
       }
@@ -195,14 +200,14 @@ export async function POST(request: Request) {
           for (const conv of recentConversations) {
             const score = conv.score ? conv.score.toFixed(2) : 'pending';
             const feedback = conv.feedback || 'none';
-            response += `- Score: ${score} | Feedback: ${feedback} | ${conv.userMessage.slice(0, 50)}...\n`;
+            response += `- Score: ${score} | Feedback: ${feedback} | ${sanitizePrompt(conv.userMessage).slice(0, 50)}...\n`;
           }
         }
 
         return NextResponse.json({ message: response, done: true });
       } catch (error) {
         return NextResponse.json({
-          message: `## RL Status Error\n\n${error instanceof Error ? error.message : 'Unknown error'}`,
+          message: `## RL Status Error\n\n${error instanceof Error ? sanitizePrompt(error.message) : 'Unknown error'}`,
           done: true,
         });
       }
@@ -217,7 +222,7 @@ export async function POST(request: Request) {
         });
       } catch (error) {
         return NextResponse.json({
-          message: `## RL Training Error\n\n${error instanceof Error ? error.message : 'Unknown error'}`,
+          message: `## RL Training Error\n\n${error instanceof Error ? sanitizePrompt(error.message) : 'Unknown error'}`,
           done: true,
         });
       }
@@ -262,7 +267,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ message: response, done: true });
       } catch (error) {
         return NextResponse.json({
-          message: `## Security Scan Error\n\n${error instanceof Error ? error.message : 'Unknown error'}`,
+          message: `## Security Scan Error\n\n${error instanceof Error ? sanitizePrompt(error.message) : 'Unknown error'}`,
           done: true,
         });
       }
@@ -277,7 +282,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ message: report, done: true });
       } catch (error) {
         return NextResponse.json({
-          message: `## Quick Scan Error\n\n${error instanceof Error ? error.message : 'Unknown error'}`,
+          message: `## Quick Scan Error\n\n${error instanceof Error ? sanitizePrompt(error.message) : 'Unknown error'}`,
           done: true,
         });
       }
@@ -306,7 +311,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ message: response, done: true });
       } catch (error) {
         return NextResponse.json({
-          message: `## Security Status Error\n\n${error instanceof Error ? error.message : 'Unknown error'}`,
+          message: `## Security Status Error\n\n${error instanceof Error ? sanitizePrompt(error.message) : 'Unknown error'}`,
           done: true,
         });
       }
@@ -376,7 +381,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ message: response, done: true });
       } catch (error) {
         return NextResponse.json({
-          message: `## De-AI-ify Error\n\n${error instanceof Error ? error.message : 'Unknown error'}`,
+          message: `## De-AI-ify Error\n\n${error instanceof Error ? sanitizePrompt(error.message) : 'Unknown error'}`,
           done: true,
         });
       }
@@ -414,7 +419,7 @@ export async function POST(request: Request) {
         return NextResponse.json({ message: response, done: true });
       } catch (error) {
         return NextResponse.json({
-          message: `## Analysis Error\n\n${error instanceof Error ? error.message : 'Unknown error'}`,
+          message: `## Analysis Error\n\n${error instanceof Error ? sanitizePrompt(error.message) : 'Unknown error'}`,
           done: true,
         });
       }
@@ -442,22 +447,23 @@ export async function POST(request: Request) {
     // Handle /math command - use math tools
     if (message.startsWith('/math ')) {
       const mathExpr = message.replace('/math ', '').trim();
+      const sanitizedMathExpr = sanitizePrompt(mathExpr);
       try {
         const result = mathTools.calculate(mathExpr);
         if (result.success) {
           return NextResponse.json({
-            message: `## Calculation Result\n\n**${mathExpr}** = ${result.result}`,
+            message: `## Calculation Result\n\n**${sanitizedMathExpr}** = ${result.result}`,
             done: true,
           });
         } else {
           return NextResponse.json({
-            message: `## Calculation Error\n\n${result.error}`,
+            message: `## Calculation Error\n\n${sanitizePrompt(result.error || 'Unknown error')}`,
             done: true,
           });
         }
       } catch (e) {
         return NextResponse.json({
-          message: `## Math Error\n\nFailed to calculate: ${mathExpr}`,
+          message: `## Math Error\n\nFailed to calculate: ${sanitizedMathExpr}`,
           done: true,
         });
       }
@@ -466,8 +472,9 @@ export async function POST(request: Request) {
     // Handle /visualize command - generate Chart.js code
     if (message.startsWith('/visualize ')) {
       const vizRequest = message.replace('/visualize ', '').trim();
+      const sanitizedVizRequest = sanitizePrompt(vizRequest);
       
-      const vizPrompt = `Generate a Chart.js visualization code based on this request: "${vizRequest}"
+      const vizPrompt = `Generate a Chart.js visualization code based on this request: "${sanitizedVizRequest}"
 
 Return ONLY the HTML/JS code for the chart using Chart.js. The code should include:
 - A <canvas id="myChart"></canvas> element
@@ -521,14 +528,14 @@ Generate appropriate chart type (line, bar, pie, doughnut, etc.) based on the re
           });
         } else {
           return NextResponse.json({
-            message: `## Visualization\n\n${chartCode}`,
+            message: `## Visualization\n\n${sanitizePrompt(chartCode)}`,
             done: true,
           });
         }
       } catch (e) {
         console.error('Visualization error:', e);
         return NextResponse.json({
-          message: `## Visualization Error\n\nFailed to generate visualization: ${e instanceof Error ? e.message : 'Unknown error'}`,
+          message: `## Visualization Error\n\nFailed to generate visualization: ${e instanceof Error ? sanitizePrompt(e.message) : 'Unknown error'}`,
           done: true,
         });
       }
@@ -537,45 +544,56 @@ Generate appropriate chart type (line, bar, pie, doughnut, etc.) based on the re
     let context = '';
     let vectorLakeUsed = false;
     let vectorLakeData = null;
-
-    if (useVectorLake) {
-      try {
-        const vlResult = await vectorLake.processQuery(message);
-        vectorLakeUsed = true;
-        vectorLakeData = vlResult;
-        
-        if (vlResult.context) {
-          context = `\n\nRelevant Context from Knowledge Lake:\n${vlResult.context}\n\n`;
-        }
-
-        if (vlResult.organizedData && !vlResult.cached) {
-          await vectorLake.saveOrganizedData(vlResult.organizedData);
-        }
-      } catch (vlError) {
-        console.error('VectorLake error:', vlError);
-      }
-    }
-
-    // Load MEMORY.md context
     let memoryContext = '';
-    try {
-      const memoryPrompt = memoryFileService.getSystemPrompt();
-      memoryContext = `\n\n--- MEMORY CONTEXT ---\n${memoryPrompt}\n\n`;
-    } catch (memError) {
-      console.error('Memory load error:', memError);
-    }
-
-    // Inject persistent memory context
     let persistentMemoryContext = '';
-    try {
-      await memoryStore.initialize();
-      const memoryResult = await injectMemoryContext(message, 1500);
-      if (memoryResult.systemPromptAddition) {
-        persistentMemoryContext = memoryResult.systemPromptAddition;
-      }
-    } catch (memError) {
-      console.error('Persistent memory injection error:', memError);
-    }
+
+    // Parallelize independent async operations
+    const vectorLakePromise = useVectorLake ? (async () => {
+        try {
+            const vlResult = await vectorLake.processQuery(message);
+            const context = vlResult.context ? `\n\nRelevant Context from Knowledge Lake:\n${sanitizePrompt(vlResult.context)}\n\n` : '';
+            if (vlResult.organizedData && !vlResult.cached) {
+                await vectorLake.saveOrganizedData(vlResult.organizedData);
+            }
+            return { context, vectorLakeUsed: true, vectorLakeData: vlResult };
+        } catch (vlError) {
+            console.error('VectorLake error:', vlError);
+            return { context: '', vectorLakeUsed: false, vectorLakeData: null };
+        }
+    })() : Promise.resolve({ context: '', vectorLakeUsed: false, vectorLakeData: null });
+
+    const memoryContextPromise = (async () => {
+        try {
+            const memoryPrompt = memoryFileService.getSystemPrompt();
+            return `\n\n--- MEMORY CONTEXT ---\n${sanitizePrompt(memoryPrompt)}\n\n`;
+        } catch (memError) {
+            console.error('Memory load error:', memError);
+            return '';
+        }
+    })();
+
+    const persistentMemoryContextPromise = (async () => {
+        try {
+            await memoryStore.initialize();
+            const memoryResult = await injectMemoryContext(message, 1500);
+            return memoryResult.systemPromptAddition || '';
+        } catch (memError) {
+            console.error('Persistent memory injection error:', memError);
+            return '';
+        }
+    })();
+
+    const [vectorLakeResult, memoryContextResult, persistentMemoryContextResult] = await Promise.all([
+        vectorLakePromise,
+        memoryContextPromise,
+        persistentMemoryContextPromise
+    ]);
+
+    context = vectorLakeResult.context;
+    vectorLakeUsed = vectorLakeResult.vectorLakeUsed;
+    vectorLakeData = vectorLakeResult.vectorLakeData;
+    memoryContext = memoryContextResult;
+    persistentMemoryContext = persistentMemoryContextResult;
 
     // Add current message to history - use client-provided names or fallback
     const finalUserName = clientUserName || userPreferences.getUserName() || 'User';
@@ -774,9 +792,9 @@ Generate appropriate chart type (line, bar, pie, doughnut, etc.) based on the re
                 importance: functionArgs.importance || 5,
                 metadata: { source: 'conversation' },
               });
-              toolResult = `Memory saved: "${functionArgs.key}"`;
+              toolResult = `Memory saved: "${sanitizePrompt(functionArgs.key)}"`;
             } catch (e) {
-              toolResult = `Failed to save memory: ${e instanceof Error ? e.message : 'Unknown error'}`;
+              toolResult = `Failed to save memory: ${e instanceof Error ? sanitizePrompt(e.message) : 'Unknown error'}`;
             }
           } else if (functionName === 'search_memory') {
             toolCallsExecuted.push('search_memory');
@@ -784,17 +802,17 @@ Generate appropriate chart type (line, bar, pie, doughnut, etc.) based on the re
               await memoryStore.initialize();
               const results = await memoryStore.search(functionArgs.query, { category: functionArgs.category });
               toolResult = results.length > 0 
-                ? results.map((r: any) => `[${r.memory.key}]: ${r.memory.content}`).join('\n')
+                ? results.map((r: any) => `[${sanitizePrompt(r.memory.key)}]: ${sanitizePrompt(r.memory.content)}`).join('\n')
                 : 'No memories found matching query.';
             } catch (e) {
-              toolResult = `Failed to search memory: ${e instanceof Error ? e.message : 'Unknown error'}`;
+              toolResult = `Failed to search memory: ${e instanceof Error ? sanitizePrompt(e.message) : 'Unknown error'}`;
             }
           } else if (functionName === 'browser_automate') {
             toolCallsExecuted.push('browser_automate');
             try {
               toolResult = await executeBrowserTool(functionArgs);
             } catch (e) {
-              toolResult = `Browser automation failed: ${e instanceof Error ? e.message : 'Unknown error'}`;
+              toolResult = `Browser automation failed: ${e instanceof Error ? sanitizePrompt(e.message) : 'Unknown error'}`;
             }
           } else if (functionName === 'scrape_url') {
             toolCallsExecuted.push('scrape_url');
@@ -806,22 +824,22 @@ Title: ${result.result.title}
 Content: ${result.result.content.substring(0, 2000)}${result.result.content.length > 2000 ? '...' : ''}
 Links found: ${result.result.links.join(', ')}`;
               } else {
-                toolResult = `Failed to scrape URL: ${result.error}`;
+                toolResult = `Failed to scrape URL: ${sanitizePrompt(result.error || 'Unknown error')}`;
               }
             } catch (e) {
-              toolResult = `Scraping failed: ${e instanceof Error ? e.message : 'Unknown error'}`;
+              toolResult = `Scraping failed: ${e instanceof Error ? sanitizePrompt(e.message) : 'Unknown error'}`;
             }
           } else if (functionName === 'screenshot_url') {
             toolCallsExecuted.push('screenshot_url');
             try {
               const result = await aiTools.screenshot_url(functionArgs.url);
               if (result.success) {
-                toolResult = `Screenshot taken of ${result.result.url}. The screenshot is available as base64 data.`;
+                toolResult = `Screenshot taken of ${sanitizePrompt(result.result.url)}. The screenshot is available as base64 data.`;
               } else {
-                toolResult = `Failed to take screenshot: ${result.error}`;
+                toolResult = `Failed to take screenshot: ${sanitizePrompt(result.error || 'Unknown error')}`;
               }
             } catch (e) {
-              toolResult = `Screenshot failed: ${e instanceof Error ? e.message : 'Unknown error'}`;
+              toolResult = `Screenshot failed: ${e instanceof Error ? sanitizePrompt(e.message) : 'Unknown error'}`;
             }
           } else if (functionName === 'research_topic') {
             toolCallsExecuted.push('research_topic');
@@ -831,12 +849,12 @@ Links found: ${result.result.links.join(', ')}`;
                 const sources = result.result.sources.map((s: any, i: number) => 
                   `${i + 1}. ${s.title}\n   URL: ${s.url}\n   Content: ${s.content.substring(0, 500)}...`
                 ).join('\n\n');
-                toolResult = `Research on "${result.result.topic}":\n${result.result.summary}\n\nSources:\n${sources}`;
+                toolResult = `Research on "${sanitizePrompt(result.result.topic)}":\n${sanitizePrompt(result.result.summary)}\n\nSources:\n${sanitizePrompt(sources)}`;
               } else {
-                toolResult = `Research failed: ${result.error}`;
+                toolResult = `Research failed: ${sanitizePrompt(result.error || 'Unknown error')}`;
               }
             } catch (e) {
-              toolResult = `Research failed: ${e instanceof Error ? e.message : 'Unknown error'}`;
+              toolResult = `Research failed: ${e instanceof Error ? sanitizePrompt(e.message) : 'Unknown error'}`;
             }
           } else {
             toolResult = `Unknown tool: ${functionName}`;

@@ -177,7 +177,7 @@ A: All data is local (SQLite). No external services required. For enterprise, we
 A: Yes - the Tool Registry is extensible. Add custom tools for your specific integrations.
 
 **Q: What's the tech stack?**
-A: Next.js, React, SQLite (sql.js), all runs in browser or Node.js. No external database needed.
+A: Next.js, React, SQLite (@sqlite.org/sqlite-wasm), all runs in browser or Node.js. No external database needed.
 
 ---
 
