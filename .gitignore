@@ -76,3 +76,7 @@ test-*.mjs
 test-*.js
 test-*.ts
 test-*.tsx
+
+# Session logs (contain AI conversations, may include secrets)
+session-*.md
+ses_*.md
