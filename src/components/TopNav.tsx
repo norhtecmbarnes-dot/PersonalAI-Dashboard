@@ -26,7 +26,8 @@ export function TopNav() {
             <NavLink href="/writing/workspace">Writing</NavLink>
             <NavLink href="/office">Office</NavLink>
             <NavLink href="/database/forms">Forms</NavLink>
-            <NavLink href="/brand-workspace">Brands</NavLink>
+             <NavLink href="/brand-workspace">Brands</NavLink>
+             <NavLink href="/bid-workflow">Bid Workflow</NavLink>
             <NavLink href="/memory">Memory</NavLink>
             <NavLink href="/canvas">Canvas</NavLink>
             <NavLink href="/system">System</NavLink>

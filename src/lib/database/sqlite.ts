@@ -505,6 +505,83 @@ export class SQLDatabase {
       )
     `);
 
+    // Brand knowledge table (for extracted knowledge from documents)
+    db.run(`
+      CREATE TABLE IF NOT EXISTS brand_knowledge (
+        id TEXT PRIMARY KEY,
+        document_id TEXT NOT NULL,
+        brand_id TEXT NOT NULL,
+        category TEXT NOT NULL,
+        key TEXT NOT NULL,
+        value TEXT,
+        metadata TEXT,
+        created_at INTEGER NOT NULL
+      )
+    `);
+
+    // Capture documents table
+    db.run(`
+      CREATE TABLE IF NOT EXISTS capture_documents (
+        id TEXT PRIMARY KEY,
+        project_id TEXT NOT NULL,
+        opportunity_id TEXT,
+        title TEXT NOT NULL,
+        content TEXT,
+        extracted_data TEXT,
+        metadata TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      )
+    `);
+
+    // Compliance matrix items table
+    db.run(`
+      CREATE TABLE IF NOT EXISTS compliance_matrix_items (
+        id TEXT PRIMARY KEY,
+        project_id TEXT NOT NULL,
+        requirement_id TEXT NOT NULL,
+        requirement_text TEXT NOT NULL,
+        section TEXT,
+        page_reference TEXT,
+        proposal_section TEXT,
+        page_number INTEGER,
+        responsible_party TEXT,
+        status TEXT DEFAULT 'pending',
+        notes TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      )
+    `);
+
+    // Compliance matrix metadata table
+    db.run(`
+      CREATE TABLE IF NOT EXISTS compliance_matrices (
+        id TEXT PRIMARY KEY,
+        project_id TEXT NOT NULL,
+        title TEXT NOT NULL,
+        metadata TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      )
+    `);
+
+    // Bid workflow tracking table
+    db.run(`
+      CREATE TABLE IF NOT EXISTS bid_workflows (
+        id TEXT PRIMARY KEY,
+        project_id TEXT NOT NULL,
+        stage TEXT NOT NULL,
+        capture_document_id TEXT,
+        compliance_matrix_id TEXT,
+        outline_id TEXT,
+        proposal_id TEXT,
+        historical_bid_references TEXT,
+        metadata TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      )
+    `);
+
     db.run(`CREATE INDEX IF NOT EXISTS idx_brands_v2_name ON brands_v2(name)`);
     db.run(`CREATE INDEX IF NOT EXISTS idx_brand_documents_brand ON brand_documents(brand_id)`);
     db.run(`CREATE INDEX IF NOT EXISTS idx_brand_documents_project ON brand_documents(project_id)`);
@@ -513,6 +590,16 @@ export class SQLDatabase {
     db.run(`CREATE INDEX IF NOT EXISTS idx_chat_sessions_project ON chat_sessions(project_id)`);
     db.run(`CREATE INDEX IF NOT EXISTS idx_chat_sessions_brand ON chat_sessions(brand_id)`);
     db.run(`CREATE INDEX IF NOT EXISTS idx_generated_outputs_project ON generated_outputs(project_id)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_brand_knowledge_brand ON brand_knowledge(brand_id)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_brand_knowledge_document ON brand_knowledge(document_id)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_brand_knowledge_category ON brand_knowledge(category)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_capture_documents_project ON capture_documents(project_id)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_capture_documents_opportunity ON capture_documents(opportunity_id)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_compliance_matrix_items_project ON compliance_matrix_items(project_id)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_compliance_matrix_items_status ON compliance_matrix_items(status)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_compliance_matrices_project ON compliance_matrices(project_id)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_bid_workflows_project ON bid_workflows(project_id)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_bid_workflows_stage ON bid_workflows(stage)`);
 
     // SAM.gov tables
     db.run(`

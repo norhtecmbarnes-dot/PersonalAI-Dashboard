@@ -2,6 +2,7 @@ export type DocumentType = 'pdf' | 'docx' | 'txt' | 'markdown' | 'url' | 'html' 
 export type DocumentSource = 'brand' | 'project';
 export type ProjectType = 'bid' | 'proposal' | 'marketing' | 'campaign' | 'research' | 'quote' | 'other';
 export type ProjectStatus = 'active' | 'completed' | 'archived' | 'on_hold';
+export type BidWorkflowStage = 'capture' | 'compliance' | 'outline' | 'writing' | 'review' | 'submitted' | 'archived';
 
 export interface BrandDocument {
   id: string;
@@ -127,4 +128,84 @@ export interface ChatResponse {
   message?: ChatMessage;
   session?: ChatSession;
   error?: string;
+}
+
+export interface CaptureDocument {
+  id: string;
+  projectId: string;
+  opportunityId?: string;
+  title: string;
+  content: string;
+  extractedData: {
+    programName?: string;
+    customer?: string;
+    agency?: string;
+    solicitationNumber?: string;
+    postedDate?: string;
+    responseDeadline?: string;
+    awardAmount?: string;
+    scopeOfWork?: string;
+    milestones?: string[];
+    deliverables?: string[];
+    evaluationCriteria?: string[];
+    competition?: string[];
+    reasonsToBid?: string[];
+    riskFactors?: string[];
+    winThemes?: string[];
+    keyRequirements?: string[];
+    summary?: string;
+  };
+  metadata?: Record<string, any>;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface ComplianceMatrixItem {
+  id: string;
+  projectId: string;
+  requirementId: string;
+  requirementText: string;
+  section?: string;
+  pageReference?: string;
+  proposalSection?: string;
+  pageNumber?: number;
+  responsibleParty?: string;
+  status: 'pending' | 'addressed' | 'not_applicable' | 'needs_review';
+  notes?: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface ComplianceMatrix {
+  id: string;
+  projectId: string;
+  title: string;
+  items: ComplianceMatrixItem[];
+  metadata?: {
+    formatRequirements?: string;
+    deliveryMethod?: string;
+    pageLimits?: string;
+    volumesRequired?: string;
+    fontRequirements?: string;
+    marginRequirements?: string;
+    submissionDeadline?: string;
+    submissionLocation?: string;
+    pointsOfContact?: string[];
+  };
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface BidWorkflow {
+  id: string;
+  projectId: string;
+  stage: BidWorkflowStage;
+  captureDocumentId?: string;
+  complianceMatrixId?: string;
+  outlineId?: string;
+  proposalId?: string;
+  historicalBidReferences?: string[];
+  metadata?: Record<string, any>;
+  createdAt: number;
+  updatedAt: number;
 }
