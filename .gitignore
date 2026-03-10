@@ -80,3 +80,11 @@ test-*.tsx
 # Session logs (contain AI conversations, may include secrets)
 session-*.md
 ses_*.md
+
+# TypeScript build cache
+*.tsbuildinfo
+
+# Generated book output (regenerated from book/ source)
+book-output/*.md
+book-output/*.docx
+book-output/*.pdf
