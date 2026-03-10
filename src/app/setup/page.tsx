@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { userPreferences } from '@/lib/config/user-preferences';
 
 export default function SetupPage() {
   const [userName, setUserName] = useState('');
@@ -22,6 +23,8 @@ export default function SetupPage() {
       });
 
       if (response.ok) {
+        // Update local storage preferences
+        userPreferences.completeSetup(userName, assistantName);
         // Add delay to ensure database write is committed
         await new Promise(resolve => setTimeout(resolve, 500));
         window.location.href = '/';

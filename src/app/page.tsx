@@ -55,6 +55,9 @@ export default function Home() {
     assistantName: 'AI Assistant',
     hasCompletedSetup: false,
   });
+  const [isEditingName, setIsEditingName] = useState(false);
+  const [newUserName, setNewUserName] = useState('');
+  const [newAssistantName, setNewAssistantName] = useState('');
   const [documents, setDocuments] = useState<Document[]>([]);
   const [showDocuments, setShowDocuments] = useState(false);
   
@@ -238,6 +241,35 @@ export default function Home() {
     }
   }, []);
 
+  const updateUserNames = async () => {
+    if (!newUserName.trim() && !newAssistantName.trim()) {
+      setIsEditingName(false);
+      return;
+    }
+    try {
+      const response = await fetch('/api/user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'update',
+          userName: newUserName.trim() || userPrefs.userName,
+          assistantName: newAssistantName.trim() || userPrefs.assistantName,
+        }),
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setUserPrefs(data.preferences);
+        setIsEditingName(false);
+        setNewUserName('');
+        setNewAssistantName('');
+      } else {
+        console.error('Failed to update names');
+      }
+    } catch (error) {
+      console.error('Error updating names:', error);
+    }
+  };
+
   const loadModels = useCallback(async () => {
     try {
       const response = await fetch('/api/models');
@@ -252,6 +284,7 @@ export default function Home() {
         setSelectedModel(prev => allModels.includes(prev) ? prev : (ollamaModels.length > 0 ? ollamaModels[0] : externalModels[0]));
       }
       
+      console.log('Ollama available:', data.ollama?.available);
       setOllamaHealthy(data.ollama?.available ?? false);
     } catch (error) {
       console.error('Error loading models:', error);
@@ -262,10 +295,14 @@ export default function Home() {
     try {
       const response = await fetch('/api/heartbeat');
       const data = await response.json();
+      console.log('Heartbeat status:', data.status);
       if (data.status === 'unhealthy') {
         setOllamaHealthy(false);
+      } else {
+        setOllamaHealthy(true);
       }
     } catch (error) {
+      console.error('Heartbeat error:', error);
       setOllamaHealthy(false);
     }
   }, []);
@@ -860,13 +897,73 @@ export default function Home() {
           {/* Chat Messages - grows to fill space */}
           <div className="flex-1 overflow-y-auto mb-4" style={{ maxHeight: '60vh' }}>
             {messages.length === 0 ? (
-              <div className="text-center text-gray-400 h-full flex flex-col items-center justify-center">
-                <div className="text-6xl mb-4">🤖</div>
-                <p className="text-lg">Welcome, {userPrefs.userName || 'User'}!</p>
-                <p className="text-sm mt-2">I'm {userPrefs.assistantName || 'your AI Assistant'}, ready to help.</p>
-                <p className="text-xs mt-4 text-purple-400">I have automated capabilities: Intelligence, Self-Reflection, Book Writing, Security</p>
-                <p className="text-sm mt-4">What would you like to work on?</p>
-              </div>
+               <div className="text-center text-gray-400 h-full flex flex-col items-center justify-center">
+                 <div className="text-6xl mb-4">🤖</div>
+                 {isEditingName ? (
+                   <div className="bg-slate-800/80 backdrop-blur rounded-lg p-6 max-w-md w-full">
+                     <h3 className="text-lg font-semibold text-white mb-4">Edit Names</h3>
+                     <div className="space-y-4">
+                       <div>
+                         <label className="block text-sm text-gray-300 mb-1">Your Name</label>
+                         <input
+                           type="text"
+                           value={newUserName}
+                           onChange={(e) => setNewUserName(e.target.value)}
+                           placeholder={userPrefs.userName || 'User'}
+                           className="w-full bg-slate-700 text-white border border-slate-600 rounded-lg px-4 py-2 focus:outline-none focus:border-purple-500"
+                         />
+                       </div>
+                       <div>
+                         <label className="block text-sm text-gray-300 mb-1">Assistant Name</label>
+                         <input
+                           type="text"
+                           value={newAssistantName}
+                           onChange={(e) => setNewAssistantName(e.target.value)}
+                           placeholder={userPrefs.assistantName || 'AI Assistant'}
+                           className="w-full bg-slate-700 text-white border border-slate-600 rounded-lg px-4 py-2 focus:outline-none focus:border-purple-500"
+                         />
+                       </div>
+                       <div className="flex gap-3 justify-end">
+                         <button
+                           onClick={() => setIsEditingName(false)}
+                           className="px-4 py-2 text-gray-400 hover:text-white"
+                         >
+                           Cancel
+                         </button>
+                         <button
+                           onClick={updateUserNames}
+                           disabled={(!newUserName.trim() && !newAssistantName.trim()) || (newUserName.trim() === userPrefs.userName && newAssistantName.trim() === userPrefs.assistantName)}
+                           className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50"
+                         >
+                           Save
+                         </button>
+                       </div>
+                     </div>
+                   </div>
+                 ) : (
+                   <>
+                     <p className="text-lg">Welcome, {userPrefs.userName || 'User'}!</p>
+                     <p className="text-sm mt-2 flex items-center justify-center gap-2">
+                       I'm {userPrefs.assistantName || 'your AI Assistant'}, ready to help.
+                       <button
+                         onClick={() => {
+                           setNewUserName(userPrefs.userName);
+                           setNewAssistantName(userPrefs.assistantName);
+                           setIsEditingName(true);
+                         }}
+                         className="text-gray-500 hover:text-white p-1"
+                         title="Edit names"
+                       >
+                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                         </svg>
+                       </button>
+                     </p>
+                      <p className="text-xs mt-4 text-purple-400">I have automated capabilities: Intelligence, Self-Reflection, Document Creation, Security</p>
+                     <p className="text-sm mt-4">What would you like to work on?</p>
+                   </>
+                 )}
+               </div>
             ) : (
               messages.map((message, index) => (
                 <div

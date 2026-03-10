@@ -1,6 +1,8 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, forwardRef, useImperativeHandle } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 interface RichTextEditorProps {
   value: string;
@@ -9,22 +11,47 @@ interface RichTextEditorProps {
   height?: string;
   showToolbar?: boolean;
   showPreview?: boolean;
+  splitView?: boolean;
   className?: string;
 }
 
-export function RichTextEditor({
+export interface RichTextEditorHandle {
+  getSelection: () => { selectedText: string; start: number; end: number } | null;
+  focus: () => void;
+}
+
+export const RichTextEditor = forwardRef<RichTextEditorHandle, RichTextEditorProps>(({
   value,
   onChange,
   placeholder = 'Start writing here...',
   height = '400px',
   showToolbar = true,
   showPreview = false,
+  splitView = false,
   className = '',
-}: RichTextEditorProps) {
+}: RichTextEditorProps, ref) => {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const [isPreview, setIsPreview] = useState(showPreview);
+  const [splitViewMode, setSplitViewMode] = useState(splitView);
   const [wordCount, setWordCount] = useState(0);
   const [charCount, setCharCount] = useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isDarkTheme, setIsDarkTheme] = useState(true);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // Expose methods via ref
+  useImperativeHandle(ref, () => ({
+    getSelection: () => {
+      if (!textareaRef.current) return null;
+      const start = textareaRef.current.selectionStart;
+      const end = textareaRef.current.selectionEnd;
+      const selectedText = value.substring(start, end);
+      return { selectedText, start, end };
+    },
+    focus: () => {
+      textareaRef.current?.focus();
+    },
+  }));
 
   // Update word and character counts when value changes
   useEffect(() => {
@@ -40,6 +67,35 @@ export function RichTextEditor({
       textareaRef.current.focus();
     }
   }, [isPreview]);
+
+  // Sync with prop changes
+  useEffect(() => {
+    setIsPreview(showPreview);
+  }, [showPreview]);
+
+  useEffect(() => {
+    setSplitViewMode(splitView);
+  }, [splitView]);
+
+  // Handle fullscreen effects
+  useEffect(() => {
+    if (isFullscreen) {
+      document.body.style.overflow = 'hidden';
+      // Add escape key listener
+      const handleEscape = (e: KeyboardEvent) => {
+        if (e.key === 'Escape') {
+          setIsFullscreen(false);
+        }
+      };
+      window.addEventListener('keydown', handleEscape);
+      return () => {
+        document.body.style.overflow = '';
+        window.removeEventListener('keydown', handleEscape);
+      };
+    } else {
+      document.body.style.overflow = '';
+    }
+  }, [isFullscreen]);
 
   const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     onChange(e.target.value);
@@ -76,7 +132,15 @@ export function RichTextEditor({
     }, 10);
   };
 
-  const toolbarActions = [
+  const toggleFullscreen = () => {
+    setIsFullscreen(!isFullscreen);
+  };
+
+  const toggleTheme = () => {
+    setIsDarkTheme(!isDarkTheme);
+  };
+
+   const toolbarActions = [
     {
       icon: 'B',
       title: 'Bold',
@@ -98,6 +162,17 @@ export function RichTextEditor({
       icon: 'H2',
       title: 'Heading 2',
       action: () => insertMarkdown('## ', '', 'Subheading'),
+    },
+    {
+      icon: 'H3',
+      title: 'Heading 3',
+      action: () => insertMarkdown('### ', '', 'Subheading'),
+    },
+    {
+      icon: 'S',
+      title: 'Strikethrough',
+      action: () => insertMarkdown('~~', '~~', 'strikethrough'),
+      shortcut: 'Ctrl+S',
     },
     {
       icon: '•',
@@ -139,9 +214,19 @@ export function RichTextEditor({
       title: 'Horizontal Rule',
       action: () => insertMarkdown('\n---\n', ''),
     },
+    {
+      icon: isFullscreen ? '✕' : '⛶',
+      title: isFullscreen ? 'Exit Fullscreen' : 'Fullscreen',
+      action: toggleFullscreen,
+    },
+    {
+      icon: isDarkTheme ? '☀️' : '🌙',
+      title: isDarkTheme ? 'Switch to Light Theme' : 'Switch to Dark Theme',
+      action: toggleTheme,
+    },
   ];
 
-  // Handle keyboard shortcuts
+   // Handle keyboard shortcuts
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.ctrlKey || e.metaKey) {
       switch (e.key.toLowerCase()) {
@@ -153,6 +238,10 @@ export function RichTextEditor({
           e.preventDefault();
           insertMarkdown('*', '*', 'italic text');
           break;
+        case 's':
+          e.preventDefault();
+          insertMarkdown('~~', '~~', 'strikethrough');
+          break;
         case 'e':
           e.preventDefault();
           insertMarkdown('`', '`', 'code');
@@ -161,39 +250,27 @@ export function RichTextEditor({
     }
   };
 
-  const renderPreview = () => {
-    // Simple markdown preview using basic regex conversions
-    // For a real implementation, use react-markdown
-    const html = value
-      .replace(/^# (.*$)/gm, '<h1 class="text-2xl font-bold mt-4 mb-2">$1</h1>')
-      .replace(/^## (.*$)/gm, '<h2 class="text-xl font-bold mt-3 mb-2">$1</h2>')
-      .replace(/^### (.*$)/gm, '<h3 class="text-lg font-bold mt-2 mb-1">$1</h3>')
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-      .replace(/`(.*?)`/g, '<code class="bg-slate-700 px-1 rounded">$1</code>')
-      .replace(/^> (.*$)/gm, '<blockquote class="border-l-4 border-slate-500 pl-4 my-2 text-slate-400">$1</blockquote>')
-      .replace(/^- (.*$)/gm, '<li class="ml-4">$1</li>')
-      .replace(/^(\d+)\. (.*$)/gm, '<li class="ml-4">$2</li>')
-      .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" class="text-purple-400 hover:underline">$1</a>')
-      .replace(/!\[(.*?)\]\((.*?)\)/g, '<img src="$2" alt="$1" class="max-w-full my-2 rounded">')
-      .replace(/---/g, '<hr class="my-4 border-slate-700">')
-      .replace(/\n\n/g, '</p><p>')
-      .replace(/\n/g, '<br>');
 
-    return `<div class="prose prose-invert max-w-none p-4">${html}</div>`;
-  };
 
   return (
-    <div className={`flex flex-col border border-slate-700 rounded-lg overflow-hidden ${className}`}>
+    <div
+      ref={containerRef}
+      className={`
+        flex flex-col border border-slate-700 rounded-lg overflow-hidden
+        ${isFullscreen ? 'fixed inset-0 z-50 m-0 rounded-none' : ''}
+        ${isDarkTheme ? 'bg-slate-900 border-slate-700' : 'bg-white border-gray-300'}
+        ${className}
+      `}
+    >
       {/* Toolbar */}
       {showToolbar && (
-        <div className="flex items-center justify-between bg-slate-800 border-b border-slate-700 p-2">
+         <div className={`flex items-center justify-between p-2 border-b ${isDarkTheme ? 'bg-slate-800 border-slate-700' : 'bg-gray-100 border-gray-300'}`}>
           <div className="flex flex-wrap gap-1">
             {toolbarActions.map((action) => (
               <button
                 key={action.title}
                 onClick={action.action}
-                className="px-2 py-1.5 text-sm bg-slate-700 hover:bg-slate-600 text-slate-300 rounded-md transition-colors flex items-center gap-1"
+                 className={`px-2 py-1.5 text-sm rounded-md transition-colors flex items-center gap-1 ${isDarkTheme ? 'bg-slate-700 hover:bg-slate-600 text-slate-300' : 'bg-gray-200 hover:bg-gray-300 text-gray-800'}`}
                 title={`${action.title} ${action.shortcut ? `(${action.shortcut})` : ''}`}
               >
                 <span>{action.icon}</span>
@@ -204,25 +281,51 @@ export function RichTextEditor({
           
           <div className="flex items-center gap-3">
             <button
+              onClick={() => setSplitViewMode(!splitViewMode)}
+               className={`px-3 py-1 text-sm rounded ${splitViewMode ? 'bg-blue-600' : (isDarkTheme ? 'bg-slate-700 hover:bg-slate-600' : 'bg-gray-200 hover:bg-gray-300')} ${isDarkTheme ? 'text-slate-300' : 'text-gray-800'}`}
+              title="Toggle split view"
+            >
+              Split
+            </button>
+            <button
               onClick={() => setIsPreview(!isPreview)}
-              className="px-3 py-1 text-sm bg-slate-700 hover:bg-slate-600 text-slate-300 rounded"
+              disabled={splitViewMode}
+               className={`px-3 py-1 text-sm rounded disabled:opacity-50 disabled:cursor-not-allowed ${isDarkTheme ? 'bg-slate-700 hover:bg-slate-600 text-slate-300' : 'bg-gray-200 hover:bg-gray-300 text-gray-800'}`}
             >
               {isPreview ? 'Edit' : 'Preview'}
             </button>
-            <div className="text-xs text-slate-400 hidden md:block">
+             <div className={`text-xs hidden md:block ${isDarkTheme ? 'text-slate-400' : 'text-gray-600'}`}>
               {wordCount} words • {charCount} chars
             </div>
           </div>
         </div>
       )}
 
-      {/* Editor/Preview Area */}
-      <div className="flex-1 bg-slate-900" style={{ height }}>
-        {isPreview ? (
-          <div 
-            className="h-full overflow-auto p-4 text-slate-200"
-            dangerouslySetInnerHTML={{ __html: renderPreview() }}
-          />
+       {/* Editor/Preview Area */}
+       <div className={`flex-1 ${isDarkTheme ? 'bg-slate-900' : 'bg-gray-50'}`} style={{ height }}>
+        {splitViewMode ? (
+           <div className={`grid grid-cols-2 h-full divide-x ${isDarkTheme ? 'divide-slate-700' : 'divide-gray-300'}`}>
+            <textarea
+              ref={textareaRef}
+              value={value}
+              onChange={handleTextareaChange}
+              onKeyDown={handleKeyDown}
+              placeholder={placeholder}
+               className={`w-full h-full p-4 resize-none focus:outline-none font-mono text-sm ${isDarkTheme ? 'bg-slate-900 text-white' : 'bg-white text-gray-900'}`}
+              style={{ minHeight: height }}
+            />
+            <div className={`h-full overflow-auto p-4 prose max-w-none ${isDarkTheme ? 'text-slate-200 prose-invert' : 'text-gray-800'}`}>
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                {value || 'Nothing to preview'}
+              </ReactMarkdown>
+            </div>
+          </div>
+        ) : isPreview ? (
+             <div className={`h-full overflow-auto p-4 prose max-w-none ${isDarkTheme ? 'text-slate-200 prose-invert' : 'text-gray-800'}`}>
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {value || 'Nothing to preview'}
+            </ReactMarkdown>
+          </div>
         ) : (
           <textarea
             ref={textareaRef}
@@ -230,14 +333,14 @@ export function RichTextEditor({
             onChange={handleTextareaChange}
             onKeyDown={handleKeyDown}
             placeholder={placeholder}
-            className="w-full h-full bg-slate-900 text-white p-4 resize-none focus:outline-none font-mono text-sm"
+             className={`w-full h-full p-4 resize-none focus:outline-none font-mono text-sm ${isDarkTheme ? 'bg-slate-900 text-white' : 'bg-white text-gray-900'}`}
             style={{ minHeight: height }}
           />
         )}
       </div>
 
-      {/* Status Bar */}
-      <div className="flex justify-between items-center bg-slate-800 border-t border-slate-700 px-3 py-1.5 text-xs text-slate-400">
+       {/* Status Bar */}
+       <div className={`flex justify-between items-center border-t px-3 py-1.5 text-xs ${isDarkTheme ? 'bg-slate-800 border-slate-700 text-slate-400' : 'bg-gray-100 border-gray-300 text-gray-600'}`}>
         <div className="flex items-center gap-4">
           <span>Markdown</span>
           <span className="hidden sm:inline">•</span>
@@ -249,4 +352,4 @@ export function RichTextEditor({
       </div>
     </div>
   );
-}
+});
