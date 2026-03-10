@@ -15,9 +15,12 @@ A comprehensive guide to building your own AI Research Assistant from scratch. W
 
 ---
 
-## What's New in Version 2.3
+## What's New in Version 2.4
 
-- **Chapter 4 rewritten**: Step-by-step setup guide with Ollama Cloud integration
+- **New Chapter 22**: Writing Assistant - AI-powered content creation with rich text editor and seven writing actions
+- **Chapter 4 updated**: Added Node.js version requirements and troubleshooting section for common setup issues
+- **Chapter 4 updated**: Added EPERM permission error fixes and database initialization guidance
+- **Chapter 4 updated**: Added setup wizard troubleshooting and heartbeat API error solutions
 - **Chapter 6 rewritten**: Database vs Datalake architecture explanation
 - **New Chapter 21**: Security System - Input validation, prompt injection defense
 - Updated code examples throughout
@@ -33,7 +36,7 @@ A comprehensive guide to building your own AI Research Assistant from scratch. W
 | 1 | [Introduction - Your Journey Starts Here](./chapter-01-introduction.md) | ✅ Complete |
 | 2 | [What is an API? (The Foundation)](./chapter-02-api.md) | ✅ Complete |
 | 3 | [What is a Container? (Docker Explained)](./chapter-03-containers.md) | ✅ Complete |
-| 4 | [Setting Up Your Computer - Step by Step](./chapter-04-setup.md) | ✅ Updated v2.3 |
+| 4 | [Setting Up Your Computer - Step by Step](./chapter-04-setup.md) | ✅ Updated v2.4 |
 | 5 | [What is Programming? (Learning to Give Instructions)](./chapter-05-programming.md) | ✅ Complete |
 | 6 | [Database vs Datalake - How Data is Stored](./chapter-06-database.md) | ✅ Updated v2.3 |
 | 7 | [Understanding the Project Structure](./chapter-07-structure.md) | ✅ Complete |
@@ -51,6 +54,7 @@ A comprehensive guide to building your own AI Research Assistant from scratch. W
 | 19 | [Knowledge Extraction](./chapter-19-knowledge-extraction.md) | ✅ Complete |
 | 20 | [Memory and Tasks - Persistent AI](./chapter-20-memory-tasks.md) | ✅ Complete |
 | 21 | [Security System - Protecting Your Dashboard](./chapter-21-security.md) | 🆕 New v2.3 |
+| 22 | [Writing Assistant - AI-Powered Content Creation](./chapter-22-writing-assistant.md) | 🆕 New v2.4 |
 
 **Legend:**
 - ✅ Complete

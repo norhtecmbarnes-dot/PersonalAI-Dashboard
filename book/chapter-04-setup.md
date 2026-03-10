@@ -80,6 +80,29 @@ You should see: `10.x.x` or higher
 
 **If you see version numbers, Node.js is installed correctly!**
 
+> **⚠️ Important Note about Node.js Version**
+> 
+> The AI Dashboard uses Next.js 15, which requires **Node.js version 20.9.0 or higher**. If you have an older version (like 20.8.1), you may encounter errors when starting the server.
+> 
+> **How to check your version:**
+> ```bash
+> node --version
+> ```
+> 
+> **If you need to upgrade:**
+> - **Windows/macOS**: Download the latest LTS version from [nodejs.org](https://nodejs.org)
+> - **Using nvm (Node Version Manager)**:
+>   ```bash
+>   nvm install 20.11.0
+>   nvm use 20.11.0
+>   ```
+> 
+> **Common error to watch for:**
+> ```
+> You are using Node.js 20.8.1. For Next.js, Node.js version ">=20.9.0" is required.
+> ```
+> If you see this, simply upgrade Node.js.
+
 ---
 
 ## Step 2: Install Ollama (Local AI Models)
@@ -640,6 +663,61 @@ Include comments explaining each command.
 ✅ **npm run dev** — Start your development server
 
 ✅ **localhost:3000** — Where your app runs
+
+---
+
+## Troubleshooting Common Issues
+
+Even with careful setup, you might encounter some issues. Here are common problems and how to fix them:
+
+### 1. Node.js Version Too Old
+**Error:** `You are using Node.js 20.8.1. For Next.js, Node.js version ">=20.9.0" is required.`
+
+**Solution:** Upgrade Node.js to version 20.9.0 or higher. Download from [nodejs.org](https://nodejs.org) or use nvm:
+```bash
+nvm install 20.11.0
+nvm use 20.11.0
+```
+
+### 2. EPERM Permission Errors
+**Error:** `EPERM: operation not permitted, open '.next\trace'`
+
+**Solution:** This happens when Next.js tries to write trace files. Clear the `.next` cache and rebuild:
+```bash
+rm -rf .next
+npm run build
+```
+
+### 3. Port Already in Use
+**Error:** `Error: listen EADDRINUSE: address already in use :::3000`
+
+**Solution:** Another process is using port 3000. Either:
+- Stop the other process: Find it with `netstat -ano | findstr :3000` (Windows) or `lsof -i :3000` (macOS/Linux)
+- Use a different port: `npm run dev -- -p 3001`
+
+### 4. Database Initialization Errors
+**Error:** `Database not initialized` or SQLite errors
+
+**Solution:** Initialize the database manually:
+```bash
+npm run db:init
+```
+
+### 5. Setup Wizard Won't Accept Input
+**Problem:** The setup page asks for your name and assistant name but won't let you submit.
+
+**Solution:** This happens when the user preferences database fails. The system now uses a JSON file. Restart the server and try again, or manually delete `data/user-preferences.json` if it exists.
+
+### 6. Heartbeat API Error
+**Error:** `"a is not a function"` in heartbeat response
+
+**Solution:** This is an Ollama SDK compatibility issue. Check that Ollama is running: `curl http://localhost:11434/api/tags`. If Ollama isn't running, start it first.
+
+### Getting More Help
+If you're stuck, check:
+- The project's GitHub Issues: https://github.com/norhtecmbarnes-dot/PersonalAI-Dashboard/issues
+- The `ai-dashboard-errors.log` file for detailed error logs
+- The browser's Developer Tools Console (F12) for JavaScript errors
 
 ---
 
