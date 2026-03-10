@@ -12,7 +12,7 @@ interface ActionResult {
 
 export default function WritingAssistantPage() {
   const [input, setInput] = useState('');
-  const [action, setAction] = useState<'expand' | 'outline' | 'continue' | 'rewrite' | 'simplify' | 'elaborate' | 'structure'>('expand');
+  const [action, setAction] = useState<'expand' | 'outline' | 'continue' | 'rewrite' | 'simplify' | 'elaborate' | 'structure' | 'diagram' | 'blog_post' | 'social_media' | 'ad_copy' | 'product_description' | 'email_template'>('expand');
   const [style, setStyle] = useState('professional');
   const [model, setModel] = useState('');
   const [loading, setLoading] = useState(false);
@@ -42,6 +42,12 @@ export default function WritingAssistantPage() {
     { id: 'simplify', name: 'Simplify', icon: '💡', desc: 'Make easier to understand' },
     { id: 'elaborate', name: 'Elaborate', icon: '📝', desc: 'Add examples and evidence' },
     { id: 'structure', name: 'Structure', icon: '📊', desc: 'Organize with headers and bullets' },
+    { id: 'diagram', name: 'Generate Diagram', icon: '🧩', desc: 'Generate Mermaid.js diagram code from description' },
+    { id: 'blog_post', name: 'Blog Post', icon: '📝', desc: 'Generate comprehensive blog post from topic/outline' },
+    { id: 'social_media', name: 'Social Media', icon: '🐦', desc: 'Generate engaging social media content for multiple platforms' },
+    { id: 'ad_copy', name: 'Ad Copy', icon: '📢', desc: 'Generate persuasive advertising copy for products/services' },
+    { id: 'product_description', name: 'Product Description', icon: '🏷️', desc: 'Generate persuasive product descriptions for e-commerce' },
+    { id: 'email_template', name: 'Email Template', icon: '📧', desc: 'Generate professional email templates for marketing' },
   ] as const;
 
   const handleSubmit = async () => {
@@ -190,6 +196,18 @@ export default function WritingAssistantPage() {
                     ? 'Enter text to expand with more detail...'
                     : action === 'continue'
                     ? 'Enter the beginning of text to continue...'
+                    : action === 'diagram'
+                    ? 'Describe the diagram you want to generate (e.g., "flowchart of user login process")...'
+                    : action === 'blog_post'
+                    ? 'Enter blog post topic or outline...'
+                    : action === 'social_media'
+                    ? 'Enter content or topic for social media posts...'
+                    : action === 'ad_copy'
+                    ? 'Describe product/service for ad copy...'
+                    : action === 'product_description'
+                    ? 'Enter product information or features...'
+                    : action === 'email_template'
+                    ? 'Describe email purpose or context...'
                     : 'Enter your text here...'
                 }
                 className="w-full h-64 bg-slate-900 text-white p-4 rounded-lg border border-slate-700 focus:border-purple-500 focus:outline-none resize-none"
@@ -298,7 +316,7 @@ export default function WritingAssistantPage() {
           <pre className="bg-slate-900 p-4 rounded-lg text-green-400 text-sm overflow-x-auto">
 {`// POST /api/writing
 {
-  "action": "expand",  // expand | outline | continue | rewrite | simplify | elaborate | structure
+   "action": "expand",  // expand | outline | continue | rewrite | simplify | elaborate | structure | diagram | blog_post | social_media | ad_copy | product_description | email_template
   "text": "Your text here...",
   "style": "professional",  // only for rewrite
   "model": "glm-4.7-flash",

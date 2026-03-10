@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { RichTextEditor } from '@/components/RichTextEditor';
+import { RichTextEditor, type RichTextEditorHandle } from '@/components/RichTextEditor';
 import { ModelSelector } from '@/components/ModelSelector';
+import { BrandVoiceSelector } from '@/components/BrandVoiceSelector';
 import { bookWriterPlugin } from '@/plugins/book-writer';
 
 // Book writer plugin will be loaded client-side only
@@ -37,12 +38,16 @@ interface WritingAction {
 export default function WritingWorkspacePage() {
   const [content, setContent] = useState('');
   const [selectedModel, setSelectedModel] = useState('');
+  const [selectedBrandId, setSelectedBrandId] = useState<string | null>(null);
+  const [outline, setOutline] = useState('');
+  const [showOutline, setShowOutline] = useState(false);
   const [bookProject, setBookProject] = useState<BookProject | null>(null);
   const [selectedChapter, setSelectedChapter] = useState<number | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [aiAction, setAiAction] = useState<string>('');
   const [showBookPanel, setShowBookPanel] = useState(false);
   const [showAiPanel, setShowAiPanel] = useState(true);
+  const editorRef = useRef<RichTextEditorHandle>(null);
 
   // Load book project on mount
   useEffect(() => {
@@ -74,6 +79,13 @@ export default function WritingWorkspacePage() {
     { id: 'simplify', name: 'Simplify', icon: '💡', description: 'Make easier to understand' },
     { id: 'elaborate', name: 'Elaborate', icon: '📝', description: 'Add examples and evidence' },
     { id: 'structure', name: 'Structure', icon: '📊', description: 'Organize with headers and bullets' },
+    { id: 'proposal', name: 'Generate Proposal', icon: '📑', description: 'Generate a business proposal using brand voice' },
+    { id: 'diagram', name: 'Generate Diagram', icon: '🧩', description: 'Generate Mermaid.js diagram code from description' },
+    { id: 'blog_post', name: 'Blog Post', icon: '📝', description: 'Generate comprehensive blog post from topic/outline' },
+    { id: 'social_media', name: 'Social Media', icon: '🐦', description: 'Generate engaging social media content for multiple platforms' },
+    { id: 'ad_copy', name: 'Ad Copy', icon: '📢', description: 'Generate persuasive advertising copy for products/services' },
+    { id: 'product_description', name: 'Product Description', icon: '🏷️', description: 'Generate persuasive product descriptions for e-commerce' },
+    { id: 'email_template', name: 'Email Template', icon: '📧', description: 'Generate professional email templates for marketing' },
   ];
 
   const handleStartBookProject = async () => {
@@ -161,20 +173,38 @@ export default function WritingWorkspacePage() {
     setAiAction(actionId);
     
     try {
+      // Get selected text if any
+      const selection = editorRef.current?.getSelection();
+      const textToProcess = selection?.selectedText || content;
+      
+      const body: any = {
+        action: actionId,
+        text: textToProcess,
+        model: selectedModel || undefined,
+        stream: false,
+      };
+      if (selectedBrandId) {
+        body.brandId = selectedBrandId;
+      }
       const response = await fetch('/api/writing', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: actionId,
-          text: content,
-          model: selectedModel || undefined,
-          stream: false,
-        }),
+        body: JSON.stringify(body),
       });
 
       const data = await response.json();
       if (data.success) {
-        setContent(data.result);
+        if (selection) {
+          // Replace only the selected portion
+          const newContent = content.substring(0, selection.start) + data.result + content.substring(selection.end);
+          setContent(newContent);
+        } else {
+          // Replace entire content
+          setContent(data.result);
+        }
+        if (actionId === 'outline') {
+          setOutline(data.result);
+        }
       }
     } catch (error) {
       console.error('Error performing AI action:', error);
@@ -206,7 +236,7 @@ export default function WritingWorkspacePage() {
           <div>
             <h1 className="text-3xl font-bold text-white">Writing Workspace</h1>
             <p className="text-slate-400 mt-1">
-              AI-powered writing with book generation and formatting tools
+              AI-powered writing with document generation and formatting tools
             </p>
           </div>
           <div className="flex gap-2">
@@ -231,7 +261,7 @@ export default function WritingWorkspacePage() {
           <div className={`lg:col-span-1 ${showBookPanel ? 'block' : 'hidden lg:block'}`}>
             <div className="bg-slate-800/50 backdrop-blur rounded-xl p-4">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-semibold text-white">Book Project</h2>
+                <h2 className="text-lg font-semibold text-white">Document Project</h2>
                 <button
                   onClick={() => setShowBookPanel(!showBookPanel)}
                   className="lg:hidden text-slate-400 hover:text-white"
@@ -242,16 +272,16 @@ export default function WritingWorkspacePage() {
 
               {!bookProject ? (
                 <div className="text-center py-6">
-                  <p className="text-slate-400 mb-4">No active book project</p>
+                  <p className="text-slate-400 mb-4">No active document project</p>
                   <button
                     onClick={handleStartBookProject}
                     disabled={isLoading}
                     className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-slate-600 text-white rounded-lg w-full"
                   >
-                    {isLoading ? 'Starting...' : 'Start New Book'}
+                     {isLoading ? 'Creating...' : 'Create Document'}
                   </button>
                   <p className="text-slate-500 text-sm mt-3">
-                    Generate a complete book with AI assistance
+                    Generate a complete document with AI assistance
                   </p>
                 </div>
               ) : (
@@ -282,8 +312,8 @@ export default function WritingWorkspacePage() {
                     <h4 className="text-sm font-medium text-slate-300 mb-2">Chapters</h4>
                     <div className="space-y-2">
                       {bookProject.chapters.map((chapter) => (
-                        <button
-                          key={chapter.number}
+                         <button
+                          key={chapter.id}
                           onClick={() => handleSelectChapter(chapter.number)}
                           className={`w-full text-left p-2 rounded transition-colors ${
                             selectedChapter === chapter.number
@@ -331,6 +361,46 @@ export default function WritingWorkspacePage() {
                 Select model for AI writing and book generation
               </p>
             </div>
+
+            {/* Brand Voice Selector */}
+            <div className="mt-4 bg-slate-800/50 backdrop-blur rounded-xl p-4">
+              <h3 className="text-sm font-medium text-white mb-2">Brand Voice</h3>
+              <BrandVoiceSelector
+                selectedBrandId={selectedBrandId}
+                onBrandSelect={setSelectedBrandId}
+              />
+              <p className="text-slate-400 text-xs mt-2">
+                Apply brand voice to AI writing
+              </p>
+            </div>
+
+            {/* Outline */}
+            {outline && (
+              <div className="mt-4 bg-slate-800/50 backdrop-blur rounded-xl p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-sm font-medium text-white">Outline</h3>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setShowOutline(!showOutline)}
+                      className="text-xs text-slate-400 hover:text-slate-300"
+                    >
+                      {showOutline ? 'Hide' : 'Show'}
+                    </button>
+                    <button
+                      onClick={() => setOutline('')}
+                      className="text-xs text-red-400 hover:text-red-300"
+                    >
+                      Clear
+                    </button>
+                  </div>
+                </div>
+                {showOutline && (
+                  <div className="mt-2 text-sm text-slate-300 whitespace-pre-wrap max-h-60 overflow-y-auto">
+                    {outline}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Center Panel - Editor */}
@@ -368,13 +438,15 @@ export default function WritingWorkspacePage() {
               </div>
 
               <div className="flex-1">
-                <RichTextEditor
+                 <RichTextEditor
+                  ref={editorRef}
                   value={content}
                   onChange={setContent}
                   placeholder="Start writing here, or generate content with AI..."
-                  height="500px"
+                  height="600px"
                   showToolbar={true}
                   showPreview={false}
+                  splitView={true}
                   className="h-full"
                 />
               </div>
@@ -446,7 +518,7 @@ export default function WritingWorkspacePage() {
                 </div>
                 {bookProject && (
                   <div className="mt-3 text-sm text-slate-400">
-                    Book progress: {bookProject.chapters.filter(c => c.content).length} / {bookProject.chapters.length} chapters
+                                         Document progress: {bookProject.chapters.filter(c => c.content).length} / {bookProject.chapters.length} chapters
                   </div>
                 )}
               </div>
@@ -469,7 +541,7 @@ export default function WritingWorkspacePage() {
         <div className="mt-6 text-center text-slate-500 text-sm">
           <p>
             Writing Workspace integrates book generation, AI writing assistance, and rich text editing.
-            {bookProject ? ` Working on: ${bookProject.title}` : ' Start a book project to begin.'}
+            {bookProject ? ` Working on: ${bookProject.title}` : ' Start a document project to begin.'}
           </p>
         </div>
       </div>
