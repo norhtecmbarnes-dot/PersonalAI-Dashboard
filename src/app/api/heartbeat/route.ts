@@ -27,21 +27,35 @@ export async function GET(request: Request) {
     }
 
     let dbInitialized = false;
-    // Try to initialize database
-    try {
-      await sqlDatabase.initialize();
-      dbInitialized = true;
-    } catch (error) {
-      console.error('[Heartbeat] Database initialization failed:', error);
-      dbInitialized = false;
-    }
+    // Try to initialize database - disabled due to SQLite compatibility issues
+    // try {
+    //   await sqlDatabase.initialize();
+    //   dbInitialized = true;
+    // } catch (error) {
+    //   console.error('[Heartbeat] Database initialization failed:', error);
+    //   dbInitialized = false;
+    // }
     
     // Only initialize scheduler once
-    const status = taskScheduler.getStatus();
-    if (!status.isRunning) {
-      await taskScheduler.initialize();
-      taskScheduler.start();
+    let schedulerRunning = false;
+    let schedulerInitialized = false;
+    try {
+      const schedulerStatus = taskScheduler.getStatus();
+      if (!schedulerStatus.isRunning) {
+        await taskScheduler.initialize();
+        taskScheduler.start();
+        schedulerRunning = true;
+        schedulerInitialized = true;
+      } else {
+        schedulerRunning = true;
+        schedulerInitialized = true;
+      }
+    } catch (error) {
+      console.error('[Heartbeat] Task scheduler initialization failed:', error);
+      schedulerRunning = false;
+      schedulerInitialized = false;
     }
+    const status = taskScheduler.getStatus();
 
     // If run=true, execute all due tasks immediately (only if db initialized)
     // Note: sqlite-edge doesn't have getTasksDueNow method, skip task execution for now
@@ -67,7 +81,8 @@ export async function GET(request: Request) {
 
     return NextResponse.json({
       ...healthCheck,
-      schedulerRunning: status.isRunning,
+      schedulerRunning: schedulerRunning,
+      schedulerInitialized: schedulerInitialized,
       sessionActive: status.sessionActive,
       runningTasks: status.runningTasks,
       maxConcurrentTasks: status.maxConcurrentTasks,

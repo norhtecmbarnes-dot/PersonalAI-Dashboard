@@ -1,8 +1,9 @@
 export const runtime = 'nodejs';
 
 import { NextResponse } from 'next/server';
-import { sqlDatabase } from '@/lib/database/sqlite';
 import { validateString, sanitizeString } from '@/lib/utils/validation';
+import * as fs from 'fs';
+import * as path from 'path';
 
 interface UserPrefs {
   userName: string;
@@ -30,36 +31,33 @@ const DEFAULT_PREFS: UserPrefs = {
   hasCompletedSetup: false,
 };
 
+const USER_PREFS_FILE = path.join(process.cwd(), 'data', 'user-preferences.json');
+
 async function getPreferences(): Promise<UserPrefs> {
-  await sqlDatabase.initialize();
-  
-  const docs = sqlDatabase.getDocuments(undefined, 'user_preference');
-  if (docs && docs.length > 0) {
-    try {
-      const prefs = JSON.parse(docs[0].content || '{}');
-      return { ...DEFAULT_PREFS, ...prefs };
-    } catch {
+  try {
+    if (!fs.existsSync(USER_PREFS_FILE)) {
       return DEFAULT_PREFS;
     }
+    const content = fs.readFileSync(USER_PREFS_FILE, 'utf8');
+    const prefs = JSON.parse(content || '{}');
+    return { ...DEFAULT_PREFS, ...prefs };
+  } catch (error) {
+    console.error('[UserAPI] Failed to read preferences file:', error);
+    return DEFAULT_PREFS;
   }
-  return DEFAULT_PREFS;
 }
 
 async function savePreferences(prefs: UserPrefs): Promise<void> {
-  await sqlDatabase.initialize();
-  
-  const docs = sqlDatabase.getDocuments(undefined, 'user_preference');
-  const content = JSON.stringify(prefs);
-  
-  if (docs && docs.length > 0) {
-    sqlDatabase.updateDocument(docs[0].id, { content });
-  } else {
-    sqlDatabase.addDocument({
-      title: 'User Preferences',
-      content,
-      category: 'user_preference',
-      tags: ['config', 'user'],
-    });
+  try {
+    const dataDir = path.dirname(USER_PREFS_FILE);
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
+    const content = JSON.stringify(prefs, null, 2);
+    fs.writeFileSync(USER_PREFS_FILE, content, 'utf8');
+  } catch (error) {
+    console.error('[UserAPI] Failed to save preferences file:', error);
+    throw error;
   }
 }
 

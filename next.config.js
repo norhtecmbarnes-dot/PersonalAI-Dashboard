@@ -63,7 +63,13 @@ const nextConfig = {
   // TypeScript strict mode
   typescript: {
     ignoreBuildErrors: false
-  }
+  },
+  
+  // Disable tracing to avoid file permission issues
+  // Note: trace option removed in Next.js 15
+  // experimental: {
+  //   trace: false
+  // }
 };
 
 module.exports = nextConfig;
