@@ -372,7 +372,7 @@ export default function CanvasPage() {
           {/* Preview */}
           <div 
             ref={canvasContainerRef}
-            className={`bg-slate-800/50 backdrop-blur rounded-xl overflow-hidden ${isFullscreen ? 'fixed inset-0 z-50' : ''}`}
+             className={`bg-slate-800/50 backdrop-blur rounded-xl overflow-hidden ${isFullscreen ? 'fixed inset-0 z-50 rounded-none overflow-auto' : ''}`}
           >
             <div className="bg-slate-700 px-4 py-2 flex items-center justify-between">
               <span className="text-white font-medium">{isFullscreen ? 'Canvas Preview (Fullscreen)' : 'Preview'}</span>
@@ -389,7 +389,7 @@ export default function CanvasPage() {
                     </>
                   ) : (
                     <>
-                      <span>�</span> Fullscreen
+                      <span>⛶</span> Fullscreen
                     </>
                   )}
                 </button>
@@ -445,7 +445,7 @@ export default function CanvasPage() {
                     srcDoc={html}
                     className={`w-full bg-white ${
                       isFullscreen 
-                        ? 'h-[calc(100vh-120px)]' // Fullscreen height accounting for header
+                        ? 'h-[calc(100vh-80px)]' // Fullscreen height accounting for header
                         : previewDevice === 'mobile' 
                           ? 'h-[667px] rounded-[30px] border-4 border-slate-800' 
                           : previewDevice === 'tablet' 

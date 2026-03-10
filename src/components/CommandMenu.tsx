@@ -23,7 +23,7 @@ const COMMANDS: Command[] = [
   { name: '/intelligence', description: 'Intelligence report & bid opportunities', action: 'intelligence', icon: '🎯' },
   { name: '/reflect', description: 'Run self-reflection analysis', action: 'self_reflect', icon: '🪞' },
   { name: '/research', description: 'Run external research', action: 'research', icon: '🔬' },
-  { name: '/book', description: 'Continue writing the book', action: 'book', icon: '📚' },
+  { name: '/document', description: 'Start new document', action: 'book', icon: '📝' },
   { name: '/security', description: 'Run security scan', action: 'security', icon: '🔒' },
   { name: '/calendar', description: 'Show upcoming events', action: 'show_calendar', icon: '📅' },
   { name: '/tasks', description: 'Show pending tasks', action: 'show_tasks', icon: '✅' },

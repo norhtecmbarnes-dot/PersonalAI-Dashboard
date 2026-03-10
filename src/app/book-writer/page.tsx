@@ -137,10 +137,10 @@ export default function BookWriterPage() {
       <div className="max-w-7xl mx-auto">
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-white">Book Writer</h1>
-            <p className="text-gray-400 mt-1">
-              Creating: "Building Your Own AI Research Assistant"
-            </p>
+             <h1 className="text-3xl font-bold text-white">Document Creator</h1>
+             <p className="text-gray-400 mt-1">
+               Create: "Building Your Own AI Research Assistant"
+             </p>
           </div>
           <div className="flex gap-3">
             {!progress && (
@@ -149,7 +149,7 @@ export default function BookWriterPage() {
                 disabled={loading}
                 className="px-6 py-3 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 text-white rounded-lg font-medium"
               >
-                {loading ? 'Starting...' : 'Start Writing Book'}
+                 {loading ? 'Starting...' : 'Start New Document'}
               </button>
             )}
             {progress && progress.status !== 'completed' && (
@@ -158,7 +158,7 @@ export default function BookWriterPage() {
                 disabled={loading}
                 className="px-6 py-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white rounded-lg font-medium"
               >
-                {loading ? 'Writing...' : 'Write Next Chapter'}
+                 {loading ? 'Writing...' : 'Add New Section'}
               </button>
             )}
             {progress && (
@@ -167,7 +167,7 @@ export default function BookWriterPage() {
                 disabled={exporting}
                 className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded-lg font-medium"
               >
-                {exporting ? 'Exporting...' : 'Export Book (Markdown)'}
+                 {exporting ? 'Exporting...' : 'Export Document (Markdown)'}
               </button>
             )}
           </div>
@@ -187,7 +187,7 @@ export default function BookWriterPage() {
                   <div className="text-3xl font-bold text-green-400">
                     {progress.chapters.filter(c => c.status === 'completed').length} / {progress.chapters.length}
                   </div>
-                  <p className="text-gray-400 text-sm">Chapters Complete</p>
+                   <p className="text-gray-400 text-sm">Sections Complete</p>
                   <p className="text-gray-400 text-sm mt-1">
                     {progress.totalWords.toLocaleString()} words
                   </p>
@@ -196,9 +196,9 @@ export default function BookWriterPage() {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {/* Chapter List */}
+               {/* Section List */}
               <div className="bg-gray-800 rounded-lg p-4">
-                <h3 className="text-lg font-semibold text-white mb-4">Chapters</h3>
+                 <h3 className="text-lg font-semibold text-white mb-4">Sections</h3>
                 <div className="space-y-2 max-h-[600px] overflow-y-auto">
                   {progress.chapters.map((chapter) => (
                     <button
@@ -217,7 +217,7 @@ export default function BookWriterPage() {
                     >
                       <div className="flex justify-between items-start">
                         <div>
-                          <span className="text-gray-400 text-sm">Chapter {chapter.number}</span>
+                           <span className="text-gray-400 text-sm">Section {chapter.number}</span>
                           <div className="text-white font-medium">{chapter.title}</div>
                         </div>
                         {chapter.status === 'completed' && (
@@ -232,14 +232,14 @@ export default function BookWriterPage() {
                 </div>
               </div>
 
-              {/* Chapter Content */}
+               {/* Section Content */}
               <div className="lg:col-span-2 bg-gray-800 rounded-lg p-6">
                 {selectedChapterData ? (
                   <div>
                     <div className="flex justify-between items-start mb-4">
                       <div>
                         <h3 className="text-xl font-semibold text-white">
-                          Chapter {selectedChapterData.number}: {selectedChapterData.title}
+                           Section {selectedChapterData.number}: {selectedChapterData.title}
                         </h3>
                         <p className="text-gray-400 text-sm mt-1">
                           Status: {selectedChapterData.status} | 
@@ -252,7 +252,7 @@ export default function BookWriterPage() {
                           disabled={loading}
                           className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white rounded text-sm"
                         >
-                          Write This Chapter
+                           Write This Section
                         </button>
                       )}
                     </div>
@@ -266,7 +266,7 @@ export default function BookWriterPage() {
                         <div className="text-gray-500 italic">
                           {selectedChapterData.status === 'writing' 
                             ? 'Writing in progress...'
-                            : 'This chapter has not been written yet. Click "Write This Chapter" or "Write Next Chapter" to generate content.'}
+                             : 'This section has not been written yet. Click "Write This Section" or "Add New Section" to generate content.'}
                         </div>
                       )}
                     </div>
@@ -282,11 +282,11 @@ export default function BookWriterPage() {
         )}
 
         {!progress && !loading && (
-          <div className="text-center text-gray-400 py-12">
-            <div className="text-6xl mb-4">📖</div>
-            <p className="text-lg">No book in progress.</p>
-            <p className="mt-2">Click "Start Writing Book" to begin writing your AI Assistant guide.</p>
-          </div>
+           <div className="text-center text-gray-400 py-12">
+             <div className="text-6xl mb-4">📝</div>
+             <p className="text-lg">No document in progress.</p>
+             <p className="mt-2">Click "Start New Document" to begin writing your AI Assistant guide.</p>
+           </div>
         )}
       </div>
     </div>
