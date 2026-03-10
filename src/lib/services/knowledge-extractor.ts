@@ -1,6 +1,6 @@
 import { sqlDatabase } from '@/lib/database/sqlite';
 
-interface ExtractedKnowledge {
+export interface ExtractedKnowledge {
   keyFacts: string[];
   entities: Array<{ name: string; type: string; description?: string }>;
   products: Array<{ name: string; description: string }>;

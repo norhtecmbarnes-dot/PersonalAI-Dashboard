@@ -63,14 +63,14 @@ export const PLUGINS: Record<string, PluginConfig> = {
   },
 
   // Personal Plugins (Optional)
-  'book-writer': {
+   'book-writer': {
     id: 'book-writer',
     enabled: true,
     personal: true,
-    name: 'Book Writer',
+    name: 'Document Creator',
     route: '/book-writer',
     icon: 'book',
-    description: 'Generate AI Assistant documentation as a CC-licensed book',
+    description: 'Generate AI Assistant documentation as a CC-licensed document',
     category: 'writing',
   },
   'sam-gov': {

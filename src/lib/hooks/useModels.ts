@@ -33,6 +33,7 @@ export function useModels() {
       }
       
       const data = await response.json();
+      console.log('[useModels] API response:', { ollamaAvailable: data.ollama?.available, ollamaModels: data.ollama?.models?.length });
       
       // Process Ollama models
       const ollama = data.ollama?.models || [];
@@ -78,7 +79,7 @@ export function useModels() {
       setOllamaHealthy(data.ollama?.available || false);
       setError(null);
     } catch (err) {
-      console.error('Error loading models:', err);
+      console.error('[useModels] Error loading models:', err);
       setError(err instanceof Error ? err.message : 'Failed to load models');
       // Fallback models - comprehensive list of commonly available models
       setModels([

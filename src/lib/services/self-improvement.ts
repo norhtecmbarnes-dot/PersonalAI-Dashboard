@@ -531,7 +531,7 @@ class SelfImprovementService {
       { name: 'Research', key: 'research' },
       { name: 'Intelligence', key: 'intelligence' },
       { name: 'Self Improvement', key: 'self_improvement' },
-      { name: 'Book Writer', key: 'book_writer' },
+      { name: 'Document Creator', key: 'book_writer' },
     ];
 
     for (const feature of knownFeatures) {

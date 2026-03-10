@@ -351,7 +351,7 @@ class CodeHealthService {
       { name: 'Research', route: '/research', uses: 0, lastUsed: null, avgResponseTime: 0, errorRate: 0, status: 'active' },
       { name: 'Intelligence', route: '/intelligence', uses: 0, lastUsed: null, avgResponseTime: 0, errorRate: 0, status: 'active' },
       { name: 'SAM.gov', route: '/sam', uses: 0, lastUsed: null, avgResponseTime: 0, errorRate: 0, status: 'active' },
-      { name: 'Book Writer', route: '/book-writer', uses: 0, lastUsed: null, avgResponseTime: 0, errorRate: 0, status: 'active' },
+      { name: 'Document Creator', route: '/book-writer', uses: 0, lastUsed: null, avgResponseTime: 0, errorRate: 0, status: 'active' },
     ];
 
     if (typeof window === 'undefined') return features;

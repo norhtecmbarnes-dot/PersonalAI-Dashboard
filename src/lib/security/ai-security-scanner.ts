@@ -86,7 +86,7 @@ const DETECTION_RULES: Array<{
     severity: 'critical',
     patterns: [
       /\$\{.*user.*input.*\}/gi,
-      /`[^`]*\$\{[^}]*\}[^`]*`/gi,
+      /`[^`]*\$\{.*(user|input|message|query|prompt).*\}.*`/gi,
       /systemPrompt\s*\+\s*user/gi,
       /context\s*\+=\s*message/gi,
       /eval\s*\(\s*.*user/gi,
@@ -157,7 +157,6 @@ const DETECTION_RULES: Array<{
     name: 'Malware Payload Risk',
     severity: 'critical',
     patterns: [
-      /base64/gi,
       /atob\s*\(/gi,
       /btoa\s*\(/gi,
       /Buffer\s*\.\s*from\s*\(\s*['"][A-Za-z0-9+/=]{50,}/gi,
@@ -555,9 +554,9 @@ class AISecurityScanner {
 
   private calculateRiskScore(issues: SecurityIssue[]): number {
     const weights = {
-      critical: 25,
-      high: 15,
-      medium: 5,
+      critical: 5,
+      high: 3,
+      medium: 2,
       low: 1,
     };
     
