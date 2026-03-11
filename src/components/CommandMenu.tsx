@@ -13,6 +13,7 @@ const COMMANDS: Command[] = [
   { name: '/search', description: 'Toggle web search mode', action: 'web_search', icon: '🔍' },
   { name: '/brand', description: 'Open Brand Workspace', action: 'brand_workspace', icon: '🏢' },
   { name: '/brand-chat', description: 'Chat with Brand Voice & Project docs', action: 'brand_chat', icon: '💬' },
+  { name: '/editor', description: 'Collaborative editor with AI track changes', action: 'collab_editor', icon: '✍️' },
   { name: '/math', description: 'Calculate a math expression', action: 'math', icon: '🔢' },
   { name: '/visualize', description: 'Create a chart or graph', action: 'visualize', icon: '📈' },
   { name: '/expert', description: 'Switch to an expert agent', action: 'switch_expert', icon: '👤' },

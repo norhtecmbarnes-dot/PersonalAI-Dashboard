@@ -692,6 +692,9 @@ export default function Home() {
       case 'brand_chat':
         window.location.href = '/brand-chat';
         break;
+      case 'collab_editor':
+        window.location.href = '/editor';
+        break;
       case 'switch_expert':
         setInput('/expert ');
         break;
