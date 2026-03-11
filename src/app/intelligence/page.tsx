@@ -42,6 +42,31 @@ interface BidOpportunity {
   keywords?: string[];
 }
 
+interface USASpendingAward {
+  id: string;
+  title: string;
+  description?: string;
+  awardAmount: number;
+  awardDate: string;
+  recipientName: string;
+  recipientLocation: string;
+  awardingAgency: string;
+  fundingAgency: string;
+  naicsCode?: string;
+  naicsDescription?: string;
+  cfdaNumber?: string;
+  cfdaTitle?: string;
+  awardType?: string;
+  uri?: string;
+}
+
+interface FederalSpending {
+  topAgencies: Array<{ name: string; amount: number; count: number }>;
+  topRecipients: Array<{ name: string; amount: number }>;
+  totalSpending: number;
+  generatedAt: number;
+}
+
 interface IntelligenceReport {
   id: string;
   createdAt: number;
@@ -57,15 +82,16 @@ interface IntelligenceReport {
   keyIndividuals: KeyIndividual[];
   bidOpportunities: {
     samGov: BidOpportunity[];
-    canadaBuys: BidOpportunity[];
+    usaspending: USASpendingAward[];
     generatedAt: number;
   };
+  federalSpending?: FederalSpending;
 }
 
 export default function IntelligencePage() {
   const [report, setReport] = useState<IntelligenceReport | null>(null);
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'news' | 'people' | 'bids'>('news');
+  const [activeTab, setActiveTab] = useState<'news' | 'people' | 'bids' | 'spending'>('bids');
   const [newsCategory, setNewsCategory] = useState<string>('spaceDomainAwareness');
 
   useEffect(() => {
@@ -113,7 +139,20 @@ export default function IntelligencePage() {
 
   const getArticles = (): NewsArticle[] => {
     if (!report) return [];
-    return report.newsSummary[newsCategory as keyof typeof report.newsSummary] as NewsArticle[] || [];
+    return (report.newsSummary[newsCategory as keyof typeof report.newsSummary] as NewsArticle[]) || [];
+  };
+
+  const formatCurrency = (amount: number): string => {
+    if (amount >= 1000000000) {
+      return `$${(amount / 1000000000).toFixed(2)}B`;
+    }
+    if (amount >= 1000000) {
+      return `$${(amount / 1000000).toFixed(2)}M`;
+    }
+    if (amount >= 1000) {
+      return `$${(amount / 1000).toFixed(1)}K`;
+    }
+    return `$${amount.toFixed(0)}`;
   };
 
   return (
@@ -123,7 +162,7 @@ export default function IntelligencePage() {
           <div>
             <h1 className="text-3xl font-bold text-white">Intelligence Report</h1>
             <p className="text-gray-400 mt-1">
-              Space, Defense & Commercial Space Intelligence
+              Federal Spending, Contracts & Opportunities
             </p>
           </div>
           <button
@@ -137,7 +176,23 @@ export default function IntelligencePage() {
 
         {report && (
           <>
-            <div className="flex gap-2 mb-6">
+            <div className="flex gap-2 mb-6 flex-wrap">
+              <button
+                onClick={() => setActiveTab('spending')}
+                className={`px-4 py-2 rounded-lg font-medium ${
+                  activeTab === 'spending' ? 'bg-purple-600 text-white' : 'bg-gray-800 text-gray-300'
+                }`}
+              >
+                Federal Spending
+              </button>
+              <button
+                onClick={() => setActiveTab('bids')}
+                className={`px-4 py-2 rounded-lg font-medium ${
+                  activeTab === 'bids' ? 'bg-purple-600 text-white' : 'bg-gray-800 text-gray-300'
+                }`}
+              >
+                Opportunities ({(report.bidOpportunities.samGov?.length || 0) + (report.bidOpportunities.usaspending?.length || 0)})
+              </button>
               <button
                 onClick={() => setActiveTab('news')}
                 className={`px-4 py-2 rounded-lg font-medium ${
@@ -154,15 +209,142 @@ export default function IntelligencePage() {
               >
                 Key People ({report.keyIndividuals.length})
               </button>
-              <button
-                onClick={() => setActiveTab('bids')}
-                className={`px-4 py-2 rounded-lg font-medium ${
-                  activeTab === 'bids' ? 'bg-purple-600 text-white' : 'bg-gray-800 text-gray-300'
-                }`}
-              >
-                Bid Opportunities ({report.bidOpportunities.samGov.length + report.bidOpportunities.canadaBuys.length})
-              </button>
             </div>
+
+            {activeTab === 'spending' && report.federalSpending && (
+              <div className="space-y-6">
+                <div className="bg-gray-800 rounded-lg p-6">
+                  <h2 className="text-xl font-semibold text-white mb-2">Federal Spending Overview</h2>
+                  <p className="text-4xl font-bold text-green-400">
+                    {formatCurrency(report.federalSpending.totalSpending)}
+                  </p>
+                  <p className="text-gray-400 text-sm mt-1">
+                    Total from top agencies
+                  </p>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div>
+                    <h3 className="text-lg font-semibold text-white mb-4">Top Agencies by Spending</h3>
+                    <div className="space-y-2">
+                      {report.federalSpending.topAgencies.map((agency, idx) => (
+                        <div key={idx} className="bg-gray-800 rounded-lg p-3 flex justify-between items-center">
+                          <div>
+                            <p className="text-white font-medium">{agency.name}</p>
+                            <p className="text-gray-400 text-sm">{agency.count?.toLocaleString() || 0} awards</p>
+                          </div>
+                          <p className="text-green-400 font-semibold">{formatCurrency(agency.amount)}</p>
+                        </div>
+                      ))}
+                      {report.federalSpending.topAgencies.length === 0 && (
+                        <p className="text-gray-500">No agency data available</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h3 className="text-lg font-semibold text-white mb-4">Top Recipients</h3>
+                    <div className="space-y-2">
+                      {report.federalSpending.topRecipients.map((recipient, idx) => (
+                        <div key={idx} className="bg-gray-800 rounded-lg p-3 flex justify-between items-center">
+                          <p className="text-white font-medium truncate pr-4">{recipient.name}</p>
+                          <p className="text-green-400 font-semibold whitespace-nowrap">{formatCurrency(recipient.amount)}</p>
+                        </div>
+                      ))}
+                      {report.federalSpending.topRecipients.length === 0 && (
+                        <p className="text-gray-500">No recipient data available</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'spending' && !report.federalSpending && (
+              <div className="text-center text-gray-400 py-12">
+                <p className="text-lg">No federal spending data available.</p>
+                <p className="mt-2">Click "Generate New Report" to fetch spending data.</p>
+              </div>
+            )}
+
+            {activeTab === 'bids' && (
+              <div className="space-y-6">
+                <div>
+                  <h2 className="text-xl font-semibold text-white mb-4">
+                    USA Spending Awards ({report.bidOpportunities.usaspending?.length || 0})
+                  </h2>
+                  <div className="grid gap-4">
+                    {report.bidOpportunities.usaspending?.map((award, idx) => (
+                      <div key={idx} className="bg-gray-800 rounded-lg p-4">
+                        <div className="flex justify-between items-start">
+                          <div className="flex-1">
+                            <h3 className="text-lg font-semibold text-white">{award.title || award.awardingAgency}</h3>
+                            <p className="text-gray-400 text-sm mt-1">{award.recipientName}</p>
+                          </div>
+                          <div className="text-right ml-4">
+                            <p className="text-2xl font-bold text-green-400">{formatCurrency(award.awardAmount)}</p>
+                            {award.uri && (
+                              <a
+                                href={award.uri}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-blue-400 hover:text-blue-300 text-sm"
+                              >
+                                View on USASpending.gov
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                        {award.description && (
+                          <p className="text-gray-300 mt-2 text-sm line-clamp-2">{award.description}</p>
+                        )}
+                        <div className="flex gap-4 mt-2 text-sm text-gray-400 flex-wrap">
+                          {award.awardingAgency && <span>Agency: {award.awardingAgency}</span>}
+                          {award.naicsDescription && <span>NAICS: {award.naicsDescription}</span>}
+                          {award.awardDate && <span>Date: {new Date(award.awardDate).toLocaleDateString()}</span>}
+                        </div>
+                      </div>
+                    ))}
+                    {(!report.bidOpportunities.usaspending || report.bidOpportunities.usaspending.length === 0) && (
+                      <p className="text-gray-500">No USASpending awards available. Generate a report to fetch data.</p>
+                    )}
+                  </div>
+                </div>
+
+                <div>
+                  <h2 className="text-xl font-semibold text-white mb-4">SAM.gov Opportunities</h2>
+                  <div className="grid gap-4">
+                    {report.bidOpportunities.samGov.map((opp, idx) => (
+                      <div key={idx} className="bg-gray-800 rounded-lg p-4">
+                        <div className="flex justify-between items-start">
+                          <h3 className="text-lg font-semibold text-white">{opp.title}</h3>
+                          {opp.url && (
+                            <a
+                              href={opp.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-400 hover:text-blue-300 text-sm"
+                            >
+                              View
+                            </a>
+                          )}
+                        </div>
+                        <p className="text-gray-400 text-sm mt-1">{opp.solicitationNumber}</p>
+                        <p className="text-gray-300 mt-2 line-clamp-2">{opp.synopsis}</p>
+                        <div className="flex gap-4 mt-2 text-sm text-gray-400 flex-wrap">
+                          {opp.agency && <span>Agency: {opp.agency}</span>}
+                          {opp.awardAmount && <span>Amount: {opp.awardAmount}</span>}
+                          {opp.responseDeadline && <span>Deadline: {new Date(opp.responseDeadline).toLocaleDateString()}</span>}
+                        </div>
+                      </div>
+                    ))}
+                    {report.bidOpportunities.samGov.length === 0 && (
+                      <p className="text-gray-500">No SAM.gov opportunities available.</p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {activeTab === 'news' && (
               <div className="space-y-6">
@@ -235,66 +417,9 @@ export default function IntelligencePage() {
                     {person.notes && <p className="text-gray-400 text-sm mt-2">{person.notes}</p>}
                   </div>
                 ))}
-              </div>
-            )}
-
-            {activeTab === 'bids' && (
-              <div className="space-y-6">
-                <div>
-                  <h2 className="text-xl font-semibold text-white mb-4">SAM.gov Opportunities</h2>
-                  <div className="grid gap-4">
-                    {report.bidOpportunities.samGov.map((opp, idx) => (
-                      <div key={idx} className="bg-gray-800 rounded-lg p-4">
-                        <div className="flex justify-between items-start">
-                          <h3 className="text-lg font-semibold text-white">{opp.title}</h3>
-                          <a
-                            href={opp.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-400 hover:text-blue-300 text-sm"
-                          >
-                            View
-                          </a>
-                        </div>
-                        <p className="text-gray-400 text-sm mt-1">{opp.solicitationNumber}</p>
-                        <p className="text-gray-300 mt-2">{opp.synopsis}</p>
-                        <div className="flex gap-4 mt-2 text-sm text-gray-400">
-                          {opp.agency && <span>Agency: {opp.agency}</span>}
-                          {opp.awardAmount && <span>Amount: {opp.awardAmount}</span>}
-                          {opp.responseDeadline && <span>Deadline: {new Date(opp.responseDeadline).toLocaleDateString()}</span>}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <h2 className="text-xl font-semibold text-white mb-4">Canada Buys Opportunities</h2>
-                  <div className="grid gap-4">
-                    {report.bidOpportunities.canadaBuys.map((opp, idx) => (
-                      <div key={idx} className="bg-gray-800 rounded-lg p-4">
-                        <div className="flex justify-between items-start">
-                          <h3 className="text-lg font-semibold text-white">{opp.title}</h3>
-                          <a
-                            href={opp.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-blue-400 hover:text-blue-300 text-sm"
-                          >
-                            View
-                          </a>
-                        </div>
-                        <p className="text-gray-400 text-sm mt-1">{opp.referenceNumber}</p>
-                        <p className="text-gray-300 mt-2">{opp.description}</p>
-                        <div className="flex gap-4 mt-2 text-sm text-gray-400">
-                          {opp.buyerName && <span>Buyer: {opp.buyerName}</span>}
-                          {opp.contractValue && <span>Value: {opp.contractValue}</span>}
-                          {opp.closingDate && <span>Deadline: {new Date(opp.closingDate).toLocaleDateString()}</span>}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                {report.keyIndividuals.length === 0 && (
+                  <p className="text-gray-500 text-center">No key individuals tracked.</p>
+                )}
               </div>
             )}
           </>
