@@ -4,13 +4,13 @@ Your AI Dashboard doesn't have to live in a web browser. You can connect it to m
 
 ## What You'll Learn
 
-- **Why messaging integration matters** — Meet users where they are
-- **Telegram integration** — Step-by-step bot setup
-- **The integration pattern** — Apply to any platform
-- **Slack integration** — Adapting the same approach
-- **Notion integration** — Document-based AI
-- **Security considerations** — Keeping your system safe
-- **Multi-platform strategy** — One AI, many channels
+• **Why messaging integration matters** — Meet users where they are
+• **Telegram integration** — Step-by-step bot setup
+• **The integration pattern** — Apply to any platform
+• **Slack integration** — Adapting the same approach
+• **Notion integration** — Document-based AI
+• **Security considerations** — Keeping your system safe
+• **Multi-platform strategy** — One AI, many channels
 
 ---
 
@@ -21,10 +21,10 @@ Imagine you run a great restaurant (your AI Dashboard).
 **Traditional approach:** Customers must come to your restaurant (web interface).
 
 **Messaging integration:** You deliver to where customers are:
-- Telegram → Like food delivery to someone's home
-- Slack → Like a food truck at their office
-- Notion → Like meal prep delivered weekly
-- Discord → Like catering their party
+• Telegram → Like food delivery to someone's home
+• Slack → Like a food truck at their office
+• Notion → Like meal prep delivered weekly
+• Discord → Like catering their party
 
 **Same kitchen (AI), different delivery methods (integrations).**
 
@@ -44,11 +44,11 @@ Imagine you run a great restaurant (your AI Dashboard).
 
 ### Use Cases
 
-- **Daily briefings** — AI sends summary each morning
-- **Alerts** — Notify when something important happens
-- **Chat interface** — Have conversations in your favorite app
-- **Commands** — Issue commands via message
-- **Document sharing** — Send files to AI for processing
+• **Daily briefings** — AI sends summary each morning
+• **Alerts** — Notify when something important happens
+• **Chat interface** — Have conversations in your favorite app
+• **Commands** — Issue commands via message
+• **Document sharing** — Send files to AI for processing
 
 ---
 
@@ -458,10 +458,10 @@ Notion is different — it's document-based, not chat-based.
 
 ### Use Cases
 
-- **Daily journaling** — AI helps you write
-- **Knowledge base** — AI retrieves and summarizes
-- **Task management** — AI updates databases
-- **Meeting notes** — AI transcribes and organizes
+• **Daily journaling** — AI helps you write
+• **Knowledge base** — AI retrieves and summarizes
+• **Task management** — AI updates databases
+• **Meeting notes** — AI transcribes and organizes
 
 ### Step 1: Create Notion Integration
 
@@ -791,9 +791,9 @@ Here's a prompt to create a new messaging integration:
 Create a messaging integration for [PLATFORM NAME] in my AI Dashboard.
 
 ## Platform Details
-- Name: [PLATFORM NAME]
-- API Documentation: [LINK TO API DOCS]
-- Authentication: [OAuth / API Key / Token]
+• Name: [PLATFORM NAME]
+• API Documentation: [LINK TO API DOCS]
+• Authentication: [OAuth / API Key / Token]
 
 ## What I Need
 1. Integration service at src/lib/integrations/[platform].ts
@@ -806,18 +806,18 @@ Create a messaging integration for [PLATFORM NAME] in my AI Dashboard.
 5. Environment variables in .env.example
 
 ## Requirements
-- Send messages to platform
-- Receive messages via webhook
-- Parse commands (/[command] format)
-- Route to AI for response
-- Log all messages
-- Handle errors gracefully
-- Support message threading
+• Send messages to platform
+• Receive messages via webhook
+• Parse commands (/[command] format)
+• Route to AI for response
+• Log all messages
+• Handle errors gracefully
+• Support message threading
 
 ## Security
-- Verify webhook signatures
-- Rate limiting per user
-- Authorized user whitelist
+• Verify webhook signatures
+• Rate limiting per user
+• Authorized user whitelist
 
 Include TypeScript types and error handling.
 ```

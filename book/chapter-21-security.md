@@ -4,13 +4,13 @@ Your AI Dashboard has access to your data, files, and can generate code. This po
 
 ## What You'll Learn
 
-- **Security architecture** of the AI Dashboard
-- **Threat model** - what we protect against
-- **Input validation** and sanitization
-- **Prompt injection defense**
-- **SQL injection prevention**
-- **Security scanning** and auditing
-- **Best practices** for AI security
+• **Security architecture** of the AI Dashboard
+• **Threat model** - what we protect against
+• **Input validation** and sanitization
+• **Prompt injection defense**
+• **SQL injection prevention**
+• **Security scanning** and auditing
+• **Best practices** for AI security
 
 ---
 
@@ -19,16 +19,16 @@ Your AI Dashboard has access to your data, files, and can generate code. This po
 ### AI Security is Different
 
 Traditional web apps defend against:
-- SQL injection
-- XSS attacks
-- CSRF attacks
-- Authentication bypass
+• SQL injection
+• XSS attacks
+• CSRF attacks
+• Authentication bypass
 
 AI applications have ADDITIONAL threats:
-- **Prompt injection** - Manipulating AI behavior through input
-- **Data leakage** - AI revealing sensitive information
-- **Code execution** - AI generating malicious code
-- **Model manipulation** - Adversarial inputs to corrupt behavior
+• **Prompt injection** - Manipulating AI behavior through input
+• **Data leakage** - AI revealing sensitive information
+• **Code execution** - AI generating malicious code
+• **Model manipulation** - Adversarial inputs to corrupt behavior
 
 ### Defense in Depth
 
@@ -162,11 +162,11 @@ src/lib/utils/validation.ts
 **Purpose:** Clean user input before sending to AI models.
 
 **What It Removes:**
-- Code blocks that might confuse AI
-- Instruction injection tags ([INST], system:)
-- Role manipulation attempts ("you are now...")
-- Special tokens (<|...|>)
-- Excessive newlines
+• Code blocks that might confuse AI
+• Instruction injection tags ([INST], system:)
+• Role manipulation attempts ("you are now...")
+• Special tokens (<|...|>)
+• Excessive newlines
 
 **Code:**
 
@@ -548,15 +548,15 @@ npm run security:scan
 
 Before deploying:
 
-- [ ] All user inputs validated and sanitized
-- [ ] All database queries parameterized
-- [ ] API keys in `.env.local`, not in code
-- [ ] `.env.local` in `.gitignore`
-- [ ] Security scan run recently
-- [ ] No console.log of sensitive data in production
-- [ ] Error messages don't reveal internals
-- [ ] CORS configured correctly
-- [ ] Rate limiting enabled for API routes
+• [ ] All user inputs validated and sanitized
+• [ ] All database queries parameterized
+• [ ] API keys in `.env.local`, not in code
+• [ ] `.env.local` in `.gitignore`
+• [ ] Security scan run recently
+• [ ] No console.log of sensitive data in production
+• [ ] Error messages don't reveal internals
+• [ ] CORS configured correctly
+• [ ] Rate limiting enabled for API routes
 
 ---
 
@@ -642,10 +642,10 @@ Create a TypeScript validation utility that:
 6. Handles nested data structures
 
 Include:
-- Error messages
-- TypeScript types
-- Usage examples
-- Unit test examples
+• Error messages
+• TypeScript types
+• Usage examples
+• Unit test examples
 ```
 
 ---

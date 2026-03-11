@@ -4,13 +4,13 @@
 
 ## What You'll Learn in This Chapter
 
-- How to access the **Writing Workspace** in your AI Dashboard
-- Using the **Rich Text Editor** with split-view Markdown preview
-- Seven AI-powered writing actions: **Expand, Outline, Continue, Rewrite, Simplify, Elaborate, Structure**
-- **Brand Voice Integration** — writing in your brand's unique style
-- **Book Writer** feature for long-form content creation
-- Keyboard shortcuts and productivity tips
-- How to personalize the writing assistant for your specific needs
+• How to access the **Writing Workspace** in your AI Dashboard
+• Using the **Rich Text Editor** with split-view Markdown preview
+• Seven AI-powered writing actions: **Expand, Outline, Continue, Rewrite, Simplify, Elaborate, Structure**
+• **Brand Voice Integration** — writing in your brand's unique style
+• **Book Writer** feature for long-form content creation
+• Keyboard shortcuts and productivity tips
+• How to personalize the writing assistant for your specific needs
 
 ---
 
@@ -18,11 +18,11 @@
 
 While your AI Dashboard can chat and answer questions, sometimes you need more focused writing help. The **Writing Assistant** is a dedicated workspace where you can:
 
-- **Brainstorm ideas** with AI suggestions
-- **Overcome writer's block** with content generation
-- **Polish existing text** with AI editing
-- **Maintain consistent tone** using brand voice profiles
-- **Create long documents** chapter by chapter
+• **Brainstorm ideas** with AI suggestions
+• **Overcome writer's block** with content generation
+• **Polish existing text** with AI editing
+• **Maintain consistent tone** using brand voice profiles
+• **Create long documents** chapter by chapter
 
 Think of it as having a professional editor, copywriter, and brainstorming partner — all in one tool.
 
@@ -51,16 +51,16 @@ The workspace is divided into three main areas:
 The editor is a **full-featured Markdown editor** with:
 
 ### Key Features:
-- **Split View** — Edit Markdown on the left, see formatted preview on the right
-- **Toolbar** — Bold, italic, headings, lists, links, images, code blocks, quotes
-- **Keyboard Shortcuts**:
-  - `Ctrl+B` — Bold
-  - `Ctrl+I` — Italic  
-  - `Ctrl+S` — Strikethrough
-  - `Ctrl+E` — Inline code
-- **Word/Character Count** — Track your progress
-- **Fullscreen Mode** — Distraction-free writing
-- **Dark/Light Theme** — Choose your preference
+• **Split View** — Edit Markdown on the left, see formatted preview on the right
+• **Toolbar** — Bold, italic, headings, lists, links, images, code blocks, quotes
+• **Keyboard Shortcuts**:
+  • `Ctrl+B` — Bold
+  • `Ctrl+I` — Italic  
+  • `Ctrl+S` — Strikethrough
+  • `Ctrl+E` — Inline code
+• **Word/Character Count** — Track your progress
+• **Fullscreen Mode** — Distraction-free writing
+• **Dark/Light Theme** — Choose your preference
 
 ### Try It Yourself:
 1. Open the writing workspace
@@ -118,10 +118,10 @@ For books, manuals, or long documents:
 5. Track progress with the chapter completion indicator
 
 The book writer:
-- **Auto-saves** each chapter
-- **Maintains consistent tone** throughout
-- **Generates table of contents**
-- **Exports to Markdown** for publishing
+• **Auto-saves** each chapter
+• **Maintains consistent tone** throughout
+• **Generates table of contents**
+• **Exports to Markdown** for publishing
 
 ### Try It Yourself:
 1. Start a new book project titled "My AI Journey"
@@ -138,9 +138,9 @@ Edit the writing prompts in `src/lib/writing/prompts.ts` to change how the AI re
 
 ### Model Selection
 Choose different AI models for different writing tasks:
-- **Quick edits**: Small, fast models (Qwen2.5:3B)
-- **Creative writing**: Medium models (GLM-4.7-flash)
-- **Complex restructuring**: Large models (DeepSeek-R1)
+• **Quick edits**: Small, fast models (Qwen2.5:3B)
+• **Creative writing**: Medium models (GLM-4.7-flash)
+• **Complex restructuring**: Large models (DeepSeek-R1)
 
 ### Keyboard-First Workflow
 1. Write your draft
@@ -192,11 +192,11 @@ The key is **iterative refinement**: write a draft, use AI to improve it, review
 
 The writing assistant is just the beginning. You could:
 
-- **Add new writing actions** (summarize, translate, analyze tone)
-- **Integrate grammar checking** (like Grammarly)
-- **Connect to publishing platforms** (WordPress, Medium, Substack)
-- **Add templates** (blog posts, emails, social media updates)
-- **Create collaborative features** (multiple authors, review cycles)
+• **Add new writing actions** (summarize, translate, analyze tone)
+• **Integrate grammar checking** (like Grammarly)
+• **Connect to publishing platforms** (WordPress, Medium, Substack)
+• **Add templates** (blog posts, emails, social media updates)
+• **Create collaborative features** (multiple authors, review cycles)
 
 **You now hold enterprise-grade writing power in your hands — and the best part? You can make this writing assistant completely yours with simple prompts.**
 

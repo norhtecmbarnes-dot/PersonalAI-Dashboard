@@ -4,12 +4,12 @@ A chat assistant that only understands text is limited. What if you could upload
 
 ## What You'll Learn
 
-- Handling **file uploads** in Next.js
-- Reading **different document formats** (PDF, DOCX, TXT)
-- **Storing documents** in your database
-- Displaying **document content** to the AI
-- Building a **documents page** UI
-- Understanding **file streaming** and processing
+• Handling **file uploads** in Next.js
+• Reading **different document formats** (PDF, DOCX, TXT)
+• **Storing documents** in your database
+• Displaying **document content** to the AI
+• Building a **documents page** UI
+• Understanding **file streaming** and processing
 
 ---
 
@@ -168,11 +168,11 @@ async function extractTextFromWord(buffer: Buffer): Promise<string> {
 ```
 
 **What's happening:**
-- `request.formData()` — Gets the uploaded file
-- `file.arrayBuffer()` — Reads file as binary data
-- File validation — Checks type and size before processing
-- `Buffer.from()` — Converts to Node.js Buffer
-- `sqlDatabase.addDocument()` — Saves to SQLite
+• `request.formData()` — Gets the uploaded file
+• `file.arrayBuffer()` — Reads file as binary data
+• File validation — Checks type and size before processing
+• `Buffer.from()` — Converts to Node.js Buffer
+• `sqlDatabase.addDocument()` — Saves to SQLite
 
 ---
 
@@ -390,11 +390,11 @@ export default function DocumentsPage() {
 ```
 
 **What's happening:**
-- `useEffect` — Loads documents when page loads
-- `FormData` — Packages file for upload
-- Hidden file input — Custom styled with label
-- Document list — Shows all uploaded files
-- File type icons — Visual indicators for different formats
+• `useEffect` — Loads documents when page loads
+• `FormData` — Packages file for upload
+• Hidden file input — Custom styled with label
+• Document list — Shows all uploaded files
+• File type icons — Visual indicators for different formats
 
 ---
 

@@ -60,19 +60,25 @@ BASE ALL FACTS ON:
 Target audience: COMPLETE BEGINNERS who have never coded or used AI before. Write warm, conversational, encouraging — like chatting with a patient friend over coffee. Short paragraphs, "you" language, everyday analogies, gentle humor.
 
 IMPORTANT - WRITE LIKE A HUMAN:
-- Avoid AI cliches: "In today's fast-paced world", "harness the power", "unlock potential", "game-changer"
-- Avoid formal transitions: "Moreover," "Furthermore," "Additionally" - use natural transitions instead
-- Use contractions: "it's" not "it is", "you're" not "you are"
-- Be direct: "This works because..." not "It is important to note that..."
-- Use specific examples: "Salesforce cut 30%" not "various companies saw results"
-- Vary sentence length: mix short (5-10 words) and long (20-30 words) sentences
-- Avoid hedging: "The key is..." not "One might argue that..."
-- Write like you're explaining to a smart friend, not writing a formal document
+• Avoid AI cliches: "In today's fast-paced world", "harness the power", "unlock potential", "game-changer"
+• Avoid formal transitions: "Moreover," "Furthermore," "Additionally" - use natural transitions instead
+• Use contractions: "it's" not "it is", "you're" not "you are"
+• Be direct: "This works because..." not "It is important to note that..."
+• Use specific examples: "Salesforce cut 30%" not "various companies saw results"
+• Vary sentence length: mix short (5-10 words) and long (20-30 words) sentences
+• Avoid hedging: "The key is..." not "One might argue that..."
+• Write like you're explaining to a smart friend, not writing a formal document
+
+FORMATTING RULES:
+• Use bullet character (•) for bullet points, NOT dashes (-)
+• Example: "• This is a bullet point" NOT "- This is a bullet point"
+• Use proper markdown tables: | Column | Column |
+• Tables should have headers and alignment when appropriate
 
 RULES FOR EVERY CHAPTER:
-- Define EVERY technical term the FIRST time: **bold** it, 1-2 sentence plain-English definition + 1-2 analogies + why it matters for YOUR AI Dashboard.
-- Exact chapter structure:
-  1. Friendly opening + "What You'll Learn in This Chapter" (bullets)
+• Define EVERY technical term the FIRST time: **bold** it, 1-2 sentence plain-English definition + 1-2 analogies + why it matters for YOUR AI Dashboard.
+• Exact chapter structure:
+  1. Friendly opening + "What You'll Learn in This Chapter" (use • bullets)
   2. Clear explanations with analogies
   3. Step-by-step instructions using CURRENT codebase
   4. Full copy-pasteable code blocks with line-by-line comments
@@ -80,9 +86,9 @@ RULES FOR EVERY CHAPTER:
   6. "How to Personalize This for YOUR Own Dashboard" (emphasize prompt engineering — "code is just the starting point")
   7. "Common Pitfalls & How to Avoid Them"
   8. Chapter Summary + "Next Steps" + "Fork this and make it yours!"
-- Word count: 2,500–4,500 (Chapter 5: 5,000–6,000)
-- Celebrate the heartbeat: every 2 hours /bookwriter scans changes and updates this very book automatically.
-- Highlight how Randy Hill's enterprise concepts (Generative AI Strategy, Multi-Agent Systems, secure RAG, etc.) are now available locally and for free.
+• Word count: 2,500–4,500 (Chapter 5: 5,000–6,000)
+• Celebrate the heartbeat: every 2 hours /bookwriter scans changes and updates this very book automatically.
+• Highlight how Randy Hill's enterprise concepts (Generative AI Strategy, Multi-Agent Systems, secure RAG, etc.) are now available locally and for free.
 
 Never assume knowledge. End every chapter with: "You now hold real enterprise-grade AI power in your hands — and the best part? You can make this Dashboard completely yours with simple prompts."
 

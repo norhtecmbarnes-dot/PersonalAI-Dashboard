@@ -4,14 +4,14 @@ Before we build anything, we need the right tools. This chapter provides a compr
 
 ## What You'll Learn
 
-- Installing **Node.js** (JavaScript runtime)
-- Installing **Ollama** (local AI models)
-- Installing **VS Code** (code editor)
-- Setting up the **project files**
-- Configuring **environment variables**
-- Understanding the **database** and **datalake**
-- **Running the AI Dashboard** for the first time
-- **Testing your setup** with a simple prompt
+• Installing **Node.js** (JavaScript runtime)
+• Installing **Ollama** (local AI models)
+• Installing **VS Code** (code editor)
+• Setting up the **project files**
+• Configuring **environment variables**
+• Understanding the **database** and **datalake**
+• **Running the AI Dashboard** for the first time
+• **Testing your setup** with a simple prompt
 
 ---
 
@@ -159,10 +159,10 @@ Ollama also offers FREE cloud API access to powerful models:
 4. Save it for later - you'll add it to `.env.local`
 
 **Free Cloud Models Available:**
-- `kimi-k2.5` - Claude-distilled, excellent for writing
-- `glm-5` - 756B parameters, GPT-like reasoning
-- `deepseek-v3.2` - Great for code
-- `qwen3.5:397b` - Massive 397B parameter model
+• `kimi-k2.5` - Claude-distilled, excellent for writing
+• `glm-5` - 756B parameters, GPT-like reasoning
+• `deepseek-v3.2` - Great for code
+• `qwen3.5:397b` - Massive 397B parameter model
 
 ---
 
@@ -226,10 +226,10 @@ npm run dev
 ```
 
 **What this does:**
-- Reads `package.json` (your shopping list)
-- Downloads all required packages
-- Creates `node_modules/` folder
-- Creates `package-lock.json` (exact versions)
+• Reads `package.json` (your shopping list)
+• Downloads all required packages
+• Creates `node_modules/` folder
+• Creates `package-lock.json` (exact versions)
 
 **If you see errors:**
 
@@ -316,13 +316,13 @@ This project uses TWO data storage systems:
 **What it is:** A traditional SQL database stored in a single file.
 
 **Purpose:** Structured data that humans organize:
-- User settings
-- Brand information
-- Project details
-- Scheduled tasks
-- Chat history
-- Document metadata
-- Notes and calendar events
+• User settings
+• Brand information
+• Project details
+• Scheduled tasks
+• Chat history
+• Document metadata
+• Notes and calendar events
 
 **Location:** `data/assistant.db`
 
@@ -341,11 +341,11 @@ SELECT * FROM brands_v2 WHERE id = 'brand-123';
 **What it is:** A semantic search index that the AI can understand.
 
 **Purpose:** Unstructured data that the AI needs to search:
-- Document content
-- Conversation context
-- Memory entries
-- Knowledge base articles
-- Research summaries
+• Document content
+• Conversation context
+• Memory entries
+• Knowledge base articles
+• Research summaries
 
 **How it works:**
 
@@ -372,26 +372,26 @@ Unlike a database where you search by exact matches (WHERE name = 'Alice'), the 
 **What it is:** A structured Markdown file for persistent AI memory.
 
 **Purpose:** Long-term knowledge:
-- User preferences
-- Brand guidelines
-- Project context
-- Operating procedures
-- Lessons learned
+• User preferences
+• Brand guidelines
+• Project context
+• Operating procedures
+• Lessons learned
 
 **Location:** `data/MEMORY.md`
 
 **Example:**
 ```markdown
 # User Profile
-- Name: Michael
-- Role: AI Developer
-- Preferences: Prefers local models, no cloud subscriptions
+• Name: Michael
+• Role: AI Developer
+• Preferences: Prefers local models, no cloud subscriptions
 
 # Projects
 ## AI Dashboard
-- Goal: Personal AI assistant
-- Status: Active development
-- Key decisions: Using SQLite for simplicity
+• Goal: Personal AI assistant
+• Status: Active development
+• Key decisions: Using SQLite for simplicity
 ```
 
 ---
@@ -480,9 +480,9 @@ Let's verify everything works:
 3. You should see a response from the AI
 
 **If you see an error:**
-- Check that Ollama is running: `ollama serve`
-- Verify model is pulled: `ollama list`
-- Check `.env.local` has correct settings
+• Check that Ollama is running: `ollama serve`
+• Verify model is pulled: `ollama list`
+• Check `.env.local` has correct settings
 
 ### Test 2: Check the Database
 
@@ -692,8 +692,8 @@ npm run build
 **Error:** `Error: listen EADDRINUSE: address already in use :::3000`
 
 **Solution:** Another process is using port 3000. Either:
-- Stop the other process: Find it with `netstat -ano | findstr :3000` (Windows) or `lsof -i :3000` (macOS/Linux)
-- Use a different port: `npm run dev -- -p 3001`
+• Stop the other process: Find it with `netstat -ano | findstr :3000` (Windows) or `lsof -i :3000` (macOS/Linux)
+• Use a different port: `npm run dev -- -p 3001`
 
 ### 4. Database Initialization Errors
 **Error:** `Database not initialized` or SQLite errors
@@ -715,9 +715,9 @@ npm run db:init
 
 ### Getting More Help
 If you're stuck, check:
-- The project's GitHub Issues: https://github.com/norhtecmbarnes-dot/PersonalAI-Dashboard/issues
-- The `ai-dashboard-errors.log` file for detailed error logs
-- The browser's Developer Tools Console (F12) for JavaScript errors
+• The project's GitHub Issues: https://github.com/norhtecmbarnes-dot/PersonalAI-Dashboard/issues
+• The `ai-dashboard-errors.log` file for detailed error logs
+• The browser's Developer Tools Console (F12) for JavaScript errors
 
 ---
 

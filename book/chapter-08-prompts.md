@@ -4,14 +4,14 @@ You've installed everything and understand the project structure. Now comes the 
 
 ## What You'll Learn
 
-- Why **prompts matter** (garbage in, garbage out)
-- The **anatomy of a good prompt**
-- **Prompt templates** you can reuse
-- **Context windows** and why they matter
-- **Chain-of-thought** prompting
-- **Role prompting** and persona design
-- Common prompting mistakes
-- Building your own prompt library
+• Why **prompts matter** (garbage in, garbage out)
+• The **anatomy of a good prompt**
+• **Prompt templates** you can reuse
+• **Context windows** and why they matter
+• **Chain-of-thought** prompting
+• **Role prompting** and persona design
+• Common prompting mistakes
+• Building your own prompt library
 
 ---
 
@@ -35,11 +35,11 @@ Imagine you're at a restaurant. The AI is your waiter, and your prompt is your o
 **What You Get:** Safe, appropriate, and timely.
 
 **A good prompt includes:**
-- **Role** — Who the AI should be
-- **Context** — Background information
-- **Task** — What to do specifically
-- **Format** — How to structure the output
-- **Constraints** — What to avoid or include
+• **Role** — Who the AI should be
+• **Context** — Background information
+• **Task** — What to do specifically
+• **Format** — How to structure the output
+• **Constraints** — What to avoid or include
 
 ---
 
@@ -64,32 +64,32 @@ EXAMPLE: [Show it what good looks like]
 ### Let's Break This Down
 
 **ROLE:**
-- "You are an expert software architect"
-- "You are a patient teacher explaining to a beginner"
-- "You are a code reviewer focused on security"
+• "You are an expert software architect"
+• "You are a patient teacher explaining to a beginner"
+• "You are a code reviewer focused on security"
 
 **CONTEXT:**
-- "This is a Next.js application using TypeScript"
-- "The user is a complete beginner who has never programmed"
-- "We're building a feature for healthcare compliance"
+• "This is a Next.js application using TypeScript"
+• "The user is a complete beginner who has never programmed"
+• "We're building a feature for healthcare compliance"
 
 **TASK:**
-- "Write a function that validates email addresses"
-- "Explain what a database is using analogies"
-- "Review this code for potential bugs"
+• "Write a function that validates email addresses"
+• "Explain what a database is using analogies"
+• "Review this code for potential bugs"
 
 **FORMAT:**
-- "Provide your answer as bullet points"
-- "Show code first, then explanation"
-- "Use a before/after comparison table"
+• "Provide your answer as bullet points"
+• "Show code first, then explanation"
+• "Use a before/after comparison table"
 
 **CONSTRAINTS:**
-- "Do not use external libraries"
-- "Keep it under 100 lines"
-- "Avoid jargon; explain technical terms"
+• "Do not use external libraries"
+• "Keep it under 100 lines"
+• "Avoid jargon; explain technical terms"
 
 **EXAMPLE:**
-- Show what the output should look like
+• Show what the output should look like
 
 ---
 
@@ -111,15 +111,15 @@ TASK: Create a Next.js API route that:
 5. Returns success/error response
 
 FORMAT: Provide:
-- Complete code for src/app/api/documents/upload/route.ts
-- Brief comments explaining key parts
-- Error handling for edge cases
+• Complete code for src/app/api/documents/upload/route.ts
+• Brief comments explaining key parts
+• Error handling for edge cases
 
 CONSTRAINTS:
-- Use TypeScript with proper types
-- Include input validation
-- Handle file size limits (max 10MB)
-- Return proper HTTP status codes
+• Use TypeScript with proper types
+• Include input validation
+• Handle file size limits (max 10MB)
+• Return proper HTTP status codes
 
 EXAMPLE:
 Success response: { success: true, documentId: "uuid", filename: "report.pdf" }
@@ -137,17 +137,17 @@ are learning about APIs for the first time.
 TASK: Explain what an API is and why it's useful.
 
 FORMAT: 
-- Start with a relatable analogy (restaurant, vending machine, etc.)
-- Explain the analogy in detail
-- Connect it back to actual APIs
-- Provide a simple code example
-- End with "Key Takeaways" bullet points
+• Start with a relatable analogy (restaurant, vending machine, etc.)
+• Explain the analogy in detail
+• Connect it back to actual APIs
+• Provide a simple code example
+• End with "Key Takeaways" bullet points
 
 CONSTRAINTS:
-- No jargon without explanation
-- Keep analogies concrete and relatable
-- Use plain English
-- Maximum 500 words
+• No jargon without explanation
+• Keep analogies concrete and relatable
+• Use plain English
+• Maximum 500 words
 
 EXAMPLE:
 "Think of an API like a waiter at a restaurant..."
@@ -168,14 +168,14 @@ TASK: Review the following code and provide:
 4. Overall grade (A-F) with explanation
 
 FORMAT:
-- Use emoji indicators: 🚨 Security, ⚡ Performance, 🎨 Style, ✅ Good
-- Group by severity: Critical, Warning, Suggestion
-- Provide code examples for fixes
+• Use emoji indicators: 🚨 Security, ⚡ Performance, 🎨 Style, ✅ Good
+• Group by severity: Critical, Warning, Suggestion
+• Provide code examples for fixes
 
 CONSTRAINTS:
-- Be direct but constructive
-- Explain why each issue matters
-- Prioritize security issues first
+• Be direct but constructive
+• Explain why each issue matters
+• Prioritize security issues first
 
 EXAMPLE:
 🚨 CRITICAL: SQL Injection Risk
@@ -193,17 +193,17 @@ AI models have **context windows** — a limit on how much text they can "rememb
 ### The Notebook Analogy
 
 Imagine you're solving a math problem, but you can only have one page of notebook paper. You have to fit:
-- The problem statement
-- Your work
-- The answer
+• The problem statement
+• Your work
+• The answer
 
 If the problem is too long, you run out of space.
 
 **Context Window Sizes:**
-- GPT-3.5: ~4,000 tokens (~3,000 words)
-- GPT-4: ~8,000-32,000 tokens
-- Claude: ~100,000+ tokens
-- Local models (Llama, etc.): ~2,000-8,000 tokens
+• GPT-3.5: ~4,000 tokens (~3,000 words)
+• GPT-4: ~8,000-32,000 tokens
+• Claude: ~100,000+ tokens
+• Local models (Llama, etc.): ~2,000-8,000 tokens
 
 **One token ≈ 0.75 words**
 
@@ -241,10 +241,10 @@ Sometimes you want the AI to **show its work** — not just give an answer, but 
 
 ### When to Use It
 
-- Complex logic or calculations
-- Debugging mysterious bugs
-- Understanding the AI's reasoning
-- Learning from the AI's approach
+• Complex logic or calculations
+• Debugging mysterious bugs
+• Understanding the AI's reasoning
+• Learning from the AI's approach
 
 ### How to Do It
 
@@ -270,10 +270,10 @@ Think step by step and explain your reasoning before giving the final answer.
 ```
 
 **Why this helps:**
-- You see where the AI's logic might be wrong
-- You learn debugging techniques
-- The AI catches its own mistakes
-- You can correct misunderstandings
+• You see where the AI's logic might be wrong
+• You learn debugging techniques
+• The AI catches its own mistakes
+• You can correct misunderstandings
 
 ---
 
@@ -348,10 +348,10 @@ Role. Example:
 
 **Better:** "Write a TypeScript function that processes an array of user 
 objects. Constraints:
-- Must handle up to 10,000 users efficiently
-- Should not use external libraries
-- Must return results in under 100ms
-- Include error handling for malformed data"
+• Must handle up to 10,000 users efficiently
+• Should not use external libraries
+• Must return results in under 100ms
+• Include error handling for malformed data"
 
 ---
 
@@ -393,9 +393,9 @@ Each prompt file should include:
 Create a Next.js API route with proper error handling
 
 ## Variables
-- {ENDPOINT_NAME}: Name of the endpoint (e.g., "users", "documents")
-- {HTTP_METHOD}: GET, POST, PUT, DELETE
-- {REQUIREMENTS}: Specific functionality needed
+• {ENDPOINT_NAME}: Name of the endpoint (e.g., "users", "documents")
+• {HTTP_METHOD}: GET, POST, PUT, DELETE
+• {REQUIREMENTS}: Specific functionality needed
 
 ## Template
 ROLE: You are an expert Next.js developer...
@@ -408,19 +408,19 @@ Requirements: {REQUIREMENTS}
 FORMAT: Provide complete code for src/app/api/{ENDPOINT_NAME}/route.ts
 
 CONSTRAINTS:
-- Use TypeScript with proper types
-- Include error handling
-- Return appropriate HTTP status codes
+• Use TypeScript with proper types
+• Include error handling
+• Return appropriate HTTP status codes
 
 ## Example Usage
 Variables:
-- ENDPOINT_NAME: documents
-- HTTP_METHOD: POST
-- REQUIREMENTS: Accept file uploads, validate PDF/DOCX/TXT, save to database
+• ENDPOINT_NAME: documents
+• HTTP_METHOD: POST
+• REQUIREMENTS: Accept file uploads, validate PDF/DOCX/TXT, save to database
 
 ## Version History
-- v1.0: Initial template
-- v1.1: Added file upload example
+• v1.0: Initial template
+• v1.1: Added file upload example
 ```
 
 ---
@@ -446,9 +446,9 @@ FORMAT: Provide:
 4. A rewritten version incorporating all improvements
 
 CONSTRAINTS:
-- Be specific and actionable
-- Explain why each suggestion helps
-- Keep suggestions practical for a busy developer
+• Be specific and actionable
+• Explain why each suggestion helps
+• Keep suggestions practical for a busy developer
 ```
 
 ---

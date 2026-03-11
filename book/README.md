@@ -15,17 +15,17 @@ A comprehensive guide to building your own AI Research Assistant from scratch. W
 
 ---
 
-## What's New in Version 2.4
+## What's New in Version 2.5
 
-- **New Chapter 22**: Writing Assistant - AI-powered content creation with rich text editor and seven writing actions
-- **Chapter 4 updated**: Added Node.js version requirements and troubleshooting section for common setup issues
-- **Chapter 4 updated**: Added EPERM permission error fixes and database initialization guidance
-- **Chapter 4 updated**: Added setup wizard troubleshooting and heartbeat API error solutions
-- **Chapter 6 rewritten**: Database vs Datalake architecture explanation
-- **New Chapter 21**: Security System - Input validation, prompt injection defense
-- Updated code examples throughout
-- Model requirements table (CPU vs GPU)
-- Writing assistant fallback chain documentation
+• **New Chapter 23**: Government Bid Workflow - From RFP to proposal with AI assistance
+• **Bid Workflow System**: Capture documents, compliance matrices, proposal outlines
+• **Government Writing Templates**: SBIR proposals, capture plans, evaluation factors
+• **Enhanced RichTextEditor**: Fullscreen mode, split view, markdown preview
+• **Improved Security**: Reduced false positives, better injection detection
+• **Chapter 4 updated**: Added Node.js version requirements and troubleshooting
+• **Chapter 22 updated**: Writing assistant with new proposal templates
+• Updated formatting: Using bullet characters (•) throughout
+• Source code updated with all latest features
 
 ---
 
@@ -53,14 +53,15 @@ A comprehensive guide to building your own AI Research Assistant from scratch. W
 | 18 | [Messaging Integrations - Telegram Bot](./chapter-18-messaging-integrations.md) | ✅ Complete |
 | 19 | [Knowledge Extraction](./chapter-19-knowledge-extraction.md) | ✅ Complete |
 | 20 | [Memory and Tasks - Persistent AI](./chapter-20-memory-tasks.md) | ✅ Complete |
-| 21 | [Security System - Protecting Your Dashboard](./chapter-21-security.md) | 🆕 New v2.3 |
-| 22 | [Writing Assistant - AI-Powered Content Creation](./chapter-22-writing-assistant.md) | 🆕 New v2.4 |
+| 21 | [Security System - Protecting Your Dashboard](./chapter-21-security.md) | ✅ Complete |
+| 22 | [Writing Assistant - AI-Powered Content Creation](./chapter-22-writing-assistant.md) | ✅ Complete |
+| 23 | [Government Bid Workflow - From Opportunity to Proposal](./chapter-23-bid-workflow.md) | 🆕 New v2.5 |
 
 **Legend:**
-- ✅ Complete
-- 🆕 New/Updated
-- 🔄 In Progress
-- ⏳ Pending
+• ✅ Complete
+• 🆕 New/Updated
+• 🔄 In Progress
+• ⏳ Pending
 
 ---
 
@@ -77,9 +78,9 @@ The AI Dashboard uses a sophisticated data storage approach:
 | **Memory.md** | Persistent AI knowledge | Markdown file |
 
 **Why Three Layers?**
-- **Database**: Fast exact queries (WHERE name = 'Alice')
-- **Datalake**: Semantic search (Find discussions about "pricing")
-- **Memory.md**: Context AI always needs (User preferences, brand guidelines)
+• **Database**: Fast exact queries (WHERE name = 'Alice')
+• **Datalake**: Semantic search (Find discussions about "pricing")
+• **Memory.md**: Context AI always needs (User preferences, brand guidelines)
 
 ### The Security System
 
@@ -118,14 +119,19 @@ PersonalAI-Dashboard/
 │   ├── chapter-01-introduction.md
 │   ├── chapter-04-setup.md      # Step-by-step setup
 │   ├── chapter-06-database.md   # Database vs Datalake
-│   └── chapter-21-security.md   # Security system
+│   ├── chapter-21-security.md   # Security system
+│   ├── chapter-22-writing-assistant.md
+│   └── chapter-23-bid-workflow.md
 │
 ├── src/
 │   ├── app/                     # Pages and API routes
 │   │   ├── page.tsx             # Home page
+│   │   ├── bid-workflow/        # Government bid management
+│   │   ├── writing/             # Writing workspace
 │   │   ├── api/                 # Backend endpoints
 │   │   │   ├── chat/            # Chat API
 │   │   │   ├── writing/         # Writing assistant API
+│   │   │   ├── bid-workflow/    # Bid workflow API
 │   │   │   └── ...
 │   │   └── ...
 │   │
@@ -133,6 +139,8 @@ PersonalAI-Dashboard/
 │   │   ├── database/            # SQLite operations
 │   │   ├── models/              # Model routing
 │   │   ├── services/            # Business logic
+│   │   │   ├── bid-workflow.ts  # Bid proposal logic
+│   │   │   └── brand-workspace.ts
 │   │   ├── security/            # Security scanning
 │   │   ├── utils/               # Utilities
 │   │   │   └── validation.ts    # Input sanitization
@@ -162,13 +170,13 @@ PersonalAI-Dashboard/
 
 ## Book Features
 
-- **Plain English** - Every concept explained simply
-- **Analogies** - Complex ideas compared to everyday things
-- **Copy-Paste Prompts** - Ready-to-use prompts throughout
-- **Hands-On Building** - Create your Dashboard chapter by chapter
-- **Real Code** - Based on actual working codebase
-- **Beginner-Friendly** - No prior experience required
-- **Security-Focused** - Learn proper input handling from day one
+• **Plain English** - Every concept explained simply
+• **Analogies** - Complex ideas compared to everyday things
+• **Copy-Paste Prompts** - Ready-to-use prompts throughout
+• **Hands-On Building** - Create your Dashboard chapter by chapter
+• **Real Code** - Based on actual working codebase
+• **Beginner-Friendly** - No prior experience required
+• **Security-Focused** - Learn proper input handling from day one
 
 ---
 
@@ -225,16 +233,16 @@ This book is open-source under CC BY-SA 4.0 / MIT license:
 
 ## Support
 
-- **Issues:** https://github.com/norhtecmbarnes-dot/PersonalAI-Dashboard/issues
-- **Discussions:** Use GitHub Discussions for questions
-- **Security Issues:** See Chapter 21 for security best practices
+• **Issues:** https://github.com/norhtecmbarnes-dot/PersonalAI-Dashboard/issues
+• **Discussions:** Use GitHub Discussions for questions
+• **Security Issues:** See Chapter 21 for security best practices
 
 ---
 
 ## License
 
-- **Book Content:** CC BY-SA 4.0 (share and adapt with attribution)
-- **Code:** MIT License (use freely)
+• **Book Content:** CC BY-SA 4.0 (share and adapt with attribution)
+• **Code:** MIT License (use freely)
 
 ---
 

@@ -7,16 +7,16 @@ When users upload brand documents, we don't just store them as text files. We ex
 ## Why Knowledge Extraction Matters
 
 ### Without Knowledge Extraction
-- Documents stored as plain text
-- No structure or searchable metadata
-- AI must read entire documents every time
-- Slow responses, high token usage
+• Documents stored as plain text
+• No structure or searchable metadata
+• AI must read entire documents every time
+• Slow responses, high token usage
 
 ### With Knowledge Extraction
-- Structured data in a searchable database
-- Instant queries: "What products does this brand offer?"
-- AI uses extracted knowledge directly
-- Fast responses, lower token costs
+• Structured data in a searchable database
+• Instant queries: "What products does this brand offer?"
+• AI uses extracted knowledge directly
+• Fast responses, lower token costs
 
 ## The Knowledge Extractor Service
 
@@ -51,10 +51,10 @@ User uploads a brand document (PDF, DOCX, TXT, MD, HTML, or URL).
 
 ### Step 2: Content Processing
 The `documentProcessor` extracts clean text:
-- Removes HTML tags
-- Normalizes whitespace
-- Generates summaries
-- Extracts metadata
+• Removes HTML tags
+• Normalizes whitespace
+• Generates summaries
+• Extracts metadata
 
 ### Step 3: AI Extraction
 The knowledge extractor sends content to AI with structure prompt:
@@ -304,15 +304,15 @@ Add an "Extract Knowledge" button to document cards:
 ## Performance Benefits
 
 ### Before Knowledge Extraction
-- AI reads 10 page document (~4000 tokens)
-- Every query scans full document
-- Response time: 3-5 seconds per query
+• AI reads 10 page document (~4000 tokens)
+• Every query scans full document
+• Response time: 3-5 seconds per query
 
 ### After Knowledge Extraction
-- Knowledge extracted once (one-time cost)
-- Queries use database index
-- Response time: <500ms per query
-- Token usage: 90% reduction
+• Knowledge extracted once (one-time cost)
+• Queries use database index
+• Response time: <500ms per query
+• Token usage: 90% reduction
 
 ## Advanced Features
 
@@ -389,10 +389,10 @@ private validateAndFillDefaults(data: any): ExtractedKnowledge {
 
 Knowledge extraction transforms static documents into a dynamic, searchable knowledge base:
 
-- **Fast queries**: Database-powered search instead of scanning documents
-- **Structured data**: AI-ready format for consistent results
-- **Lower costs**: 90% reduction in token usage
-- **Better answers**: AI has instant access to key information
-- **Scalable**: Works with hundreds of documents
+• **Fast queries**: Database-powered search instead of scanning documents
+• **Structured data**: AI-ready format for consistent results
+• **Lower costs**: 90% reduction in token usage
+• **Better answers**: AI has instant access to key information
+• **Scalable**: Works with hundreds of documents
 
 By extracting knowledge upfront, you avoid repeatedly processing the same information, making your AI assistant faster and more efficient.

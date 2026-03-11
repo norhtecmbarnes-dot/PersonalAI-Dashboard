@@ -8,13 +8,13 @@ Imagine starting your day with a comprehensive briefing: overnight news relevant
 
 ## What You'll Learn
 
-- What **intelligence reports** are and why they matter
-- Setting up **manual data collection** (reduced automation)
-- Understanding **traffic-conscious design**
-- Building a **report generation system** with local data
-- Creating **scheduled tasks** with reduced frequency
-- Designing **report templates and formatting**
-- Storing and retrieving **historical reports**
+• What **intelligence reports** are and why they matter
+• Setting up **manual data collection** (reduced automation)
+• Understanding **traffic-conscious design**
+• Building a **report generation system** with local data
+• Creating **scheduled tasks** with reduced frequency
+• Designing **report templates and formatting**
+• Storing and retrieving **historical reports**
 
 ---
 
@@ -23,18 +23,18 @@ Imagine starting your day with a comprehensive briefing: overnight news relevant
 An intelligence report is like having a research assistant that works on-demand:
 
 **Traditional Approach (Manual):**
-- Wake up, open 10 browser tabs
-- Search Google for industry news
-- Check competitor websites
-- Read Twitter/X for trends
-- Compile findings manually
-- **Time: 1-2 hours daily**
+• Wake up, open 10 browser tabs
+• Search Google for industry news
+• Check competitor websites
+• Read Twitter/X for trends
+• Compile findings manually
+• **Time: 1-2 hours daily**
 
 **AI Dashboard Approach (Lightweight):**
-- System maintains local data structures
-- Generate reports on-demand when needed
-- AI analyzes local findings
-- **Time: 2 minutes to generate**
+• System maintains local data structures
+• Generate reports on-demand when needed
+• AI analyzes local findings
+• **Time: 2 minutes to generate**
 
 ### Real-World Use Cases
 
@@ -55,18 +55,18 @@ An intelligence report is like having a research assistant that works on-demand:
 In early 2026, we identified that aggressive automation was generating excessive traffic:
 
 **Before (High Traffic):**
-- RL Training: Every 30 minutes (48x/day)
-- Memory Capture: Every 10 minutes (144x/day)
-- Self-Reflection: Every 6 hours (4x/day)
-- Web Checks: Daily external API calls
-- Canada Buys: Daily procurement API calls
+• RL Training: Every 30 minutes (48x/day)
+• Memory Capture: Every 10 minutes (144x/day)
+• Self-Reflection: Every 6 hours (4x/day)
+• Web Checks: Daily external API calls
+• Canada Buys: Daily procurement API calls
 
 **After (Minimal Traffic):**
-- RL Training: Weekly (1x/week) - 98% reduction
-- Memory Capture: Daily (1x/day) - 99% reduction
-- Self-Reflection: Daily (1x/day) - 75% reduction
-- Web Checks: Manual only - 100% automation reduction
-- Canada Buys: Removed - 100% reduction
+• RL Training: Weekly (1x/week) - 98% reduction
+• Memory Capture: Daily (1x/day) - 99% reduction
+• Self-Reflection: Daily (1x/day) - 75% reduction
+• Web Checks: Manual only - 100% automation reduction
+• Canada Buys: Removed - 100% reduction
 
 **Total Traffic Reduction: 99%**
 
@@ -603,19 +603,19 @@ export default function IntelligencePage() {
 When building intelligence features, follow these principles:
 
 ### ✅ DO
-- [ ] Query local data first (documents, notes, chat history)
-- [ ] Make external calls only on explicit user action
-- [ ] Cache results when possible
-- [ ] Use longer intervals for scheduled tasks (daily instead of hourly)
-- [ ] Provide manual trigger options
-- [ ] Document traffic implications
+• [ ] Query local data first (documents, notes, chat history)
+• [ ] Make external calls only on explicit user action
+• [ ] Cache results when possible
+• [ ] Use longer intervals for scheduled tasks (daily instead of hourly)
+• [ ] Provide manual trigger options
+• [ ] Document traffic implications
 
 ### ❌ DON'T
-- [ ] Make external HTTP calls on every page load
-- [ ] Schedule frequent tasks that call external APIs
-- [ ] Scrape websites automatically
-- [ ] Poll external services continuously
-- [ ] Run RL training or memory capture more than once per day
+• [ ] Make external HTTP calls on every page load
+• [ ] Schedule frequent tasks that call external APIs
+• [ ] Scrape websites automatically
+• [ ] Poll external services continuously
+• [ ] Run RL training or memory capture more than once per day
 
 ---
 

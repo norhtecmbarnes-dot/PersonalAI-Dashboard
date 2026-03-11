@@ -2,11 +2,11 @@
 
 ## What You'll Learn in This Chapter
 
-- **How the Model Router works** - Automatic selection of the best AI model
-- **Three-tier system** - Housekeeping, capable local, and cloud thinking models
-- **Your options** - From 2B to 108B parameters, local to cloud
-- **Why tools matter** - How small models + tools beat large models alone
-- **How to customize** - Making the system work for YOUR needs
+• **How the Model Router works** - Automatic selection of the best AI model
+• **Three-tier system** - Housekeeping, capable local, and cloud thinking models
+• **Your options** - From 2B to 108B parameters, local to cloud
+• **Why tools matter** - How small models + tools beat large models alone
+• **How to customize** - Making the system work for YOUR needs
 
 ---
 
@@ -14,10 +14,10 @@
 
 You've probably heard that "bigger is better" when it comes to AI models. The largest models (GPT-4, Claude, Llama-4) have hundreds of billions of parameters. They're incredibly capable. They're also:
 
-- **Expensive** to run ($0.03-0.20 per 1,000 tokens)
-- **Slow** on consumer hardware
-- **Resource-hungry** (need expensive GPUs)
-- **Overkill** for simple tasks
+• **Expensive** to run ($0.03-0.20 per 1,000 tokens)
+• **Slow** on consumer hardware
+• **Resource-hungry** (need expensive GPUs)
+• **Overkill** for simple tasks
 
 **But here's the secret:** You don't need a massive model for most tasks. In fact, you can build a system that outperforms large models alone by using **small models + the right tools**.
 
@@ -28,17 +28,17 @@ You've probably heard that "bigger is better" when it comes to AI models. The la
 Remember Randy Hill's insight from Chapter 1: **Don't ask the LLM to know everything. Give it tools to find what it needs.**
 
 **The Old Way (Large Models):**
-- Model tries to remember everything in its training data
-- Information gets compressed and lost
-- Asks model: "What was the capital of France in 1850?"
-- Model might be wrong or unsure
+• Model tries to remember everything in its training data
+• Information gets compressed and lost
+• Asks model: "What was the capital of France in 1850?"
+• Model might be wrong or unsure
 
 **The New Way (Small Models + Tools):**
-- Model has access to SQL database (perfect memory)
-- Model has access to web search (real-time info)
-- Model has access to documents (your specific knowledge)
-- Asks model: "Use the database to find the capital of France in 1850"
-- Model queries database, gets exact answer
+• Model has access to SQL database (perfect memory)
+• Model has access to web search (real-time info)
+• Model has access to documents (your specific knowledge)
+• Asks model: "Use the database to find the capital of France in 1850"
+• Model queries database, gets exact answer
 
 **This is why we can use 2B parameter models successfully.** The model doesn't need to know everything—it needs to know HOW to use tools.
 
@@ -53,71 +53,71 @@ Your AI Dashboard uses a smart system that automatically picks the right model f
 **Think of this as your efficient intern.**
 
 **What it is:**
-- Ultra-lightweight model (only 2 billion parameters)
-- Runs on CPU (no expensive GPU needed)
-- Completely free to use
-- Fast responses (5-15 seconds)
+• Ultra-lightweight model (only 2 billion parameters)
+• Runs on CPU (no expensive GPU needed)
+• Completely free to use
+• Fast responses (5-15 seconds)
 
 **Perfect for:**
-- Scheduled tasks and heartbeats
-- System monitoring
-- Routine maintenance
-- Quick Q&A
-- Document summaries
+• Scheduled tasks and heartbeats
+• System monitoring
+• Routine maintenance
+• Quick Q&A
+• Document summaries
 
 **Models you can use:**
-- `qwen3.5:2b` — Our default, near GPT-4 mini performance
-- `gemma3:4b` — Google's efficient model, runs on CPU
-- `llama3.2:1b` — Meta's tiny model, very fast
-- `phi3:mini` — Microsoft's compact model
+• `qwen3.5:2b` — Our default, near GPT-4 mini performance
+• `gemma3:4b` — Google's efficient model, runs on CPU
+• `llama3.2:1b` — Meta's tiny model, very fast
+• `phi3:mini` — Microsoft's compact model
 
 ### Tier 2: Capable Local (7B-14B Parameters)
 
 **Think of this as your skilled professional.**
 
 **What it is:**
-- Medium-sized local models
-- Still runs on CPU (slower but manageable)
-- Better reasoning and writing quality
-- Good for production work
+• Medium-sized local models
+• Still runs on CPU (slower but manageable)
+• Better reasoning and writing quality
+• Good for production work
 
 **Perfect for:**
-- Writing and editing
-- Document generation
-- Analysis tasks
-- Code generation
-- Reasoning problems
+• Writing and editing
+• Document generation
+• Analysis tasks
+• Code generation
+• Reasoning problems
 
 **Models you can use:**
-- `qwen2.5:7b` — Excellent balance of speed and quality
-- `qwen2.5:14b` — Higher quality for demanding tasks
-- `llama3.1:8b` — Meta's capable model
-- `gemma2:9b` — Google's strong performer
+• `qwen2.5:7b` — Excellent balance of speed and quality
+• `qwen2.5:14b` — Higher quality for demanding tasks
+• `llama3.1:8b` — Meta's capable model
+• `gemma2:9b` — Google's strong performer
 
 ### Tier 3: Cloud Thinking (27B-70B+ Parameters)
 
 **Think of this as your expert consultant (on speed dial).**
 
 **What it is:**
-- Large models via API or Ollama Cloud
-- Best quality available
-- Costs money per use (or use free tokens)
-- Reserved for complex tasks
+• Large models via API or Ollama Cloud
+• Best quality available
+• Costs money per use (or use free tokens)
+• Reserved for complex tasks
 
 **Perfect for:**
-- Complex reasoning
-- Creative writing
-- Difficult problems
-- Tasks where accuracy is critical
+• Complex reasoning
+• Creative writing
+• Difficult problems
+• Tasks where accuracy is critical
 
 **Models you can use:**
-- `qwen3.5:32b` — Very capable, reasonable cost
-- `qwen3.5:27b` — High quality via Ollama Cloud
-- `llama4:scout` — 108B parameters (requires GPU or patience!)
-- `glm-4.7-flash` — 29B parameters, excellent multilingual
-- `kimi-k2.5` — 1.1T parameters (Claude-distilled), via Ollama Cloud
-- `glm-5` — 756B parameters (GPT-like), via Ollama Cloud
-- Cloud APIs: GPT-4, Claude, etc.
+• `qwen3.5:32b` — Very capable, reasonable cost
+• `qwen3.5:27b` — High quality via Ollama Cloud
+• `llama4:scout` — 108B parameters (requires GPU or patience!)
+• `glm-4.7-flash` — 29B parameters, excellent multilingual
+• `kimi-k2.5` — 1.1T parameters (Claude-distilled), via Ollama Cloud
+• `glm-5` — 756B parameters (GPT-like), via Ollama Cloud
+• Cloud APIs: GPT-4, Claude, etc.
 
 ---
 
@@ -131,10 +131,10 @@ Your AI Dashboard uses a smart system that automatically picks the right model f
 **Speed:** Fast (5-30 second responses)
 
 **Works great for:**
-- Personal assistant
-- Document chat
-- Writing help
-- Learning and experimentation
+• Personal assistant
+• Document chat
+• Writing help
+• Learning and experimentation
 
 **Models:**
 ```bash
@@ -150,10 +150,10 @@ ollama pull qwen2.5:7b      # For better quality, 7B parameters
 **Speed:** Fast local, slower cloud
 
 **Works great for:**
-- Professional use
-- Document processing
-- Research assistance
-- Content creation
+• Professional use
+• Document processing
+• Research assistance
+• Content creation
 
 **Models:**
 ```bash
@@ -175,10 +175,10 @@ ollama pull phi4:14b        # Microsoft's model with reasoning
 **Speed:** Varies (2B = fast, 108B = very slow on CPU)
 
 **Works great for:**
-- Complex analysis
-- Professional writing
-- Code generation
-- Research
+• Complex analysis
+• Professional writing
+• Code generation
+• Research
 
 **Models:**
 ```bash
@@ -228,9 +228,9 @@ The system automatically selects the best model for writing tasks:
 ```
 
 **Why this chain:**
-- Cloud models give best quality
-- Falls back to local when cloud unavailable
-- `gemma3:4b` ensures writing works without GPU
+• Cloud models give best quality
+• Falls back to local when cloud unavailable
+• `gemma3:4b` ensures writing works without GPU
 
 ### Option D: Enterprise Setup (Future Chapter)
 
@@ -240,10 +240,10 @@ The system automatically selects the best model for writing tasks:
 **Speed:** Fast for many users
 
 **Works great for:**
-- Teams
-- High-throughput APIs
-- Production services
-- Many concurrent users
+• Teams
+• High-throughput APIs
+• Production services
+• Many concurrent users
 
 **We'll cover this in Chapter 21: Scaling to Enterprise**
 
@@ -254,9 +254,9 @@ The system automatically selects the best model for writing tasks:
 **The short answer:** You could, but you'd be wasting resources.
 
 **Analogy:**
-- Sending a text message? Use your phone (lightweight model)
-- Writing a novel? Use your laptop (capable model)
-- Calculating rocket trajectories? Use a supercomputer (large model)
+• Sending a text message? Use your phone (lightweight model)
+• Writing a novel? Use your laptop (capable model)
+• Calculating rocket trajectories? Use a supercomputer (large model)
 
 **Different tasks need different tools.** Using a 108B parameter model to answer "What time is it?" is like using a nuclear reactor to toast bread.
 
@@ -279,9 +279,9 @@ These tasks happen every few hours. Using a big model would waste money and reso
 **Real example:**
 ```
 Every 2 hours, your Dashboard checks:
-- Is everything running?
-- Are there old log files to clean up?
-- Should we archive old reports?
+• Is everything running?
+• Are there old log files to clean up?
+• Should we archive old reports?
 
 Cost: $0
 Time: Under 1 second
@@ -292,17 +292,17 @@ Time: Under 1 second
 **Think of this as your skilled professional.**
 
 **What it is:**
-- The best model installed on YOUR computer
-- Examples: Qwen 3.5-27B, Qwen 2.5-14B, Llama 3.2
-- Runs locally (data never leaves your machine)
-- Also completely free after installation
+• The best model installed on YOUR computer
+• Examples: Qwen 3.5-27B, Qwen 2.5-14B, Llama 3.2
+• Runs locally (data never leaves your machine)
+• Also completely free after installation
 
 **Perfect for:**
-- Writing documents
-- Coding and debugging
-- Chat conversations
-- Data analysis
-- Research tasks
+• Writing documents
+• Coding and debugging
+• Chat conversations
+• Data analysis
+• Research tasks
 
 **Why it's smart:**
 These are your day-to-day tasks. The system automatically picks the largest model you have installed, giving you the best quality without cloud costs.
@@ -312,8 +312,8 @@ These are your day-to-day tasks. The system automatically picks the largest mode
 You ask: "Write a Python function to analyze CSV data"
 
 System checks: "What's the best local model available?"
-- Found: Qwen 3.5-27B (27 billion parameters)
-- Using it for coding task
+• Found: Qwen 3.5-27B (27 billion parameters)
+• Using it for coding task
 
 Response quality: Excellent
 Cost: $0
@@ -325,17 +325,17 @@ Privacy: ✅ Data never leaves your computer
 **Think of this as your expert consultant.**
 
 **What it is:**
-- Cloud-based models (run on powerful servers)
-- Much larger (50+ billion parameters)
-- Best reasoning capabilities
-- Costs money per use (but only when needed)
+• Cloud-based models (run on powerful servers)
+• Much larger (50+ billion parameters)
+• Best reasoning capabilities
+• Costs money per use (but only when needed)
 
 **Perfect for:**
-- Strategic planning
-- Complex problem solving
-- System architecture design
-- Advanced debugging
-- Creative brainstorming
+• Strategic planning
+• Complex problem solving
+• System architecture design
+• Advanced debugging
+• Creative brainstorming
 
 **Why it's smart:**
 You only pay when you REALLY need the brainpower. The system uses these sparingly and falls back to local models when possible.
@@ -346,9 +346,9 @@ You ask: "Design a complete microservices architecture
           for a banking application with security requirements"
 
 System thinks: "This needs serious reasoning power"
-- Escalating to GLM-5 Cloud
-- Will cost approximately $0.02
-- But worth it for complex architecture
+• Escalating to GLM-5 Cloud
+• Will cost approximately $0.02
+• But worth it for complex architecture
 
 Response quality: Expert-level
 Cost: $0.02
@@ -418,10 +418,10 @@ const { models } = await response.json();
 ```
 
 **Benefits:**
-- ✅ Never shows models you can't use
-- ✅ Automatically detects new models
-- ✅ Updates in real-time
-- ✅ Works with ANY Ollama model
+• ✅ Never shows models you can't use
+• ✅ Automatically detects new models
+• ✅ Updates in real-time
+• ✅ Works with ANY Ollama model
 
 ### The useModels Hook
 
@@ -662,18 +662,18 @@ curl http://localhost:11434/api/tags
 
 **You now hold the key to efficient AI model management!**
 
-- Your system automatically saves money by using small models for simple tasks
-- You get expert-level quality when you actually need it
-- Everything adapts to whatever models you have installed
+• Your system automatically saves money by using small models for simple tasks
+• You get expert-level quality when you actually need it
+• Everything adapts to whatever models you have installed
 
 **What's next?**
-- Chapter 14: Canvas Fullscreen Mode — Better viewing for your generated UIs
-- Chapter 15: Presentation Styling — Creating beautiful, branded presentations
+• Chapter 14: Canvas Fullscreen Mode — Better viewing for your generated UIs
+• Chapter 15: Presentation Styling — Creating beautiful, branded presentations
 
 **Or explore:**
-- Try installing different models and watch them appear in the dropdown
-- Test the expert escalation by selecting different experts
-- Check your browser console to see which model was used
+• Try installing different models and watch them appear in the dropdown
+• Test the expert escalation by selecting different experts
+• Check your browser console to see which model was used
 
 ---
 

@@ -4,12 +4,12 @@ When you first see all the folders and files, it can feel overwhelming. Let's br
 
 ## What You'll Learn
 
-- The **folder structure** and what each folder means
-- Key **configuration files** and their purpose
-- The **src/app** directory (Next.js pages)
-- The **src/lib** directory (reusable code)
-- How files connect to each other
-- Understanding imports and exports
+• The **folder structure** and what each folder means
+• Key **configuration files** and their purpose
+• The **src/app** directory (Next.js pages)
+• The **src/lib** directory (reusable code)
+• How files connect to each other
+• Understanding imports and exports
 
 ---
 
@@ -117,9 +117,9 @@ ai-dashboard/
 
 ### package.json
 Like a shopping list for your project. Lists:
-- Dependencies (libraries you use)
-- Scripts (commands you can run)
-- Project metadata
+• Dependencies (libraries you use)
+• Scripts (commands you can run)
+• Project metadata
 
 ```json
 {
@@ -165,8 +165,8 @@ TypeScript compiler settings. Don't worry about this for now.
 
 This is where your **pages** live. In Next.js:
 
-- **Files = Pages** — Every file becomes a route
-- **Folders = Routes** — Folders create URL paths
+• **Files = Pages** — Every file becomes a route
+• **Folders = Routes** — Folders create URL paths
 
 ### How It Works
 

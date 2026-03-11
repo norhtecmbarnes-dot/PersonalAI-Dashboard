@@ -29,12 +29,12 @@ Think of building software like building a house:
 
 ## What You'll Learn
 
-- **Don't panic** — You don't need to understand every line
-- **Prompt-driven development** — Describe what you want, AI builds it
-- **The master prompt** — A complete prompt to build the system
-- **Iterative building** — Start small, add features
-- **When to dive deep** — Which parts deserve your attention
-- **Learning by reviewing** — How to read AI-generated code
+• **Don't panic** — You don't need to understand every line
+• **Prompt-driven development** — Describe what you want, AI builds it
+• **The master prompt** — A complete prompt to build the system
+• **Iterative building** — Start small, add features
+• **When to dive deep** — Which parts deserve your attention
+• **Learning by reviewing** — How to read AI-generated code
 
 ---
 
@@ -59,7 +59,7 @@ A Next.js application with:
    - data/ for SQLite database storage
 
 2. **Database Foundation**
-    - SQLite database (using @sqlite.org/sqlite-wasm for Node.js and sql.js for Edge Runtime compatibility)
+    • SQLite database (using @sqlite.org/sqlite-wasm for Node.js and sql.js for Edge Runtime compatibility)
    - Tables for: messages, documents, brands, projects, tasks, notes
    - A database service (src/lib/database/sqlite.ts)
    - Save/load from data/assistant.db
@@ -85,20 +85,20 @@ A Next.js application with:
 
 ## Technical Requirements
 
-- TypeScript (strict mode)
-- Next.js 15+ (App Router)
-- React 18+
+• TypeScript (strict mode)
+• Next.js 15+ (App Router)
+• React 18+
  - SQLite with @sqlite.org/sqlite-wasm (Node.js) and sql.js (Edge Runtime)
-- Streaming responses
-- No authentication (local use)
+• Streaming responses
+• No authentication (local use)
 
 ## Style
 
-- Clean, modular code
-- TypeScript types for everything
-- Comments explaining key decisions
-- Error handling throughout
-- Logging for debugging
+• Clean, modular code
+• TypeScript types for everything
+• Comments explaining key decisions
+• Error handling throughout
+• Logging for debugging
 
 ## Output
 
@@ -256,9 +256,9 @@ async function run(id: string): Promise<any>
 **If names are unclear, ask AI to rename them:**
 ```
 Refactor these functions to have clearer names:
-- `process` → describe what it processes
-- `handle` → what does it handle?
-- `run` → run what?
+• `process` → describe what it processes
+• `handle` → what does it handle?
+• `run` → run what?
 ```
 
 ### 2. Check Types
@@ -345,17 +345,17 @@ This repository contains a complete, working implementation. Think of it as:
 
 ### What the Code Is
 
-- ✅ A **working reference** — Everything runs
-- ✅ A **learning tool** — See how features connect
-- ✅ A **starting point** — Modify for your needs
-- ✅ A **test bed** — Try experiments safely
+• ✅ A **working reference** — Everything runs
+• ✅ A **learning tool** — See how features connect
+• ✅ A **starting point** — Modify for your needs
+• ✅ A **test bed** — Try experiments safely
 
 ### What the Code Is NOT
 
-- ❌ The only way to build this
-- ❌ Perfect code (no code is perfect)
-- ❌ Something you must memorize
-- ❌ Something you must write from scratch
+• ❌ The only way to build this
+• ❌ Perfect code (no code is perfect)
+• ❌ Something you must memorize
+• ❌ Something you must write from scratch
 
 ### How to Use the Sample
 
@@ -375,11 +375,11 @@ Here are prompts for common building blocks. Use these as starting points:
 
 ```
 Create a database table for [PURPOSE] with these fields:
-- id: unique identifier (string)
-- [field2]: [type] - [description]
-- [field3]: [type] - [description]
-- created_at: timestamp
-- updated_at: timestamp
+• id: unique identifier (string)
+• [field2]: [type] - [description]
+• [field3]: [type] - [description]
+• created_at: timestamp
+• updated_at: timestamp
 
 Add to src/lib/database/sqlite.ts
 Include: create, read, update, delete functions
@@ -391,14 +391,14 @@ Include: create, read, update, delete functions
 Create a Next.js API route at src/app/api/[NAME]/route.ts
 
 Endpoints:
-- GET: [describe what it returns]
-- POST: [describe what it accepts and does]
+• GET: [describe what it returns]
+• POST: [describe what it accepts and does]
 
 Include:
-- Input validation
-- Error handling
-- TypeScript types
-- Database integration
+• Input validation
+• Error handling
+• TypeScript types
+• Database integration
 ```
 
 ### React Component
@@ -407,12 +407,12 @@ Include:
 Create a React component for [PURPOSE] at src/components/[NAME].tsx
 
 Props:
-- [prop1]: [type] - [description]
-- [prop2]: [type] - [description]
+• [prop1]: [type] - [description]
+• [prop2]: [type] - [description]
 
 Features:
-- [feature 1]
-- [feature 2]
+• [feature 1]
+• [feature 2]
 
 Style with Tailwind CSS.
 Include loading and error states.
@@ -424,14 +424,14 @@ Include loading and error states.
 Create a service class for [PURPOSE] at src/lib/services/[NAME].ts
 
 Methods:
-- [method1]: [description]
-- [method2]: [description]
+• [method1]: [description]
+• [method2]: [description]
 
 Include:
-- Singleton pattern
-- Error handling
-- Logging
-- TypeScript types
+• Singleton pattern
+• Error handling
+• Logging
+• TypeScript types
 ```
 
 ---
@@ -510,13 +510,13 @@ return new Response(stream, {
 
 When you feel overwhelmed by the code:
 
-- [ ] Remember: You're the architect, not the bricklayer
-- [ ] Start with the master prompt — let AI build the foundation
-- [ ] Add features one at a time with focused prompts
-- [ ] Review only what matters: database, API routes, model config
-- [ ] Use the sample code as reference, not requirement
-- [ ] Break things — that's how you learn
-- [ ] Ask AI to explain anything confusing
+• [ ] Remember: You're the architect, not the bricklayer
+• [ ] Start with the master prompt — let AI build the foundation
+• [ ] Add features one at a time with focused prompts
+• [ ] Review only what matters: database, API routes, model config
+• [ ] Use the sample code as reference, not requirement
+• [ ] Break things — that's how you learn
+• [ ] Ask AI to explain anything confusing
 
 ---
 

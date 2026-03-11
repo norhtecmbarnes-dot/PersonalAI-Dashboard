@@ -4,13 +4,13 @@
 
 ## What You'll Learn in This Chapter
 
-- What a **container** actually is (with multiple analogies)
-- The "it works on my machine" problem
-- Why containers exist and what problems they solve
-- **Docker** — the most popular container tool
-- Containers vs Virtual Machines (VMs)
-- How to think about containers correctly
-- Your first hands-on container experience
+• What a **container** actually is (with multiple analogies)
+• The "it works on my machine" problem
+• Why containers exist and what problems they solve
+• **Docker** — the most popular container tool
+• Containers vs Virtual Machines (VMs)
+• How to think about containers correctly
+• Your first hands-on container experience
 
 ---
 
@@ -19,30 +19,30 @@
 Imagine you want to bring lunch to work. You have two options:
 
 **Option 1: The Chaos Method**
-- Grab a sandwich from your fridge
-- Put it on a plate
-- Carry the plate, a drink, utensils, napkins separately
-- Hope your workplace has a fridge, microwave, table, chairs
-- Hope they have the exact same condiments you like
-- Hope everything stays together during transport
+• Grab a sandwich from your fridge
+• Put it on a plate
+• Carry the plate, a drink, utensils, napkins separately
+• Hope your workplace has a fridge, microwave, table, chairs
+• Hope they have the exact same condiments you like
+• Hope everything stays together during transport
 
 **Option 2: The Lunchbox Method**
-- Put your sandwich, drink, utensils, and napkins in a lunchbox
-- The lunchbox keeps everything together
-- Close the lid
-- Take it anywhere
-- Open it anywhere
-- Everything is exactly as you packed it
+• Put your sandwich, drink, utensils, and napkins in a lunchbox
+• The lunchbox keeps everything together
+• Close the lid
+• Take it anywhere
+• Open it anywhere
+• Everything is exactly as you packed it
 
 **A container is like a lunchbox for software.**
 
 It packages your application with everything it needs to run:
-- The code
-- The runtime (like Node.js or Python)
-- System tools
-- Libraries
-- Dependencies
-- Configuration files
+• The code
+• The runtime (like Node.js or Python)
+• System tools
+• Libraries
+• Dependencies
+• Configuration files
 
 And it keeps everything isolated, secure, and portable.
 

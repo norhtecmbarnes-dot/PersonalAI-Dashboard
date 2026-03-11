@@ -4,12 +4,12 @@ Programming is just giving instructions to computers. But unlike humans, compute
 
 ## What You'll Learn
 
-- What **programming** actually means
-- Why computers need precise instructions
-- Basic programming concepts
-- Your first lines of code
-- How to think algorithmically
-- Debugging basics
+• What **programming** actually means
+• Why computers need precise instructions
+• Basic programming concepts
+• Your first lines of code
+• How to think algorithmically
+• Debugging basics
 
 ---
 
@@ -115,11 +115,11 @@ console.log(hobbies[0]);  // reading
 ```
 
 **Key Type Annotations:**
-- `: string` - Text
-- `: number` - Numbers (integers and decimals)
-- `: boolean` - True or false
-- `: string[]` - Array of strings
-- `: any` - Any type (avoid when possible)
+• `: string` - Text
+• `: number` - Numbers (integers and decimals)
+• `: boolean` - True or false
+• `: string[]` - Array of strings
+• `: any` - Any type (avoid when possible)
 
 ### 2. Functions (Reusable Instructions)
 
@@ -248,10 +248,10 @@ inputElement.value = '';  // Clear the input
 ### Handle Edge Cases
 
 What if:
-- The user doesn't type anything?
-- The AI service is down?
-- The response takes too long?
-- The user sends 1000 messages at once?
+• The user doesn't type anything?
+• The AI service is down?
+• The response takes too long?
+• The user sends 1000 messages at once?
 
 Good programmers think about these scenarios.
 
@@ -298,9 +298,9 @@ TypeError: Cannot read property 'name' of undefined
 ```
 
 This tells you:
-- **TypeError:** Wrong type of data
-- **Cannot read property:** Tried to access something that doesn't exist
-- **app.js:15:23:** File, line 15, column 23
+• **TypeError:** Wrong type of data
+• **Cannot read property:** Tried to access something that doesn't exist
+• **app.js:15:23:** File, line 15, column 23
 
 **3. Check Your Assumptions:**
 What do you think the value is? What is it actually?

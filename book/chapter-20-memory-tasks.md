@@ -6,12 +6,12 @@ Your AI assistant doesn't just respond to queries — it maintains itself. Memor
 
 ## What You'll Learn
 
-- **Memory Capture** - Extracting knowledge from conversations automatically
-- **Memory Archive** - Compressing and storing long-term memories
-- **Task Scheduler** - How scheduled tasks work with priority system
-- **Session-Aware Task Pausing** - Background tasks pause during active use
-- **Memory Persistence** - How memories survive across sessions
-- **System Health** - Monitoring automated task execution
+• **Memory Capture** - Extracting knowledge from conversations automatically
+• **Memory Archive** - Compressing and storing long-term memories
+• **Task Scheduler** - How scheduled tasks work with priority system
+• **Session-Aware Task Pausing** - Background tasks pause during active use
+• **Memory Persistence** - How memories survive across sessions
+• **System Health** - Monitoring automated task execution
 
 ---
 
@@ -77,10 +77,10 @@ const TASK_PRIORITIES: Record<ScheduledTask['taskType'], 'critical' | 'high' | '
 
 ### Benefits
 
-- **Faster Chat Responses** - No background tasks competing for CPU
-- **Lower Memory Usage** - Heavy tasks don't run during interactions
-- **Better Resource Management** - AI prioritizes user over maintenance
-- **Smoother Experience** - No lag from research or training tasks
+• **Faster Chat Responses** - No background tasks competing for CPU
+• **Lower Memory Usage** - Heavy tasks don't run during interactions
+• **Better Resource Management** - AI prioritizes user over maintenance
+• **Smoother Experience** - No lag from research or training tasks
 
 ---
 
@@ -374,17 +374,17 @@ The AI knows about its scheduled task capabilities:
 #### 2. create_scheduled_task
 Create recurring automated tasks that run on a schedule.
 **Parameters:**
-- name (required): Task name
-- description: What the task does
-- prompt (required): The task to execute (natural language description)
-- schedule (required): Cron schedule (e.g., "0 9 * * *" for daily at 9 AM)
-- task_type: 'intelligence', 'research', 'memory', 'custom'
+• name (required): Task name
+• description: What the task does
+• prompt (required): The task to execute (natural language description)
+• schedule (required): Cron schedule (e.g., "0 9 * * *" for daily at 9 AM)
+• task_type: 'intelligence', 'research', 'memory', 'custom'
 
 **When to use:**
-- Periodic research updates (e.g., "Check for news about X daily")
-- Automated monitoring (e.g., "Check stock prices every hour")
-- Recurring reports (e.g., "Generate weekly summary")
-- Data collection (e.g., "Fetch competitor prices weekly")
+• Periodic research updates (e.g., "Check for news about X daily")
+• Automated monitoring (e.g., "Check stock prices every hour")
+• Recurring reports (e.g., "Generate weekly summary")
+• Data collection (e.g., "Fetch competitor prices weekly")
 
 **Example call:**
 \`\`\`json
@@ -475,26 +475,26 @@ const latest = taskScheduler.getLatestTaskResult(taskId);
 ### Layer 1: Scratchpad (Instant Access ~1ms)
 
 Loaded every chat, contains:
-- User profile (name, preferences)
-- Active projects
-- Recent decisions (last 5-10)
-- Current focus
+• User profile (name, preferences)
+• Active projects
+• Recent decisions (last 5-10)
+• Current focus
 
 ### Layer 2: Persistent Memory (Fast Search ~50ms)
 
 Hybrid keyword + semantic search:
-- Stored facts and knowledge
-- Project details
-- Brand voice profiles
-- Security rules
-- User decisions
+• Stored facts and knowledge
+• Project details
+• Brand voice profiles
+• Security rules
+• User decisions
 
 ### Layer 3: Archive (Long-term)
 
 Weekly summaries and compacted knowledge:
-- Compressed conversations
-- Historical patterns
-- Long-term trends
+• Compressed conversations
+• Historical patterns
+• Long-term trends
 
 ---
 
@@ -579,10 +579,10 @@ automated monitoring, periodic updates, or anything that should happen
 
 Memory tasks are the autonomous workers that keep your AI assistant intelligent:
 
-- **Memory Capture**: Extracts knowledge every 10 minutes
-- **Memory Archive**: Compresses old memories daily
-- **Task Scheduler**: Manages all automated tasks
-- **Health Monitoring**: Check via `/api/heartbeat`
-- **Persistence**: Three layers for instant to long-term storage
+• **Memory Capture**: Extracts knowledge every 10 minutes
+• **Memory Archive**: Compresses old memories daily
+• **Task Scheduler**: Manages all automated tasks
+• **Health Monitoring**: Check via `/api/heartbeat`
+• **Persistence**: Three layers for instant to long-term storage
 
 These tasks run silently in the background, ensuring your AI remembers what matters and forgets what doesn't.

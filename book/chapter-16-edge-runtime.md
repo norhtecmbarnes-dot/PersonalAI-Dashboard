@@ -2,12 +2,12 @@
 
 ## What You'll Learn in This Chapter
 
-- **What is Edge Runtime** and why it matters
-- **Why we removed Node.js dependencies** (fs, path)
-- **How SQLite replaced the file system**
-- **What files were changed** and why
-- **Benefits for your Dashboard**
-- **How to deploy faster and more securely**
+• **What is Edge Runtime** and why it matters
+• **Why we removed Node.js dependencies** (fs, path)
+• **How SQLite replaced the file system**
+• **What files were changed** and why
+• **Benefits for your Dashboard**
+• **How to deploy faster and more securely**
 
 ---
 
@@ -16,16 +16,16 @@
 Imagine you're building a food truck (your app). You have two options:
 
 **Option 1: Traditional Server (Node.js)**
-- You rent a permanent kitchen (server)
-- You pay for it 24/7, even when no customers
-- It's in one location (slow for distant users)
-- You have full control (good for complex tasks)
+• You rent a permanent kitchen (server)
+• You pay for it 24/7, even when no customers
+• It's in one location (slow for distant users)
+• You have full control (good for complex tasks)
 
 **Option 2: Edge Runtime**
-- Your food truck goes where customers are
-- You only pay when serving customers
-- It's fast everywhere (runs near users)
-- Limited tools (no big kitchen appliances)
+• Your food truck goes where customers are
+• You only pay when serving customers
+• It's fast everywhere (runs near users)
+• Limited tools (no big kitchen appliances)
 
 **Edge Runtime = Your food truck comes to the customer, not the other way around!**
 
@@ -38,16 +38,16 @@ Imagine you're building a food truck (your app). You have two options:
 Edge Runtime is a **lightweight JavaScript environment** that runs your code close to users, anywhere in the world.
 
 **Traditional servers:**
-- One location (e.g., Virginia, USA)
-- User in Tokyo waits 200ms for response
-- User in London waits 100ms
-- Cold starts take 1-3 seconds
+• One location (e.g., Virginia, USA)
+• User in Tokyo waits 200ms for response
+• User in London waits 100ms
+• Cold starts take 1-3 seconds
 
 **Edge Runtime:**
-- Runs in 100+ locations worldwide
-- User in Tokyo gets response from Tokyo (20ms)
-- User in London gets response from London (20ms)
-- Cold starts take 0-50ms
+• Runs in 100+ locations worldwide
+• User in Tokyo gets response from Tokyo (20ms)
+• User in London gets response from London (20ms)
+• Cold starts take 0-50ms
 
 ### Why Next.js Uses It
 
@@ -89,19 +89,19 @@ Edge Runtime doesn't support Node.js built-in modules
 ### Why Edge Runtime Doesn't Have fs/path
 
 **Security:**
-- Edge Runtime runs in multiple locations
-- File system access could be dangerous
-- No filesystem isolation between users
+• Edge Runtime runs in multiple locations
+• File system access could be dangerous
+• No filesystem isolation between users
 
 **Portability:**
-- Must run the same everywhere
-- File paths differ on Windows vs Linux
-- Can't guarantee file system exists
+• Must run the same everywhere
+• File paths differ on Windows vs Linux
+• Can't guarantee file system exists
 
 **Speed:**
-- File I/O is slow
-- Network storage is faster
-- SQLite is portable
+• File I/O is slow
+• Network storage is faster
+• SQLite is portable
 
 ---
 
@@ -359,25 +359,25 @@ User in London ──20ms──> Edge in London
 ### 3. Security
 
 **No File System Access:**
-- ✅ Code can't read your server's files
-- ✅ Code can't write malicious files
-- ✅ Isolated execution environment
+• ✅ Code can't read your server's files
+• ✅ Code can't write malicious files
+• ✅ Isolated execution environment
 
 **SQLite is Safe:**
-- Single database file
-- Transaction-based
-- No arbitrary file access
+• Single database file
+• Transaction-based
+• No arbitrary file access
 
 ### 4. Cost
 
 **Traditional Server:**
-- $5-50/month for 24/7 running
-- Pay even when no users
+• $5-50/month for 24/7 running
+• Pay even when no users
 
 **Edge Runtime:**
-- $0 when no requests
-- Pay per request (fractions of a cent)
-- Scales automatically
+• $0 when no requests
+• Pay per request (fractions of a cent)
+• Scales automatically
 
 ---
 
@@ -613,21 +613,21 @@ await cleanOldTaskResults();
 
 **Your Dashboard now runs faster and more securely!**
 
-- Edge Runtime means instant responses
-- SQLite keeps data portable
-- No more file system dependencies
-- Ready for global deployment
+• Edge Runtime means instant responses
+• SQLite keeps data portable
+• No more file system dependencies
+• Ready for global deployment
 
 **What's next?**
-- Chapter 17: Troubleshooting - When things go wrong
-- Chapter 19: Deployment - Going live
-- Chapter 20: Complete Prompt Library
+• Chapter 17: Troubleshooting - When things go wrong
+• Chapter 19: Deployment - Going live
+• Chapter 20: Complete Prompt Library
 
 **Or try:**
-- Check response times in Network tab
-- Test from different locations
-- Build your own Edge-compatible components
-- Deploy to Vercel Edge
+• Check response times in Network tab
+• Test from different locations
+• Build your own Edge-compatible components
+• Deploy to Vercel Edge
 
 ---
 

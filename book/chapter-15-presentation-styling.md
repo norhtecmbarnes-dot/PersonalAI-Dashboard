@@ -2,11 +2,11 @@
 
 ## What You'll Learn in This Chapter
 
-- **Template system** - 6 professional presentation templates
-- **Color schemes** - Match your brand or choose from presets
-- **Logo upload** - Automatic branding on every slide
-- **Brand integration** - Use your saved brand profiles
-- **API integration** - Send styling data to the AI
+• **Template system** - 6 professional presentation templates
+• **Color schemes** - Match your brand or choose from presets
+• **Logo upload** - Automatic branding on every slide
+• **Brand integration** - Use your saved brand profiles
+• **API integration** - Send styling data to the AI
 
 ---
 
@@ -14,10 +14,10 @@
 
 Imagine you've created an amazing presentation with the Office AI. But then you realize:
 
-- **It looks generic** - Like it could be anyone's presentation
-- **No branding** - Where's your company logo?
-- **Wrong colors** - Your brand uses blue, but the slides are all white
-- **Unprofessional** - Clients expect consistent branding
+• **It looks generic** - Like it could be anyone's presentation
+• **No branding** - Where's your company logo?
+• **Wrong colors** - Your brand uses blue, but the slides are all white
+• **Unprofessional** - Clients expect consistent branding
 
 **A great presentation needs great styling!**
 
@@ -30,16 +30,16 @@ Your AI Dashboard includes 6 professional templates. Think of them as "starting 
 ### Template 1: Corporate
 
 **Look and Feel:**
-- Clean, professional, business-focused
-- White or light gray backgrounds
-- Blue or navy accents
-- Conservative fonts
+• Clean, professional, business-focused
+• White or light gray backgrounds
+• Blue or navy accents
+• Conservative fonts
 
 **Best For:**
-- Business meetings
-- Board presentations
-- Investor pitches
-- Annual reports
+• Business meetings
+• Board presentations
+• Investor pitches
+• Annual reports
 
 **Example Use:**
 ```
@@ -51,16 +51,16 @@ Investors trust the content because it looks credible.
 ### Template 2: Modern Dark
 
 **Look and Feel:**
-- Dark background (slate/near-black)
-- White or light gray text
-- Sleek, contemporary design
-- Subtle gradients
+• Dark background (slate/near-black)
+• White or light gray text
+• Sleek, contemporary design
+• Subtle gradients
 
 **Best For:**
-- Tech presentations
-- Developer conferences
-- Modern startups
-- Product launches
+• Tech presentations
+• Developer conferences
+• Modern startups
+• Product launches
 
 **Example Use:**
 ```
@@ -72,16 +72,16 @@ It looks cutting-edge and innovative.
 ### Template 3: Minimal
 
 **Look and Feel:**
-- Pure white backgrounds
-- Maximum whitespace
-- Simple, elegant fonts
-- Minimal decorations
+• Pure white backgrounds
+• Maximum whitespace
+• Simple, elegant fonts
+• Minimal decorations
 
 **Best For:**
-- Academic presentations
-- Research findings
-- Art and design portfolios
-- When content speaks loudest
+• Academic presentations
+• Research findings
+• Art and design portfolios
+• When content speaks loudest
 
 **Example Use:**
 ```
@@ -93,16 +93,16 @@ No distractions, just pure information.
 ### Template 4: Creative
 
 **Look and Feel:**
-- Bold, vibrant colors
-- Dynamic layouts
-- Eye-catching elements
-- Modern typography
+• Bold, vibrant colors
+• Dynamic layouts
+• Eye-catching elements
+• Modern typography
 
 **Best For:**
-- Marketing pitches
-- Creative agency presentations
-- Brand launches
-- When you need to stand out
+• Marketing pitches
+• Creative agency presentations
+• Brand launches
+• When you need to stand out
 
 **Example Use:**
 ```
@@ -114,16 +114,16 @@ They remember your presentation.
 ### Template 5: Tech
 
 **Look and Feel:**
-- Blue gradients
-- Modern, innovative aesthetic
-- Circuit or network motifs
-- Clean lines
+• Blue gradients
+• Modern, innovative aesthetic
+• Circuit or network motifs
+• Clean lines
 
 **Best For:**
-- Developer talks
-- Tech startup pitches
-- Architecture presentations
-- AI/ML conferences
+• Developer talks
+• Tech startup pitches
+• Architecture presentations
+• AI/ML conferences
 
 **Example Use:**
 ```
@@ -135,16 +135,16 @@ They feel at home with the design.
 ### Template 6: Elegant
 
 **Look and Feel:**
-- Black background
-- Gold or bronze accents
-- Premium, luxury feel
-- Sophisticated typography
+• Black background
+• Gold or bronze accents
+• Premium, luxury feel
+• Sophisticated typography
 
 **Best For:**
-- Executive presentations
-- Luxury brand pitches
-- High-end client meetings
-- When you want to impress
+• Executive presentations
+• Luxury brand pitches
+• High-end client meetings
+• When you want to impress
 
 **Example Use:**
 ```
@@ -173,14 +173,14 @@ Sometimes you need specific colors. That's where overrides come in.
 ### When to Override vs Use Template
 
 **Use Template When:**
-- You want cohesive design
-- You're not sure what colors to use
-- You want professional results quickly
+• You want cohesive design
+• You're not sure what colors to use
+• You want professional results quickly
 
 **Use Override When:**
-- You have specific brand colors
-- The template colors don't match your needs
-- You need accessibility (high contrast)
+• You have specific brand colors
+• The template colors don't match your needs
+• You need accessibility (high contrast)
 
 ---
 
@@ -219,9 +219,9 @@ const styling = {
 
 ### Supported Formats
 
-- **PNG** - Best for logos with transparency
-- **SVG** - Scalable, always crisp
-- **JPEG** - Good for photos
+• **PNG** - Best for logos with transparency
+• **SVG** - Scalable, always crisp
+• **JPEG** - Good for photos
 
 **Recommended:** Use PNG or SVG for best quality.
 
@@ -258,9 +258,9 @@ const handleBrandChange = (brandId) => {
 ```
 
 **Benefits:**
-- ✅ Consistent branding across all materials
-- ✅ No need to re-upload logos
-- ✅ Uses your established brand voice
+• ✅ Consistent branding across all materials
+• ✅ No need to re-upload logos
+• ✅ Uses your established brand voice
 
 ---
 
@@ -425,9 +425,9 @@ const [colorTheme, setColorTheme] = useState('corporate');  // Was 'default'
 // In the prompt, specify logo position:
 const prompt = `
   Create a presentation with:
-  - Template: ${styling.template}
-  - Logo position: ${styling.logoPosition || 'footer'}
-  - Logo appears on: ${styling.logoOn || 'all slides'}
+  • Template: ${styling.template}
+  • Logo position: ${styling.logoPosition || 'footer'}
+  • Logo appears on: ${styling.logoOn || 'all slides'}
 `;
 ```
 
@@ -474,9 +474,9 @@ const customStyles = `
 ```typescript
 const prompt = `
   Use EXACTLY this color scheme:
-  - Background: #0f172a (slate-900)
-  - Text: #ffffff (white)
-  - Accents: #fbbf24 (amber-400)
+  • Background: #0f172a (slate-900)
+  • Text: #ffffff (white)
+  • Accents: #fbbf24 (amber-400)
   
   Do not deviate from these colors.
 `;
@@ -511,21 +511,21 @@ const prompt = `
 
 **Your presentations now look professional and branded!**
 
-- Try each template to see which fits your needs
-- Upload your company logo
-- Save your brand profile for consistent use
-- Generate a presentation and see the styling in action
+• Try each template to see which fits your needs
+• Upload your company logo
+• Save your brand profile for consistent use
+• Generate a presentation and see the styling in action
 
 **What's next?**
-- Chapter 16: Edge Runtime - Fast, secure deployment
-- Chapter 17: Troubleshooting - When things go wrong
-- Chapter 20: Complete Prompt Library - Copy-paste prompts
+• Chapter 16: Edge Runtime - Fast, secure deployment
+• Chapter 17: Troubleshooting - When things go wrong
+• Chapter 20: Complete Prompt Library - Copy-paste prompts
 
 **Or try:**
-- Create a presentation with each template
-- Upload different logos and see how they look
-- Mix templates with color overrides
-- Present to a friend and get feedback
+• Create a presentation with each template
+• Upload different logos and see how they look
+• Mix templates with color overrides
+• Present to a friend and get feedback
 
 ---
 

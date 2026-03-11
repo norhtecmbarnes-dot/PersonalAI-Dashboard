@@ -2,21 +2,21 @@
 
 ## What You'll Learn in This Chapter
 
-- **What fullscreen mode is** and why it matters
-- **How to implement it** in your Canvas component
-- **Device preview modes** - Mobile, tablet, desktop
-- **Responsive design** in fullscreen
-- **How to customize** the experience
+• **What fullscreen mode is** and why it matters
+• **How to implement it** in your Canvas component
+• **Device preview modes** - Mobile, tablet, desktop
+• **Responsive design** in fullscreen
+• **How to customize** the experience
 
 ---
 
 ## Opening: Why Fullscreen?
 
 Imagine you've just created a beautiful dashboard with the Canvas AI. You want to:
-- **Show it to your team** on a big screen
-- **Test it on different devices** without distractions
-- **See every detail** without squinting at a small preview
-- **Present it to clients** professionally
+• **Show it to your team** on a big screen
+• **Test it on different devices** without distractions
+• **See every detail** without squinting at a small preview
+• **Present it to clients** professionally
 
 **The small preview box is helpful, but sometimes you need the BIG picture!**
 
@@ -134,8 +134,8 @@ In fullscreen, your iframe needs to resize:
 ```
 
 **What this means:**
-- Normal mode: Fixed height (h-96 = 24rem)
-- Fullscreen mode: Takes up all available space minus the header
+• Normal mode: Fixed height (h-96 = 24rem)
+• Fullscreen mode: Takes up all available space minus the header
 
 ---
 
@@ -434,18 +434,18 @@ useEffect(() => {
 
 **You can now view your creations at full size!**
 
-- Click the fullscreen button to see your Canvas work in full glory
-- Test on different "devices" to see responsive design
-- Present to clients without distractions
+• Click the fullscreen button to see your Canvas work in full glory
+• Test on different "devices" to see responsive design
+• Present to clients without distractions
 
 **What's next?**
-- Chapter 15: Presentation Styling - Beautiful, branded presentations
-- Chapter 16: Edge Runtime Optimization - Fast, secure deployment
+• Chapter 15: Presentation Styling - Beautiful, branded presentations
+• Chapter 16: Edge Runtime Optimization - Fast, secure deployment
 
 **Or try:**
-- Press 'F' in Canvas to toggle fullscreen
-- Generate a complex dashboard and view it fullscreen
-- Test mobile responsiveness in fullscreen mode
+• Press 'F' in Canvas to toggle fullscreen
+• Generate a complex dashboard and view it fullscreen
+• Test mobile responsiveness in fullscreen mode
 
 ---
 

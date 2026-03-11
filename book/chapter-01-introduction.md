@@ -31,10 +31,10 @@ Randy conceptualized a system where the human communicates what they want to acc
 **The Core Insight:** Think of an LLM as a highly compressed representation of knowledge. Just like a compressed photo or video, detail gets lost in compression. LLMs are the most compressed version of knowledge we have. When you compress something that much, holes appear in the memory. The LLM might struggle to come up with the right answer because information has been lost.
 
 **The Solution:** Don't ask the LLM to know everything. Assign it a task and give it tools to perform that task:
-- **SQL databases** for structured data
-- **Vector stores** for semantic search
-- **Web search** for current information
-- **Document processing** for your files
+• **SQL databases** for structured data
+• **Vector stores** for semantic search
+• **Web search** for current information
+• **Document processing** for your files
 
 This approach — using small, efficient models backed by tools — is what makes this system possible on modest hardware. We've tested this using models as small as **2 billion parameters** because the system doesn't rely on the LLM having all the information.
 
@@ -43,9 +43,9 @@ This approach — using small, efficient models backed by tools — is what make
 ## Why This Approach Changes Everything
 
 When I first saw OpenCode (Claude Code), I recognized some of these ideas being implemented. However, OpenCode wasn't constrained in ways that organizations could scale:
-- Security wasn't integrated
-- It wasn't efficient in resource usage
-- It relied too heavily on expensive foundational models
+• Security wasn't integrated
+• It wasn't efficient in resource usage
+• It relied too heavily on expensive foundational models
 
 Because Randy had mapped out how to build a scalable enterprise solution, I developed this approach integrating security and efficiencies into the system. Most importantly, this project uses small, open-source models that anyone can run on modest hardware.
 
@@ -64,23 +64,23 @@ Because Randy had mapped out how to build a scalable enterprise solution, I deve
 This book shows you ONE implementation, but you have options:
 
 **The Minimal Setup (What We Build):**
-- Small local models (2B-14B parameters)
-- SQLite database
-- Vector store for documents
-- Ollama for model management
-- Optional: Free cloud tokens for heavy tasks
+• Small local models (2B-14B parameters)
+• SQLite database
+• Vector store for documents
+• Ollama for model management
+• Optional: Free cloud tokens for heavy tasks
 
 **The Enterprise Upgrade:**
-- vLLM for high-throughput serving
-- Larger models (27B-70B+ parameters)
-- GPU acceleration
-- Multi-user support
-- Advanced security features
+• vLLM for high-throughput serving
+• Larger models (27B-70B+ parameters)
+• GPU acceleration
+• Multi-user support
+• Advanced security features
 
 **The Cloud Hybrid:**
-- Local models for speed and privacy
-- Cloud APIs for specific tasks
-- Best of both worlds
+• Local models for speed and privacy
+• Cloud APIs for specific tasks
+• Best of both worlds
 
 **You Choose:** Start minimal, scale up as needed. The architecture supports all approaches.
 
@@ -119,33 +119,33 @@ Welcome. You're about to embark on an exciting journey, and I'm going to guide y
 
 ### What You'll Learn in This Chapter
 
-- What an **AI Research Assistant** actually is (and why you want one)
-- What you'll build by the end of this book
-- What you DON'T need to get started
-- How this book works
-- What a **prompt** is (this is crucial!)
+• What an **AI Research Assistant** actually is (and why you want one)
+• What you'll build by the end of this book
+• What you DON'T need to get started
+• How this book works
+• What a **prompt** is (this is crucial!)
 
 ---
 
 ### A Warm Welcome
 
 Let me start with a promise: **you can do this**. It doesn't matter if you're:
-- A complete beginner who's never written a line of code
-- Someone who tried coding before and got stuck
-- A professional from a non-technical field
-- Just curious about AI and want to understand it better
+• A complete beginner who's never written a line of code
+• Someone who tried coding before and got stuck
+• A professional from a non-technical field
+• Just curious about AI and want to understand it better
 
 This book was written specifically for you. Every concept is explained in plain English. Every technical term is defined when you first encounter it. And most importantly — you don't need to be a "computer person" to build something amazing.
 
 ### What IS an AI Research Assistant?
 
 Imagine having a super-smart research assistant who:
-- Never gets tired
-- Can read and understand thousands of documents
-- Remembers everything you tell it
-- Works 24/7 without breaks
-- Never judges your questions
-- Gets smarter the more you use it
+• Never gets tired
+• Can read and understand thousands of documents
+• Remembers everything you tell it
+• Works 24/7 without breaks
+• Never judges your questions
+• Gets smarter the more you use it
 
 That's what you're going to build. But here's the key difference from ChatGPT or other online AI tools: **you will completely control this assistant**. It runs on your computer, not in the cloud. Your data stays private. You decide how it works.
 
@@ -250,8 +250,8 @@ This is the most important concept in this entire book. Everything else builds o
 That's it. Nothing magical. Just instructions.
 
 Think of it like giving directions to a smart intern:
-- **Bad prompt:** "Do something with files"
-- **Good prompt:** "Create a function that takes a filename as input, reads the file, counts how many words it contains, and returns the count"
+• **Bad prompt:** "Do something with files"
+• **Good prompt:** "Create a function that takes a filename as input, reads the file, counts how many words it contains, and returns the count"
 
 The better your instructions, the better the results.
 
@@ -266,10 +266,10 @@ Here's a secret: **most of the "coding" you'll do in this book is just writing p
 Modern AI coding assistants (like Claude, GPT-4, and others) can write actual code from your descriptions. You describe what you want in English, and they generate the code.
 
 This means:
-- You focus on WHAT you want
-- AI handles the HOW
-- You learn by seeing working examples
-- You gradually understand the code
+• You focus on WHAT you want
+• AI handles the HOW
+• You learn by seeing working examples
+• You gradually understand the code
 
 It's like having an expert programmer pair-programming with you, explaining everything as you go.
 
@@ -321,12 +321,12 @@ From the very first chapter, start thinking about:
 **What do YOU want your AI Dashboard to do?**
 
 Some ideas:
-- Research assistant for your industry
-- Writing helper for your blog or business
-- Document analyzer for legal/medical/financial documents
-- Learning companion for studying new topics
-- Creative writing partner
-- Code helper for your specific projects
+• Research assistant for your industry
+• Writing helper for your blog or business
+• Document analyzer for legal/medical/financial documents
+• Learning companion for studying new topics
+• Creative writing partner
+• Code helper for your specific projects
 
 Write down your top 3 use cases. This will help you focus as we build.
 
@@ -348,22 +348,22 @@ Write down your top 3 use cases. This will help you focus as we build.
 
 Congratulations! You've made it through Chapter 1. You now know:
 
-- What you're building (a private AI Research Assistant)
-- Why you're building it (privacy, customization, cost savings)
-- What you need (just a computer and patience)
-- What a prompt is (instructions for AI)
-- How this book works (plain English + hands-on building)
+• What you're building (a private AI Research Assistant)
+• Why you're building it (privacy, customization, cost savings)
+• What you need (just a computer and patience)
+• What a prompt is (instructions for AI)
+• How this book works (plain English + hands-on building)
 
 ### Next Steps
 
 In Chapter 2, we'll dive into **APIs** — the foundation of how everything connects. We'll use restaurants, TV remotes, and USB ports to make this crystal clear.
 
 You'll learn:
-- What an API actually is
-- How different programs talk to each other
-- Why APIs are everywhere (even if you can't see them)
-- How to read API documentation
-- Your first hands-on API call
+• What an API actually is
+• How different programs talk to each other
+• Why APIs are everywhere (even if you can't see them)
+• How to read API documentation
+• Your first hands-on API call
 
 ### Fork This and Make It Yours!
 

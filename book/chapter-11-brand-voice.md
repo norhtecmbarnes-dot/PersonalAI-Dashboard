@@ -4,12 +4,12 @@ One of the most powerful features of your AI Dashboard is the ability to maintai
 
 ## What You'll Learn
 
-- Understanding **brand voice** and why it matters
-- Creating **document-based context** (NotebookLM-style)
-- Building a **brand workspace** UI
-- Linking **documents to brands and projects**
-- Using brand context in **AI chat**
-- Managing **brand voice profiles**
+• Understanding **brand voice** and why it matters
+• Creating **document-based context** (NotebookLM-style)
+• Building a **brand workspace** UI
+• Linking **documents to brands and projects**
+• Using brand context in **AI chat**
+• Managing **brand voice profiles**
 
 ---
 
@@ -17,26 +17,26 @@ One of the most powerful features of your AI Dashboard is the ability to maintai
 
 Think about how different companies "sound":
 
-- **Apple**: Minimalist, innovative, aspirational
-- **Wendy's**: Sassy, humorous, bold
-- **IBM**: Professional, trustworthy, technical
+• **Apple**: Minimalist, innovative, aspirational
+• **Wendy's**: Sassy, humorous, bold
+• **IBM**: Professional, trustworthy, technical
 
 Your brand voice is the personality of your written communication. It includes:
 
-- **Tone** — Formal vs casual
-- **Vocabulary** — Technical vs simple
-- **Structure** — Short vs detailed
-- **Values** — What you emphasize
+• **Tone** — Formal vs casual
+• **Vocabulary** — Technical vs simple
+• **Structure** — Short vs detailed
+• **Values** — What you emphasize
 
 ### Why Document-Based Context Works
 
 Instead of trying to describe your brand voice in a few sentences, you **upload documents** that *demonstrate* it:
 
-- Past proposals
-- Email templates
-- Style guides
-- Marketing materials
-- Client communications
+• Past proposals
+• Email templates
+• Style guides
+• Marketing materials
+• Client communications
 
 The AI learns from these examples, just like a new employee would learn by reading your past work.
 

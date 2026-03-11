@@ -4,11 +4,11 @@ Your AI Dashboard needs to store information. But not all data is the same. This
 
 ## What You'll Learn
 
-- What is a **database** (SQLite)
-- What is a **datalake** (Vector Store)
-- How they're different and why you need both
-- How they work together
-- Basic operations in each
+• What is a **database** (SQLite)
+• What is a **datalake** (Vector Store)
+• How they're different and why you need both
+• How they work together
+• Basic operations in each
 
 ---
 
@@ -339,32 +339,32 @@ A Markdown file that stores persistent AI memory - things the AI should always r
 
 ```markdown
 # User Profile
-- Name: Michael
-- Role: Software Developer
-- Preferences: Prefers TypeScript, uses local models
+• Name: Michael
+• Role: Software Developer
+• Preferences: Prefers TypeScript, uses local models
 
 # Projects
 ## AI Dashboard
-- Purpose: Personal AI assistant
-- Tech Stack: Next.js, TypeScript, SQLite
-- Status: Production
+• Purpose: Personal AI assistant
+• Tech Stack: Next.js, TypeScript, SQLite
+• Status: Production
 
 # Brand Guidelines
 ## Writing Style
-- Tone: Professional but friendly
-- Avoid: Jargon, overly technical terms
-- Emphasize: Practical, actionable advice
+• Tone: Professional but friendly
+• Avoid: Jargon, overly technical terms
+• Emphasize: Practical, actionable advice
 
 # Operating Procedures
 ## Daily Tasks
-- Generate intelligence report at 8 AM
-- Check calendar for scheduled meetings
-- Review any pending tasks
+• Generate intelligence report at 8 AM
+• Check calendar for scheduled meetings
+• Review any pending tasks
 
 ## Communication Style
-- Ask clarifying questions when needed
-- Provide sources for information
-- Acknowledge when uncertain
+• Ask clarifying questions when needed
+• Provide sources for information
+• Acknowledge when uncertain
 ```
 
 ### The Code: lib/services/memory-file.ts
@@ -469,45 +469,45 @@ memoryFileService.addKnowledge({
 ## When to Use Which
 
 ### Use the Database When:
-- ✅ You need exact queries (WHERE id = X)
-- ✅ Data has clear structure (tables)
-- ✅ You need relationships (foreign keys)
-- ✅ Data changes frequently
-- ✅ You need transactions
+• ✅ You need exact queries (WHERE id = X)
+• ✅ Data has clear structure (tables)
+• ✅ You need relationships (foreign keys)
+• ✅ Data changes frequently
+• ✅ You need transactions
 
 **Examples:**
-- User settings
-- Brand profiles
-- Project details
-- Task schedules
-- Contact directory
+• User settings
+• Brand profiles
+• Project details
+• Task schedules
+• Contact directory
 
 ### Use the Datalake When:
-- ✅ You need semantic search
-- ✅ Content is unstructured
-- ✅ AI needs to find "similar" items
-- ✅ Building RAG (Retrieval-Augmented Generation)
-- ✅ Context for conversations
+• ✅ You need semantic search
+• ✅ Content is unstructured
+• ✅ AI needs to find "similar" items
+• ✅ Building RAG (Retrieval-Augmented Generation)
+• ✅ Context for conversations
 
 **Examples:**
-- Document content
-- Knowledge articles
-- Research summaries
-- Long conversation history
-- Product descriptions
+• Document content
+• Knowledge articles
+• Research summaries
+• Long conversation history
+• Product descriptions
 
 ### Use Memory.md When:
-- ✅ AI should ALWAYS remember this
-- ✅ Context applies across all queries
-- ✅ Information is about the user
-- ✅ Guidelines and preferences
+• ✅ AI should ALWAYS remember this
+• ✅ Context applies across all queries
+• ✅ Information is about the user
+• ✅ Guidelines and preferences
 
 **Examples:**
-- User profile
-- Brand guidelines
-- Operating procedures
-- Writing style preferences
-- Project context
+• User profile
+• Brand guidelines
+• Operating procedures
+• Writing style preferences
+• Project context
 
 ---
 
@@ -525,10 +525,10 @@ Create a SQLite database schema for an AI Dashboard that needs:
 6. Scheduled tasks (name, type, schedule, last_run)
 
 Include:
-- Primary keys
-- Foreign keys where appropriate
-- Indexes for common queries
-- Timestamps for all tables
+• Primary keys
+• Foreign keys where appropriate
+• Indexes for common queries
+• Timestamps for all tables
 
 Provide the CREATE TABLE statements.
 ```
@@ -584,9 +584,9 @@ export function sanitizePrompt(input: string, maxLength: number = 4000): string 
 ```
 
 This is called BEFORE any user input goes to:
-- Database queries
-- AI model prompts
-- File operations
+• Database queries
+• AI model prompts
+• File operations
 
 ---
 
@@ -611,10 +611,10 @@ This is called BEFORE any user input goes to:
 ## Next Steps
 
 In the next chapter, you'll learn:
-- How the project structure is organized
-- Where to find specific features
-- How pages and API routes connect
-- How to navigate the codebase
+• How the project structure is organized
+• Where to find specific features
+• How pages and API routes connect
+• How to navigate the codebase
 
 ---
 

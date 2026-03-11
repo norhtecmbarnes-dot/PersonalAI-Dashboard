@@ -4,12 +4,12 @@ Now that you understand prompts and the project structure, it's time to build so
 
 ## What You'll Learn
 
-- Creating a basic **chat UI** with React
-- Connecting to the **AI model API**
-- Handling **user input** and **AI responses**
-- Displaying a **conversation history**
-- Adding simple **styling** with Tailwind CSS
-- Understanding **state management** basics
+• Creating a basic **chat UI** with React
+• Connecting to the **AI model API**
+• Handling **user input** and **AI responses**
+• Displaying a **conversation history**
+• Adding simple **styling** with Tailwind CSS
+• Understanding **state management** basics
 
 ---
 
@@ -75,10 +75,10 @@ export default function ChatPage() {
 ```
 
 **What's happening:**
-- `flex flex-col h-screen` — Makes the page fill the screen vertically
-- `flex-1` — Chat area takes up remaining space
-- `overflow-y-auto` — Allows scrolling when messages overflow
-- Tailwind classes handle all the styling
+• `flex flex-col h-screen` — Makes the page fill the screen vertically
+• `flex-1` — Chat area takes up remaining space
+• `overflow-y-auto` — Allows scrolling when messages overflow
+• Tailwind classes handle all the styling
 
 ---
 
@@ -197,11 +197,11 @@ export default function ChatPage() {
 ```
 
 **What's happening:**
-- `'use client'` — This tells Next.js this is a client component
-- `useState` — Stores data that changes (messages, input)
-- `messages.map()` — Renders each message
-- Conditional styling — User messages are blue (right), AI messages are white (left)
-- `onKeyDown` — Allows pressing Enter to send
+• `'use client'` — This tells Next.js this is a client component
+• `useState` — Stores data that changes (messages, input)
+• `messages.map()` — Renders each message
+• Conditional styling — User messages are blue (right), AI messages are white (left)
+• `onKeyDown` — Allows pressing Enter to send
 
 ---
 
@@ -388,10 +388,10 @@ export default function ChatPage() {
 ```
 
 **What's happening:**
-- `fetch('/api/chat')` — Makes HTTP request to our API
-- `isLoading` state — Shows loading indicator
-- `try/catch` — Handles errors gracefully
-- Error messages appear as AI responses
+• `fetch('/api/chat')` — Makes HTTP request to our API
+• `isLoading` state — Shows loading indicator
+• `try/catch` — Handles errors gracefully
+• Error messages appear as AI responses
 
 ---
 
@@ -453,21 +453,21 @@ export default function ChatPage() {
 ### Client vs Server Components
 
 **Server Components (default):**
-- Run on the server
-- Can't use browser APIs
-- Can't use `useState`, `useEffect`
-- Good for: Data fetching, static content
+• Run on the server
+• Can't use browser APIs
+• Can't use `useState`, `useEffect`
+• Good for: Data fetching, static content
 
 **Client Components (`'use client'`):**
-- Run in the browser
-- Can use all React hooks
-- Can use browser APIs
-- Good for: Interactive UI, user input
+• Run in the browser
+• Can use all React hooks
+• Can use browser APIs
+• Good for: Interactive UI, user input
 
 **Rule:** Use `'use client'` when you need:
-- User interaction (clicks, inputs)
-- Browser APIs (localStorage, fetch)
-- React hooks (useState, useEffect)
+• User interaction (clicks, inputs)
+• Browser APIs (localStorage, fetch)
+• React hooks (useState, useEffect)
 
 ### State Management Pattern
 
@@ -506,9 +506,9 @@ try {
 ```
 
 **Benefits:**
-- Easier to read (looks synchronous)
-- Better error handling with try/catch
-- No "callback hell"
+• Easier to read (looks synchronous)
+• Better error handling with try/catch
+• No "callback hell"
 
 ---
 
