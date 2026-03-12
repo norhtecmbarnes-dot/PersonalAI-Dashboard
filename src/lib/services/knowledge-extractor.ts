@@ -159,7 +159,7 @@ Extract everything useful. Return ONLY valid JSON, no explanations.`;
   }
 
   async saveKnowledge(brandId: string, documentId: string, knowledge: ExtractedKnowledge): Promise<void> {
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
 
     const entries: Array<Omit<KnowledgeEntry, 'id' | 'createdAt'>> = [];
 
@@ -273,7 +273,7 @@ Extract everything useful. Return ONLY valid JSON, no explanations.`;
   }
 
   async searchKnowledge(brandId: string, query: string, categories?: string[]): Promise<KnowledgeEntry[]> {
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
 
     let sql = `SELECT * FROM brand_knowledge WHERE brand_id = ?`;
     const params: any[] = [brandId];
@@ -300,7 +300,7 @@ Extract everything useful. Return ONLY valid JSON, no explanations.`;
   }
 
   async getBrandKnowledge(brandId: string, category?: string): Promise<KnowledgeEntry[]> {
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
     
     let sql = `SELECT * FROM brand_knowledge WHERE brand_id = ?`;
     const params: any[] = [brandId];
@@ -317,12 +317,12 @@ Extract everything useful. Return ONLY valid JSON, no explanations.`;
   }
 
   async deleteDocumentKnowledge(documentId: string): Promise<void> {
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
     await sqlDatabase.run(`DELETE FROM brand_knowledge WHERE document_id = ?`, [documentId]);
   }
 
   async getKnowledgeStats(brandId: string): Promise<Record<string, number>> {
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
     const rows = await sqlDatabase.all(
       `SELECT category, COUNT(*) as count FROM brand_knowledge WHERE brand_id = ? GROUP BY category`,
       [brandId]

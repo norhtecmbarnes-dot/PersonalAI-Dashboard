@@ -18,7 +18,7 @@ interface ExtractedData {
 
 export async function POST(request: NextRequest) {
   try {
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
     
     const body = await request.json();
     const { content, saveToDb = true } = body;

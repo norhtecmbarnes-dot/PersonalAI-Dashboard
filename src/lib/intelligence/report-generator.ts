@@ -121,7 +121,7 @@ export class IntelligenceService {
 
   private async getSAMOpportunities(keywords: string[]): Promise<SAMOpportunity[]> {
     try {
-      await sqlDatabase.initialize();
+      sqlDatabase.initialize();
       const opportunities = await sqlDatabase.getSAMOpportunities();
       
       if (opportunities && opportunities.length > 0) {

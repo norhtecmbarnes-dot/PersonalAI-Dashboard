@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
           const response = await fetch(url);
           const content = await response.text();
           
-          await sqlDatabase.initialize();
+          sqlDatabase.initialize();
           
           // Generate new key for next edit
           const newKey = `${documentId}_${Date.now()}`;
@@ -149,7 +149,7 @@ async function logToAI(event: string, data: any) {
 
 async function extractTagsAndTasks(documentId: string, content: string) {
   try {
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
     
     const projectKeywords = /\b(project|deadline|goal|launch|complete)\b/gi;
     const taskKeywords = /\b(todo|task|action|must|should|need to)\b/gi;

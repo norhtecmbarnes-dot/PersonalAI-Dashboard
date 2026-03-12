@@ -145,7 +145,7 @@ async function getAIResponse(message: string): Promise<string> {
   try {
     // Get user's default model preference - use whatever they have configured
     console.log('[Telegram Polling] Initializing database...');
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
     
     console.log('[Telegram Polling] Getting model preferences...');
     const modelPrefs = sqlDatabase.getModelPreferences();

@@ -5,7 +5,7 @@ import { sqlDatabase } from '@/lib/database/sqlite';
 
 export async function POST(request: NextRequest) {
   try {
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
     
     const body = await request.json();
     const { toolName, parameters } = body;

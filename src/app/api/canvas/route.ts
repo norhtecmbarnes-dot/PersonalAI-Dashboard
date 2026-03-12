@@ -48,7 +48,7 @@ export async function GET(request: NextRequest) {
         
       case 'tables':
         // Get SQLite tables for data binding
-        await sqlDatabase.initialize();
+        sqlDatabase.initialize();
         const tables = await sqlDatabase.all(`
           SELECT name FROM sqlite_master 
           WHERE type='table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_litestream_%'
@@ -153,7 +153,7 @@ export async function POST(request: NextRequest) {
         let tableSchema: any[] = [];
         
         if (safeTableName) {
-          await sqlDatabase.initialize();
+          sqlDatabase.initialize();
           try {
             tableData = await sqlDatabase.all(`SELECT * FROM ${safeTableName} LIMIT 100`);
             tableSchema = await sqlDatabase.all(`PRAGMA table_info(${safeTableName})`);
@@ -189,7 +189,7 @@ export async function POST(request: NextRequest) {
           }, { status: 400 });
         }
         
-        await sqlDatabase.initialize();
+        sqlDatabase.initialize();
         const formSchema = await sqlDatabase.all(`PRAGMA table_info(${safeFormTable})`);
         const formHtml = generateFormHTML(safeFormTable, formSchema);
         
@@ -210,7 +210,7 @@ export async function POST(request: NextRequest) {
         const dashboardData: Record<string, any[]> = {};
         
         if (dataSources && Array.isArray(dataSources)) {
-          await sqlDatabase.initialize();
+          sqlDatabase.initialize();
           for (const source of dataSources) {
             // Sanitize each source name
             const safeSource = source.replace(/[^a-zA-Z0-9_]/g, '').slice(0, 50);

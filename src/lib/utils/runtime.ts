@@ -24,8 +24,8 @@ export const importNodeModule = async <T>(moduleName: string): Promise<T | null>
   
   try {
     // Use dynamic import with eval to prevent static analysis
-    const module = await eval(`import('${moduleName}')`);
-    return module as T;
+    const mod = await eval(`import('${moduleName}')`);
+    return mod as T;
   } catch (e) {
     console.warn(`Failed to import ${moduleName}:`, e);
     return null;

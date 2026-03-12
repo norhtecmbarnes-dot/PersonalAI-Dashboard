@@ -28,7 +28,7 @@ export class BidWorkflowService {
   }
 
   async initialize(): Promise<void> {
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
   }
 
   /**

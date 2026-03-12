@@ -7,7 +7,7 @@ import { validateString, sanitizeString } from '@/lib/utils/validation';
 
 export async function POST(request: Request) {
   try {
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
     
     const formData = await request.formData();
     const file = formData.get('file') as File;
@@ -128,7 +128,7 @@ export async function GET(request: Request) {
     const action = searchParams.get('action');
 
     try {
-      await sqlDatabase.initialize();
+      sqlDatabase.initialize();
     } catch (dbError) {
       console.error('Database init error:', dbError);
       return NextResponse.json({ 

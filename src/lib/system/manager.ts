@@ -92,7 +92,7 @@ export class SystemManager {
       this.updateServiceStatus('Database', 'starting');
       try {
         const { sqlDatabase } = await import('@/lib/database/sqlite');
-        await sqlDatabase.initialize();
+        sqlDatabase.initialize();
         this.updateServiceStatus('Database', 'running', 'Connected');
         console.log('[System] Database initialized');
       } catch (error) {

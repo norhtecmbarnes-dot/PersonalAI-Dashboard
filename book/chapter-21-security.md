@@ -670,4 +670,181 @@ Include:
 
 ---
 
+## API Key Security
+
+### Where API Keys Are Stored
+
+ALL API keys are stored locally in the SQLite database:
+
+```
+data/
+└── assistant.db      ← Your local database (never uploaded)
+    └── settings table
+        └── api_key_* entries (api_key_ollama, api_key_openai, etc.)
+```
+
+### What's Protected
+
+The `.gitignore` file excludes:
+
+```gitignore
+data/                  # All local database and user data
+*.db                   # Database files
+.env                   # Environment files
+.env.local             # Local environment with secrets
+*.pem, *.key           # Certificate/key files
+secrets.json           # Secrets file
+session-*.md           # Session logs
+```
+
+### API Key API Security
+
+The Settings API never exposes actual key values:
+
+```typescript
+// GET /api/settings returns:
+{
+  apiKeys: [
+    { provider: 'ollama', hasKey: true },    // No actual key!
+    { provider: 'openai', hasKey: false },
+    // ...
+  ]
+}
+
+// Settings values redact API keys:
+{
+  settings: {
+    'api_key_ollama': { value: '[REDACTED]', category: 'api_keys' },
+    // Other non-secret settings show actual values
+  }
+}
+```
+
+### Adding Your Own API Providers
+
+The system is designed for easy extension. To add a new provider:
+
+**1. Add to the providers list in `src/lib/database/sqlite.ts`:**
+
+```typescript
+getAllApiKeys(): { provider: string; hasKey: boolean }[] {
+  const providers = [
+    'ollama', 'openrouter', 'tavily', 'brave', 'serpapi', 
+    'glm', 'deepseek', 'sam', 'openai', 'anthropic', 
+    'gemini', 'groq', 'mistral',
+    'my_new_provider'  // Add your provider here
+  ];
+  // ...
+}
+```
+
+**2. Use in your service:**
+
+```typescript
+const myKey = sqlDatabase.getApiKey('my_new_provider');
+```
+
+**3. Add UI in Settings:**
+
+The Settings page uses a provider array - add your entry there.
+
+---
+
+## Example: Adding Government Search (Personal Plugin)
+
+> **Note:** This is a personal addition showing how to extend the dashboard. You can create similar integrations for your own data sources.
+
+### The Pattern
+
+```
+src/
+├── app/
+│   ├── gov-search/
+│   │   └── page.tsx              # UI page
+│   └── api/
+│       ├── sam/
+│       │   └── route.ts          # SAM.gov API endpoint
+│       ├── usaspending/
+│       │   └── route.ts          # USASpending.gov API endpoint
+│       └── sam-searches/
+│           └── route.ts          # Search history API
+├── lib/
+│   ├── services/
+│   │   └── sam-gov.ts            # SAM.gov service class
+│   └── integrations/
+│       └── usaspending.ts        # USASpending.gov service
+└── components/
+    └── TopNav.tsx                # Add navigation link
+```
+
+### What This Demonstrates
+
+1. **Integration Structure** - How to organize external API integrations
+2. **API Key Management** - Using `sqlDatabase.getApiKey('sam')` for secure key storage
+3. **Data Persistence** - Storing search results in SQLite for history
+4. **No Cloud Sync** - All data stays local in `data/assistant.db`
+
+### Security Considerations for Plugins
+
+When adding your own integrations:
+
+```typescript
+// ✅ GOOD - Keys from database
+const apiKey = sqlDatabase.getApiKey('my_provider');
+
+// ✅ GOOD - Keys from environment (for development)
+const apiKey = process.env.MY_PROVIDER_KEY;
+
+// ❌ BAD - Never hardcode keys
+const apiKey = 'sk-12345abcdef';  // NEVER do this!
+
+// ❌ BAD - Never expose keys to frontend
+return NextResponse.json({ apiKey });  // NEVER do this!
+
+// ✅ GOOD - Only return status
+return NextResponse.json({ hasKey: !!apiKey });
+```
+
+---
+
+## Network Transparency
+
+Your data stays local. Here's what makes network requests:
+
+| Feature | What It Calls | When |
+|---------|---------------|------|
+| AI Chat | Ollama/OpenAI/Anthropic | When you send a message |
+| Web Search | Ollama/Tavily/Brave/SerpAPI | When search mode is on |
+| Government Search | SAM.gov / USASpending.gov | When you use /gov-search |
+| Model List | Ollama server | On page load |
+
+**Nothing is uploaded without your explicit action.**
+
+---
+
+## Running Completely Offline
+
+For maximum privacy, use only local models:
+
+```bash
+# Install Ollama
+curl https://ollama.ai/install.sh | sh
+
+# Pull a local model (no API key needed)
+ollama pull qwen3.5:9b
+
+# Use in dashboard
+# Settings → Model → Select: ollama/qwen3.5:9b
+```
+
+With local models:
+- No API keys required
+- No network calls to external services
+- All data stays on your machine
+- 100% offline capable
+
+---
+
+---
+
 **Next: Chapter 22 - Testing Your System**

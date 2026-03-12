@@ -28,7 +28,7 @@ class BrandWorkspaceService {
   }
 
   async initialize(): Promise<void> {
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
   }
 
   async createBrand(brand: Omit<Brand, 'id' | 'createdAt' | 'updatedAt'>): Promise<Brand> {

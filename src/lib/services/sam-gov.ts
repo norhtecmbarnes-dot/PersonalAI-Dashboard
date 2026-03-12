@@ -42,7 +42,7 @@ export class SamGovService {
   }
 
   async initialize(): Promise<void> {
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
     this.apiKey = sqlDatabase.getApiKey('sam');
   }
 
@@ -179,17 +179,17 @@ export class SamGovService {
   }
 
   async getRecentSearches(): Promise<any[]> {
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
     return sqlDatabase.getSAMSearches();
   }
 
   async getOpportunities(searchId?: string): Promise<any[]> {
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
     return sqlDatabase.getSAMOpportunities(searchId);
   }
 
   async clearOpportunities(searchId?: string): Promise<void> {
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
     sqlDatabase.clearSAMOpportunities(searchId);
   }
 }

@@ -81,7 +81,7 @@ class UnifiedContextManager {
       if (cached) return cached;
     }
 
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
 
     // Load user from memory file
     const memoryFile = memoryFileService.getMemory();

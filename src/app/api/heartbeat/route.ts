@@ -29,7 +29,7 @@ export async function GET(request: Request) {
     let dbInitialized = false;
     // Try to initialize database - disabled due to SQLite compatibility issues
     // try {
-    //   await sqlDatabase.initialize();
+    //   sqlDatabase.initialize();
     //   dbInitialized = true;
     // } catch (error) {
     //   console.error('[Heartbeat] Database initialization failed:', error);

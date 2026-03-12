@@ -22,7 +22,7 @@ export class DocumentStore {
 
   private static async ensureInit(): Promise<void> {
     if (!DocumentStore.initialized) {
-      await sqlDatabase.initialize();
+      sqlDatabase.initialize();
       DocumentStore.initialized = true;
     }
   }

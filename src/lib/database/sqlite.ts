@@ -1,5 +1,5 @@
-import { SQLiteWasmDatabase } from './sqlite-wasm-compat';
-type SqlJsDatabase = SQLiteWasmDatabase;
+import { SqliteWrapper, QueryExecResult } from './sqlite-wrapper';
+type SqlJsDatabase = SqliteWrapper;
 import { v4 as uuidv4 } from 'uuid';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -7,13 +7,12 @@ import * as path from 'path';
 let db: SqlJsDatabase | null = null;
 let dbPath: string = '';
 
-async function initDb(): Promise<SqlJsDatabase> {
+function initDb(): SqlJsDatabase {
   if (db) return db;
   
   // Runtime detection
   const isNodeRuntime = typeof process !== 'undefined' && 
-                        typeof process.cwd === 'function' &&
-                        typeof require !== 'undefined';
+                        typeof process.cwd === 'function';
 
   if (!isNodeRuntime) {
     throw new Error(
@@ -23,7 +22,7 @@ async function initDb(): Promise<SqlJsDatabase> {
     );
   }
 
-  // Node.js runtime - use file-based storage
+  // Node.js runtime - use file-based storage with better-sqlite3
   dbPath = process.env.DATABASE_PATH || path.join(process.cwd(), 'data', 'assistant.db');
   const dataDir = path.dirname(dbPath);
 
@@ -31,11 +30,11 @@ async function initDb(): Promise<SqlJsDatabase> {
     fs.mkdirSync(dataDir, { recursive: true });
   }
 
-  // Initialize SQLite Wasm database
-  const sqliteDb = new SQLiteWasmDatabase(dbPath);
-  await sqliteDb.init();
+  // Initialize SQLite database
+  const sqliteDb = new SqliteWrapper(dbPath);
+  sqliteDb.init();
   db = sqliteDb;
-
+  
   console.log('[SQLite] Loaded database from:', dbPath);
   
   if (!db) {
@@ -46,8 +45,7 @@ async function initDb(): Promise<SqlJsDatabase> {
 }
 
 function saveDb(): void {
-  // Database is file-backed, changes are already persisted
-  // No need to export and write to file
+  // Database is persisted automatically with better-sqlite3 WAL mode
 }
 
 export interface Contact {
@@ -210,9 +208,9 @@ export class SQLDatabase {
     return SQLDatabase.instance;
   }
 
-  async initialize(): Promise<void> {
+  initialize(): void {
     if (this.initialized) return;
-    await initDb();
+    initDb();
     this.createTables();
     this.initialized = true;
   }
@@ -3271,7 +3269,7 @@ export class SQLDatabase {
   }
 
   getAllApiKeys(): { provider: string; hasKey: boolean }[] {
-    const providers = ['openrouter', 'tavily', 'brave', 'serpapi', 'glm', 'deepseek', 'sam', 'openai', 'anthropic', 'gemini', 'groq', 'mistral'];
+    const providers = ['ollama', 'openrouter', 'tavily', 'brave', 'serpapi', 'glm', 'deepseek', 'sam', 'openai', 'anthropic', 'gemini', 'groq', 'mistral'];
     return providers.map(provider => ({
       provider,
       hasKey: !!this.getApiKey(provider),

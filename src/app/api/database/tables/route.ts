@@ -5,7 +5,7 @@ import { sqlDatabase } from '@/lib/database/sqlite';
 
 export async function GET(request: NextRequest) {
   try {
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
     
     // Get all tables using the all method
     const tablesResult = await sqlDatabase.all(`

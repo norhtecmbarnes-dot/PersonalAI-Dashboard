@@ -10,7 +10,7 @@ export async function GET(
   try {
     const { table: tableName } = await params;
     
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
 
     const tableCheck = await sqlDatabase.all(`
       SELECT name FROM sqlite_master WHERE type='table' AND name=?

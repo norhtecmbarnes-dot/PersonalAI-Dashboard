@@ -21,7 +21,7 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { action, instruction, taskId } = body;
 
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
 
     if (action === 'parse') {
       const parsed = await parseInstruction(instruction);
@@ -99,7 +99,7 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const action = searchParams.get('action');
 
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
 
     if (action === 'list') {
       const tasks = taskScheduler.getTasks();

@@ -7,7 +7,7 @@ import { sanitizePrompt, sanitizeString } from '@/lib/utils/validation';
 
 export async function POST(request: Request) {
   try {
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
     const body = await request.json();
     const { brandId, message, conversationHistory } = body;
 
@@ -107,7 +107,7 @@ export async function POST(request: Request) {
 
 export async function GET(request: Request) {
   try {
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
     const { searchParams } = new URL(request.url);
     const brandId = searchParams.get('brandId');
 

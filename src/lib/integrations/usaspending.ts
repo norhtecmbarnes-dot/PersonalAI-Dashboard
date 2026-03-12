@@ -65,7 +65,7 @@ export class USASpendingService {
   }
 
   async initialize(): Promise<void> {
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
   }
 
   async searchAwards(params: USASpendingSearchParams): Promise<{

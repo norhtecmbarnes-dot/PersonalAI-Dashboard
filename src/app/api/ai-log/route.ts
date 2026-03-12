@@ -27,7 +27,7 @@ interface LogEntry {
 
 // Ensure log table exists
 async function ensureLogTable() {
-  await sqlDatabase.initialize();
+  sqlDatabase.initialize();
   
   try {
     await sqlDatabase.all(`

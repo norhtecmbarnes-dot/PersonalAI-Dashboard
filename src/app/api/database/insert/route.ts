@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
 
     // Get table schema to validate columns
     const columnsResult = await sqlDatabase.all(`PRAGMA table_info(${table})`);
@@ -108,7 +108,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
 
     // Check if table exists
     const tableCheck = await sqlDatabase.all(`
@@ -170,7 +170,7 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
 
     const column = idColumn || 'id';
     await sqlDatabase.run(`DELETE FROM ${table} WHERE ${column} = ?`, [id]);

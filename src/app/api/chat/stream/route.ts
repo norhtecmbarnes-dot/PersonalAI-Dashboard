@@ -21,7 +21,7 @@ async function getDocumentContext(): Promise<string> {
   }
   
   try {
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
     const docs = sqlDatabase.getDocuments();
     
     if (!docs || docs.length === 0) {

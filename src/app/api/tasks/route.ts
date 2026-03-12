@@ -6,7 +6,7 @@ import { sqlDatabase } from '@/lib/database/sqlite';
 
 export async function GET(request: Request) {
   try {
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
     
     const { searchParams } = new URL(request.url);
     const action = searchParams.get('action');
@@ -104,7 +104,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
     const body = await request.json();
     const { action, ...data } = body;
 

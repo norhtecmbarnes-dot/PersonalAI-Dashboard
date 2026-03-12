@@ -6,7 +6,7 @@ import { sanitizeString } from '@/lib/utils/validation';
 
 export async function GET(request: NextRequest) {
   try {
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
     
     const { searchParams } = new URL(request.url);
     const category = searchParams.get('category');
@@ -17,19 +17,31 @@ export async function GET(request: NextRequest) {
     }
     
     const allSettings = sqlDatabase.getAllSettings();
+    
+    // Redact API key values - never expose actual keys to client
+    const redactedSettings: Record<string, { value: string; category: string }> = {};
+    for (const [key, data] of Object.entries(allSettings)) {
+      if (key.startsWith('api_key_')) {
+        redactedSettings[key] = { value: data.value ? '[REDACTED]' : '', category: data.category };
+      } else {
+        redactedSettings[key] = data;
+      }
+    }
+    
     const modelPreferences = sqlDatabase.getModelPreferences();
     const apiKeys = sqlDatabase.getAllApiKeys();
     
     return NextResponse.json({
-      settings: allSettings,
+      settings: redactedSettings,
       modelPreferences,
       apiKeys,
       searchMode: sqlDatabase.getSearchMode(),
     });
   } catch (error) {
     console.error('Error fetching settings:', error);
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack');
     return NextResponse.json(
-      { error: 'Failed to fetch settings' },
+      { error: 'Failed to fetch settings', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
@@ -37,7 +49,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
     
     const body = await request.json();
     const { action, key, value, category, provider, modelPreferences, searchMode } = body;

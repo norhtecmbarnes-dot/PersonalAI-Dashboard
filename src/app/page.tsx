@@ -139,7 +139,9 @@ export default function Home() {
   
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
   const initialLoadDone = useRef(false);
+  const [showScrollButton, setShowScrollButton] = useState(false);
 
   useEffect(() => {
     if (initialLoadDone.current) return;
@@ -166,6 +168,19 @@ export default function Home() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Handle scroll to show/hide scroll button
+  const handleChatScroll = useCallback(() => {
+    if (chatContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+      setShowScrollButton(!isNearBottom);
+    }
+  }, []);
+
+  const scrollToBottom = useCallback(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, []);
 
   const loadSavedChats = useCallback(async () => {
     try {
@@ -896,9 +911,14 @@ export default function Home() {
         )}
 
         {/* Chat Container - Full Width */}
-        <div className="bg-slate-800/50 backdrop-blur rounded-lg p-4 mb-4 flex flex-col" style={{ minHeight: '500px' }}>
+        <div className="bg-slate-800/50 backdrop-blur rounded-lg p-4 mb-4 flex flex-col relative" style={{ minHeight: '500px' }}>
           {/* Chat Messages - grows to fill space */}
-          <div className="flex-1 overflow-y-auto mb-4" style={{ maxHeight: '60vh' }}>
+          <div 
+            ref={chatContainerRef}
+            onScroll={handleChatScroll}
+            className="flex-1 overflow-y-auto mb-4 relative" 
+            style={{ maxHeight: '60vh' }}
+          >
             {messages.length === 0 ? (
                <div className="text-center text-gray-400 h-full flex flex-col items-center justify-center">
                  <div className="text-6xl mb-4">🤖</div>
@@ -1019,6 +1039,19 @@ export default function Home() {
             )}
             <div ref={messagesEndRef} />
           </div>
+          
+          {/* Scroll to Bottom Button */}
+          {showScrollButton && (
+            <button
+              onClick={scrollToBottom}
+              className="absolute bottom-16 right-4 z-10 p-3 bg-purple-600 hover:bg-purple-500 text-white rounded-full shadow-lg transition-all duration-200 hover:scale-110"
+              title="Scroll to bottom"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+              </svg>
+            </button>
+          )}
         </div>
 
         {/* Input Area */}

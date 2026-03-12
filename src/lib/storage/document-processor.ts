@@ -194,7 +194,7 @@ Consider:
   }
 
   async saveDocumentContext(docContext: DocumentContext): Promise<void> {
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
 
     sqlDatabase.addNote({
       title: docContext.title,
@@ -214,7 +214,7 @@ Consider:
   }
 
   async chatWithDocument(documentId: string, question: string): Promise<ChatContext> {
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
 
     const notes = sqlDatabase.getNotes('document');
     const doc = notes.find(n => n.id === documentId || n.title.includes(documentId));

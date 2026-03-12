@@ -62,7 +62,7 @@ class NotesService {
   }
 
   async createNote(note: Partial<Note>): Promise<Note> {
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
 
     const id = uuidv4();
     const now = Date.now();
@@ -89,7 +89,7 @@ class NotesService {
   }
 
   async getNotes(category?: string): Promise<Note[]> {
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
 
     const notes = sqlDatabase.getNotes('note');
     
@@ -107,7 +107,7 @@ class NotesService {
   }
 
   async getNote(id: string): Promise<Note | null> {
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
 
     const notes = sqlDatabase.getNotes('note');
     const note = notes.find(n => n.id === id);
@@ -126,7 +126,7 @@ class NotesService {
   }
 
   async updateNote(id: string, updates: Partial<Note>): Promise<Note | null> {
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
 
     sqlDatabase.updateDocument(id, {
       title: updates.title,
@@ -138,7 +138,7 @@ class NotesService {
   }
 
   async deleteNote(id: string): Promise<void> {
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
     sqlDatabase.deleteDocument(id);
   }
 
@@ -592,7 +592,7 @@ class NotesService {
   }
 
   async searchNotes(query: string): Promise<Note[]> {
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
     
     const allNotes = await this.getNotes();
     const lowerQuery = query.toLowerCase();

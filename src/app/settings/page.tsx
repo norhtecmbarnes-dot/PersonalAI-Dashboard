@@ -27,6 +27,7 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState<'api' | 'tools' | 'models'>('api');
 
   const [keys, setKeys] = useState<Record<string, string>>({
+    ollama: '',
     tavily: '',
     brave: '',
     serpapi: '',
@@ -44,11 +45,95 @@ export default function SettingsPage() {
   const [customTools, setCustomTools] = useState<CustomTool[]>([]);
   const [editingTool, setEditingTool] = useState<Partial<CustomTool> | null>(null);
   const [newParam, setNewParam] = useState({ name: '', type: 'string', description: '', required: true });
+  
+  // BitNet state
+  const [bitnetPath, setBitnetPath] = useState('');
+  const [bitnetEnabled, setBitnetEnabled] = useState(false);
+  const [bitnetModel, setBitnetModel] = useState('bitnet-b1.58-2b');
+  const [bitnetStatus, setBitnetStatus] = useState<{
+    configured: boolean;
+    installed: boolean;
+    model: boolean;
+    running: boolean;
+  } | null>(null);
+  const [checkingBitnet, setCheckingBitnet] = useState(false);
 
   useEffect(() => {
     loadApiKeys();
     loadCustomTools();
+    loadBitnetConfig();
   }, []);
+
+  const loadBitnetConfig = async () => {
+    try {
+      const response = await fetch('/api/bitnet');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.config) {
+          setBitnetPath(data.config.installPath || '');
+          setBitnetEnabled(data.config.enabled || false);
+          setBitnetModel(data.config.model || 'bitnet-b1.58-2b');
+        }
+        if (data.status) {
+          setBitnetStatus(data.status);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading BitNet config:', error);
+    }
+  };
+
+  const checkBitnetInstallation = async () => {
+    if (!bitnetPath) return;
+    setCheckingBitnet(true);
+    try {
+      const response = await fetch(`/api/bitnet?action=check&path=${encodeURIComponent(bitnetPath)}`);
+      const data = await response.json();
+      setBitnetStatus({
+        configured: data.installed || false,
+        installed: data.installed || false,
+        model: data.model || false,
+        running: false,
+      });
+      if (data.error) {
+        setMessage({ type: 'error', text: data.error });
+      } else if (data.installed) {
+        setMessage({ type: 'success', text: 'BitNet installation found!' });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Failed to check BitNet installation' });
+    } finally {
+      setCheckingBitnet(false);
+    }
+  };
+
+  const saveBitnetConfig = async () => {
+    setSaving(true);
+    setMessage(null);
+    try {
+      const response = await fetch('/api/bitnet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'configure',
+          installPath: bitnetPath,
+          model: bitnetModel,
+          enabled: bitnetEnabled,
+        }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setMessage({ type: 'success', text: 'BitNet configuration saved!' });
+        loadBitnetConfig();
+      } else {
+        setMessage({ type: 'error', text: data.error || 'Failed to save configuration' });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Failed to save BitNet configuration' });
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const loadApiKeys = async () => {
     try {
@@ -270,6 +355,8 @@ export default function SettingsPage() {
             <div className="space-y-4">
               {[
                 // AI Model Providers
+                { id: 'ollama', name: 'Ollama Cloud (Web Search)', desc: 'FREE web search with Ollama - get key at ollama.com/settings/keys', category: 'Web Search', highlight: true },
+                // AI Model Providers
                 { id: 'gemini', name: 'Google Gemini', desc: 'Gemini 2.0 Flash, Pro - get key at aistudio.google.com', category: 'AI Models' },
                 { id: 'openai', name: 'OpenAI', desc: 'GPT-4o, GPT-4, GPT-3.5 - get key at platform.openai.com', category: 'AI Models' },
                 { id: 'anthropic', name: 'Anthropic', desc: 'Claude 3.5 Sonnet, Opus - get key at console.anthropic.com', category: 'AI Models' },
@@ -285,9 +372,12 @@ export default function SettingsPage() {
                 // Government APIs
                 { id: 'sam', name: 'SAM.gov', desc: 'Government contracts API - get key at sam.gov', category: 'Government' },
               ].map((provider) => (
-                <div key={provider.id} className="bg-gray-900 rounded p-4">
+                <div key={provider.id} className={`bg-gray-900 rounded p-4 ${provider.highlight ? 'ring-2 ring-purple-500' : ''}`}>
                   <div className="flex items-center justify-between mb-2">
-                    <label className="text-white font-medium">{provider.name}</label>
+                    <label className="text-white font-medium">
+                      {provider.name}
+                      {provider.highlight && <span className="ml-2 text-xs text-purple-400">(Recommended for Web Search)</span>}
+                    </label>
                     {apiKeys[provider.id] === 'configured' && (
                       <span className="text-xs text-green-400 bg-green-900/30 px-2 py-1 rounded">● Configured</span>
                     )}
@@ -589,6 +679,105 @@ export default function SettingsPage() {
                 <li><code className="bg-gray-800 px-1 rounded">qwen2-vl</code> - Qwen vision model</li>
                 <li><code className="bg-gray-800 px-1 rounded">moondream</code> - Fast vision model</li>
               </ul>
+            </div>
+
+            <div className="mt-6 bg-gray-900 rounded-lg p-4 border border-purple-500/30">
+              <h3 className="text-white font-medium mb-2 flex items-center gap-2">
+                <span className="text-purple-400">⚡</span>
+                BitNet - CPU-Optimized 1.58-bit Models
+              </h3>
+              <p className="text-gray-400 text-sm mb-4">
+                Run AI models on CPU without a GPU. BitNet uses 1.58-bit quantization for efficient inference.
+                Perfect for machines without dedicated graphics cards.
+              </p>
+
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="bitnet-enabled"
+                    checked={bitnetEnabled}
+                    onChange={(e) => setBitnetEnabled(e.target.checked)}
+                    className="w-4 h-4 rounded"
+                  />
+                  <label htmlFor="bitnet-enabled" className="text-gray-300">
+                    Enable BitNet as fallback for CPU-only systems
+                  </label>
+                </div>
+
+                <div>
+                  <label className="block text-gray-300 mb-1 text-sm">BitNet Installation Path</label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={bitnetPath}
+                      onChange={(e) => setBitnetPath(e.target.value)}
+                      placeholder="C:\path\to\BitNet or /home/user/BitNet"
+                      className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm"
+                    />
+                    <button
+                      onClick={checkBitnetInstallation}
+                      disabled={checkingBitnet || !bitnetPath}
+                      className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 text-white text-sm rounded"
+                    >
+                      {checkingBitnet ? 'Checking...' : 'Check'}
+                    </button>
+                  </div>
+                  <p className="text-gray-500 text-xs mt-1">
+                    Path to BitNet directory (clone from github.com/microsoft/BitNet)
+                  </p>
+                </div>
+
+                {bitnetStatus && (
+                  <div className="flex flex-wrap gap-2 text-sm">
+                    <span className={`px-2 py-1 rounded ${bitnetStatus.installed ? 'bg-green-900/50 text-green-400' : 'bg-red-900/50 text-red-400'}`}>
+                      {bitnetStatus.installed ? '✓ Installed' : '✗ Not Found'}
+                    </span>
+                    <span className={`px-2 py-1 rounded ${bitnetStatus.model ? 'bg-green-900/50 text-green-400' : 'bg-yellow-900/50 text-yellow-400'}`}>
+                      {bitnetStatus.model ? '✓ Model Ready' : '○ Model Not Downloaded'}
+                    </span>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-gray-300 mb-1 text-sm">Model Selection</label>
+                  <select
+                    value={bitnetModel}
+                    onChange={(e) => setBitnetModel(e.target.value)}
+                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm"
+                  >
+                    <option value="bitnet-b1.58-2b">BitNet b1.58 2B (Recommended)</option>
+                    <option value="bitnet-b1.58-large">BitNet Large 0.7B (Fastest)</option>
+                    <option value="bitnet-b1.58-3b">BitNet b1.58 3B (Better Quality)</option>
+                  </select>
+                  <p className="text-gray-500 text-xs mt-1">
+                    Larger models = better quality but slower. 2B is recommended for most use cases.
+                  </p>
+                </div>
+
+                <div className="bg-gray-800 rounded p-3 text-sm">
+                  <p className="text-gray-400 mb-2">
+                    <strong className="text-white">Setup Instructions:</strong>
+                  </p>
+                  <ol className="text-gray-400 space-y-1 list-decimal list-inside">
+                    <li>Clone: <code className="bg-gray-900 px-1 rounded">git clone --recursive https://github.com/microsoft/BitNet.git</code></li>
+                    <li>Install: <code className="bg-gray-900 px-1 rounded">cd BitNet && pip install -r requirements.txt</code></li>
+                    <li>Download model: <code className="bg-gray-900 px-1 rounded">python setup_env.py -md models/BitNet-b1.58-2B-4T -q i2_s</code></li>
+                    <li>Enter the path to BitNet directory above</li>
+                  </ol>
+                  <p className="text-gray-500 text-xs mt-2">
+                    Requires: Python 3.9+, CMake 3.22+, Clang 18+ (or Visual Studio 2022 on Windows)
+                  </p>
+                </div>
+
+                <button
+                  onClick={saveBitnetConfig}
+                  disabled={saving}
+                  className="px-4 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 text-white text-sm rounded"
+                >
+                  {saving ? 'Saving...' : 'Save BitNet Configuration'}
+                </button>
+              </div>
             </div>
           </div>
         )}

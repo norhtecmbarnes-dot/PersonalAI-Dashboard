@@ -82,9 +82,9 @@ Tone: Practical, step-by-step.
 Length: 2000-2500 words.`,
   },
   {
-    number: 2,
+    number: 3,
     title: 'Understanding the Architecture',
-    prompt: `Write Chapter 2 of "${BOOK_CONFIG.title}" for ${BOOK_CONFIG.targetAudience}.
+    prompt: `Write Chapter 3 of "${BOOK_CONFIG.title}" for ${BOOK_CONFIG.targetAudience}.
 
 Explain the high-level architecture using analogies:
 - The Brain (LLM) - like having a smart consultant
@@ -97,9 +97,9 @@ Tone: Conceptual, no code yet, build understanding.
 Length: 1500-2000 words.`
   },
   {
-    number: 3,
+    number: 4,
     title: 'Setting Up Your Development Environment',
-    prompt: `Write Chapter 3 of "${BOOK_CONFIG.title}" for ${BOOK_CONFIG.targetAudience}.
+    prompt: `Write Chapter 4 of "${BOOK_CONFIG.title}" for ${BOOK_CONFIG.targetAudience}.
 
 Cover:
 - Installing Node.js and npm
@@ -113,9 +113,9 @@ Tone: Patient, detailed, assume reader is new to development.
 Length: 2000-2500 words.`
   },
   {
-    number: 4,
+    number: 5,
     title: 'Building the Chat Interface',
-    prompt: `Write Chapter 4 of "${BOOK_CONFIG.title}" for ${BOOK_CONFIG.targetAudience}.
+    prompt: `Write Chapter 5 of "${BOOK_CONFIG.title}" for ${BOOK_CONFIG.targetAudience}.
 
 Cover:
 - What is React and why we use it
@@ -129,9 +129,9 @@ Tone: Teaching by doing, explain each piece.
 Length: 2000-2500 words with code examples.`
   },
   {
-    number: 5,
+    number: 6,
     title: 'Connecting to AI Models',
-    prompt: `Write Chapter 5 of "${BOOK_CONFIG.title}" for ${BOOK_CONFIG.targetAudience}.
+    prompt: `Write Chapter 6 of "${BOOK_CONFIG.title}" for ${BOOK_CONFIG.targetAudience}.
 
 Cover:
 - What is an API and how it works
@@ -145,9 +145,9 @@ Tone: Demystify APIs, make it feel approachable.
 Length: 2000-2500 words with code examples.`
   },
   {
-    number: 6,
+    number: 7,
     title: 'Adding Memory with Vector Storage',
-    prompt: `Write Chapter 6 of "${BOOK_CONFIG.title}" for ${BOOK_CONFIG.targetAudience}.
+    prompt: `Write Chapter 7 of "${BOOK_CONFIG.title}" for ${BOOK_CONFIG.targetAudience}.
 
 Explain vector storage in simple terms:
 - What are embeddings (like fingerprints for text)
@@ -161,9 +161,9 @@ Tone: Build intuition before technical details.
 Length: 2000-2500 words with code examples.`
   },
   {
-    number: 7,
+    number: 8,
     title: 'The Power of Tools',
-    prompt: `Write Chapter 7 of "${BOOK_CONFIG.title}" for ${BOOK_CONFIG.targetAudience}.
+    prompt: `Write Chapter 8 of "${BOOK_CONFIG.title}" for ${BOOK_CONFIG.targetAudience}.
 
 Key insight: AI isn't powerful without tools. Neither are humans.
 We can't fly, but we build airplanes. We can't breathe underwater, but we build submarines.
@@ -180,9 +180,9 @@ Tone: Philosophical but practical.
 Length: 2000-2500 words.`
   },
   {
-    number: 8,
+    number: 9,
     title: 'Working with Documents',
-    prompt: `Write Chapter 8 of "${BOOK_CONFIG.title}" for ${BOOK_CONFIG.targetAudience}.
+    prompt: `Write Chapter 9 of "${BOOK_CONFIG.title}" for ${BOOK_CONFIG.targetAudience}.
 
 Cover:
 - Why documents matter for context
@@ -196,9 +196,9 @@ Tone: Practical, solve real problems.
 Length: 2000-2500 words with code examples.`
   },
   {
-    number: 9,
+    number: 10,
     title: 'Brand Voice - NotebookLM Style',
-    prompt: `Write Chapter 9 of "${BOOK_CONFIG.title}" for ${BOOK_CONFIG.targetAudience}.
+    prompt: `Write Chapter 10 of "${BOOK_CONFIG.title}" for ${BOOK_CONFIG.targetAudience}.
 
 Cover:
 - What is NotebookLM and why it's powerful
@@ -212,9 +212,9 @@ Tone: Show the practical business value.
 Length: 2000-2500 words.`
   },
   {
-    number: 10,
+    number: 11,
     title: 'Tool Efficiency - Making AI Work Better',
-    prompt: `Write Chapter 10 of "${BOOK_CONFIG.title}" for ${BOOK_CONFIG.targetAudience}.
+    prompt: `Write Chapter 11 of "${BOOK_CONFIG.title}" for ${BOOK_CONFIG.targetAudience}.
 
 Cover:
 - Why efficiency matters (tokens cost money, time matters)
@@ -228,9 +228,9 @@ Tone: Analytical, show real improvements.
 Length: 1500-2000 words with examples.`
   },
   {
-    number: 11,
+    number: 12,
     title: 'Adding External Integrations',
-    prompt: `Write Chapter 11 of "${BOOK_CONFIG.title}" for ${BOOK_CONFIG.targetAudience}.
+    prompt: `Write Chapter 12 of "${BOOK_CONFIG.title}" for ${BOOK_CONFIG.targetAudience}.
 
 Cover:
 - APIs and webhooks
@@ -243,9 +243,9 @@ Tone: Show practical extensions.
 Length: 1500-2000 words.`
   },
   {
-    number: 12,
+    number: 13,
     title: 'Storing Data Persistence with SQLite',
-    prompt: `Write Chapter 12 of "${BOOK_CONFIG.title}" for ${BOOK_CONFIG.targetAudience}.
+    prompt: `Write Chapter 13 of "${BOOK_CONFIG.title}" for ${BOOK_CONFIG.targetAudience}.
 
 Cover:
 - Why SQLite is perfect for personal projects
@@ -258,9 +258,9 @@ Tone: Keep it simple, this is often over-engineered.
 Length: 1500-2000 words.`
   },
   {
-    number: 13,
+    number: 14,
     title: 'Deploying Your Assistant',
-    prompt: `Write Chapter 13 of "${BOOK_CONFIG.title}" for ${BOOK_CONFIG.targetAudience}.
+    prompt: `Write Chapter 14 of "${BOOK_CONFIG.title}" for ${BOOK_CONFIG.targetAudience}.
 
 Cover:
 - Deployment options (Vercel, Railway, self-hosted)
@@ -273,9 +273,9 @@ Tone: Practical steps, real options.
 Length: 1500-2000 words.`
   },
   {
-    number: 14,
+    number: 15,
     title: 'Extending and Customizing',
-    prompt: `Write Chapter 14 of "${BOOK_CONFIG.title}" for ${BOOK_CONFIG.targetAudience}.
+    prompt: `Write Chapter 15 of "${BOOK_CONFIG.title}" for ${BOOK_CONFIG.targetAudience}.
 
 Cover:
 - The plugin architecture
@@ -288,9 +288,9 @@ Tone: Empower the reader to make it their own.
 Length: 1500-2000 words.`
   },
   {
-    number: 15,
+    number: 16,
     title: 'On-Premise Deployment for Organizations',
-    prompt: `Write Chapter 15 of "${BOOK_CONFIG.title}" for ${BOOK_CONFIG.targetAudience}.
+    prompt: `Write Chapter 16 of "${BOOK_CONFIG.title}" for ${BOOK_CONFIG.targetAudience}.
 
 This is a KEY chapter for enterprise adoption. Cover:
 
@@ -329,9 +329,9 @@ Tone: Professional, addresses IT/security concerns directly.
 Length: 2500-3000 words.`,
   },
   {
-    number: 16,
+    number: 17,
     title: 'Troubleshooting Common Issues',
-    prompt: `Write Chapter 16 of "${BOOK_CONFIG.title}" for ${BOOK_CONFIG.targetAudience}.
+    prompt: `Write Chapter 17 of "${BOOK_CONFIG.title}" for ${BOOK_CONFIG.targetAudience}.
 
 Cover common problems with solutions:
 - "My API calls are failing"
@@ -344,9 +344,9 @@ Format: Problem → Diagnosis → Solution.
 Length: 1500-2000 words.`
   },
   {
-    number: 17,
+    number: 18,
     title: 'What\'s Next - The Future of AI Assistants',
-    prompt: `Write Chapter 17 of "${BOOK_CONFIG.title}" for ${BOOK_CONFIG.targetAudience}.
+    prompt: `Write Chapter 18 of "${BOOK_CONFIG.title}" for ${BOOK_CONFIG.targetAudience}.
 
 Cover:
 - Emerging trends in AI assistants
@@ -359,7 +359,7 @@ Tone: Exciting but grounded.
 Length: 1000-1500 words.`
   },
   {
-    number: 17,
+    number: 19,
     title: 'Appendix A: OpenCode - Building This Book',
     prompt: `Write Appendix A of "${BOOK_CONFIG.title}".
 
@@ -373,7 +373,7 @@ Tone: Meta, honest, and transparent.
 Length: 1000-1500 words.`,
   },
   {
-    number: 18,
+    number: 20,
     title: 'Appendix B: Comparison with OpenClaw',
     prompt: `Write Appendix B of "${BOOK_CONFIG.title}" for ${BOOK_CONFIG.targetAudience}.
 
@@ -392,7 +392,7 @@ Tone: Objective, balanced, practical guidance.
 Length: 2000-2500 words.`,
   },
   {
-    number: 19,
+    number: 21,
     title: 'Appendix C: Quick Reference',
     prompt: `Write Appendix C of "${BOOK_CONFIG.title}".
 
@@ -448,8 +448,8 @@ class BookWriterPlugin {
   }
 
   initializeBook(): BookProgress {
-    const chapters: BookChapter[] = CHAPTER_OUTLINE.map(ch => ({
-      id: `chapter_${ch.number}`,
+    const chapters: BookChapter[] = CHAPTER_OUTLINE.map((ch, index) => ({
+      id: `chapter_${index + 1}`,
       number: ch.number,
       title: ch.title,
       content: '',

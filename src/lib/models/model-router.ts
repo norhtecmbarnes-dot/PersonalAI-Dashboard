@@ -20,7 +20,7 @@ export interface ModelInfo {
   id: string;
   name: string;
   tier: ModelTier;
-  provider: 'ollama' | 'cloud';
+  provider: 'ollama' | 'cloud' | 'bitnet';
   maxTokens: number;
   costPerToken: number; // Approximate cost in USD per 1K tokens
   available: boolean;
@@ -45,6 +45,12 @@ export interface ModelRoutingConfig {
 }
 
 const AVAILABLE_MODELS: ModelInfo[] = [
+  // BitNet models (1.58-bit quantized, CPU-optimized)
+  // These are separate from Ollama and require BitNet installation
+  { id: 'bitnet-b1.58-2b', name: 'BitNet b1.58 2B', tier: 'local-fast', provider: 'bitnet' as any, maxTokens: 4096, costPerToken: 0, available: true, capabilities: ['chat'], description: 'CPU-optimized 1.58-bit model, runs without GPU' },
+  { id: 'bitnet-b1.58-large', name: 'BitNet b1.58 Large', tier: 'local-fast', provider: 'bitnet' as any, maxTokens: 4096, costPerToken: 0, available: true, capabilities: ['chat'], description: 'Smaller BitNet model for faster CPU inference' },
+  { id: 'bitnet-b1.58-3b', name: 'BitNet b1.58 3B', tier: 'local-fast', provider: 'bitnet' as any, maxTokens: 4096, costPerToken: 0, available: true, capabilities: ['chat'], description: 'Larger BitNet model, better quality on CPU' },
+  
   // Local models (free) - Small models that run on most hardware
   { id: 'gemma3:4b', name: 'Gemma 3 4B', tier: 'local-fast', provider: 'ollama', maxTokens: 32768, costPerToken: 0, available: true, capabilities: ['chat', 'code'], description: 'Small 4B model, runs on CPU, no GPU needed' },
   

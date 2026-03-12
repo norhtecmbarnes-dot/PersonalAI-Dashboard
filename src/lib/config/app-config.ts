@@ -77,7 +77,7 @@ class ConfigManager {
     if (this.initialized) return;
     
     try {
-      await sqlDatabase.initialize();
+      sqlDatabase.initialize();
       
       // Load config from database
       const docs = sqlDatabase.getDocuments(undefined, 'app_config');

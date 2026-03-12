@@ -109,7 +109,7 @@ You can also just send me a message and I'll respond using AI!`;
 async function getAIResponse(message: string): Promise<string> {
   try {
     // Get user's default model preference
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
     const modelPrefs = sqlDatabase.getModelPreferences();
     
     // Use the user's configured default model, or let the system choose

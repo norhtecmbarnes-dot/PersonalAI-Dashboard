@@ -70,7 +70,7 @@ class OnlyOfficeService {
     type: 'word' | 'cell' | 'slide',
     content?: string
   ): Promise<OnlyOfficeDocument> {
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
     
     const extensions: Record<string, string> = {
       word: 'docx',
@@ -181,7 +181,7 @@ class OnlyOfficeService {
     title: string,
     data: { headers: string[]; rows: string[][] }
   ): Promise<OnlyOfficeDocument> {
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
     
     const id = uuidv4();
     const now = Date.now();
@@ -215,7 +215,7 @@ class OnlyOfficeService {
 
   // Add data to existing spreadsheet
   async appendToSpreadsheet(documentId: string, rows: string[][]): Promise<void> {
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
     
     const doc = sqlDatabase.getDocumentById(documentId);
     
@@ -251,7 +251,7 @@ class OnlyOfficeService {
     title: string,
     slides: { title: string; bulletPoints: string[] }[]
   ): Promise<OnlyOfficeDocument> {
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
     
     const id = uuidv4();
     const now = Date.now();
@@ -285,7 +285,7 @@ class OnlyOfficeService {
   // ==================== TEXT OPERATIONS ====================
 
   async insertText(documentId: string, text: string, position?: 'start' | 'end'): Promise<void> {
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
     
     const doc = sqlDatabase.getDocumentById(documentId);
     
@@ -438,7 +438,7 @@ class OnlyOfficeService {
   // ==================== LIST AND GET ====================
 
   async listDocuments(): Promise<OnlyOfficeDocument[]> {
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
     
     const docs = sqlDatabase.getDocuments(undefined, 'onlyoffice');
     
@@ -455,7 +455,7 @@ class OnlyOfficeService {
   }
 
   async getDocument(documentId: string): Promise<OnlyOfficeDocument | null> {
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
     
     const doc = sqlDatabase.getDocumentById(documentId);
     
@@ -474,7 +474,7 @@ class OnlyOfficeService {
   }
 
   async deleteDocument(documentId: string): Promise<boolean> {
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
     
     sqlDatabase.deleteDocument(documentId);
     return true;

@@ -5,7 +5,7 @@ import { sqlDatabase } from '@/lib/database/sqlite';
 
 export async function GET(request: Request) {
   try {
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
     const brands = sqlDatabase.getBrands();
     return NextResponse.json({ brands });
   } catch (error) {
@@ -16,7 +16,7 @@ export async function GET(request: Request) {
 
 export async function POST(request: Request) {
   try {
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
     const body = await request.json();
     const { action, brand } = body;
 

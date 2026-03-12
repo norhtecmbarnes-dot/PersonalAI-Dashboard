@@ -5,7 +5,7 @@ import { sqlDatabase } from '@/lib/database/sqlite';
 
 export async function GET(request: NextRequest) {
   try {
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
     
     const { searchParams } = new URL(request.url);
     const enabledOnly = searchParams.get('enabledOnly') === 'true';
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
     
     const body = await request.json();
     const { action, tool } = body;

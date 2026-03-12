@@ -305,59 +305,72 @@ export default function CollabEditorPage() {
   const projectFiles = selectedProjectId ? projects.find(p => p.id === selectedProjectId)?.files : [];
 
   return (
-    <div className="flex flex-col h-screen bg-slate-900">
+    <div className="flex flex-col h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
       {/* Header */}
-      <header className="flex items-center justify-between px-4 py-2 bg-slate-800 border-b border-slate-700">
+      <header className="flex items-center justify-between px-5 py-3 bg-slate-900/80 backdrop-blur-sm border-b border-slate-800">
         <div className="flex items-center gap-4">
-          <h1 className="text-lg font-semibold text-white">Collab Editor</h1>
+          <div className="flex items-center gap-2">
+            <svg className="w-6 h-6 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+            <h1 className="text-lg font-semibold text-white">Editor</h1>
+          </div>
+
+          <div className="h-5 w-px bg-slate-700" />
 
           <input
             type="text"
             value={doc.title}
             onChange={(e) => setDoc(prev => ({ ...prev, title: e.target.value }))}
-            className="px-2 py-1 bg-slate-700 border border-slate-600 rounded text-white text-sm"
-            placeholder="Document title"
+            className="px-3 py-1.5 bg-slate-800/50 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50 focus:border-purple-500 transition-all"
+            placeholder="Untitled Document"
           />
           
-          <span className={`text-xs px-2 py-1 rounded ${
-            saveStatus === 'saved' ? 'bg-green-900/50 text-green-400' :
-            saveStatus === 'saving' ? 'bg-yellow-900/50 text-yellow-400' :
-            'bg-gray-700 text-gray-400'
+          <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${
+            saveStatus === 'saved' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' :
+            saveStatus === 'saving' ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
+            'bg-slate-700/50 text-slate-400 border border-slate-600'
           }`}>
-            {saveStatus === 'saved' ? 'Saved' : saveStatus === 'saving' ? 'Saving...' : 'Unsaved'}
+            {saveStatus === 'saved' ? '✓ Saved' : saveStatus === 'saving' ? 'Saving...' : 'Unsaved'}
           </span>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           {/* Brand Selector */}
-          <select
-            value={selectedBrandId || ''}
-            onChange={(e) => setSelectedBrandId(e.target.value || null)}
-            className="px-2 py-1 bg-slate-700 border border-slate-600 rounded text-white text-sm"
-          >
-            <option value="">No Brand</option>
-            {brands.map(brand => (
-              <option key={brand.id} value={brand.id}>{brand.name}</option>
-            ))}
-          </select>
+          <div className="flex items-center gap-1">
+            <label className="text-xs text-slate-500 mr-1">Brand:</label>
+            <select
+              value={selectedBrandId || ''}
+              onChange={(e) => setSelectedBrandId(e.target.value || null)}
+              className="px-3 py-1.5 bg-slate-800/50 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+            >
+              <option value="">None</option>
+              {brands.map(brand => (
+                <option key={brand.id} value={brand.id}>{brand.name}</option>
+              ))}
+            </select>
+          </div>
 
           {/* Project Selector */}
-          <select
-            value={selectedProjectId || ''}
-            onChange={(e) => setSelectedProjectId(e.target.value || null)}
-            className="px-2 py-1 bg-slate-700 border border-slate-600 rounded text-white text-sm"
-          >
-            <option value="">No Project</option>
-            {projects.map(project => (
-              <option key={project.id} value={project.id}>{project.name}</option>
-            ))}
-          </select>
+          <div className="flex items-center gap-1">
+            <label className="text-xs text-slate-500 mr-1">Project:</label>
+            <select
+              value={selectedProjectId || ''}
+              onChange={(e) => setSelectedProjectId(e.target.value || null)}
+              className="px-3 py-1.5 bg-slate-800/50 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50"
+            >
+              <option value="">None</option>
+              {projects.map(project => (
+                <option key={project.id} value={project.id}>{project.name}</option>
+              ))}
+            </select>
+          </div>
 
           {/* Document Type */}
           <select
             value={doc.documentType}
             onChange={(e) => setDoc(prev => ({ ...prev, documentType: e.target.value as any }))}
-            className="px-2 py-1 bg-slate-700 border border-slate-600 rounded text-white text-sm"
+            className="px-3 py-1.5 bg-slate-800/50 border border-slate-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500/50"
           >
             <option value="general">General</option>
             <option value="proposal">Proposal</option>
@@ -366,16 +379,22 @@ export default function CollabEditorPage() {
             <option value="report">Report</option>
           </select>
 
-          <div className="w-px h-6 bg-slate-600" />
+          <div className="h-5 w-px bg-slate-700 mx-1" />
 
           <button
             onClick={handleNewDocument}
-            className="px-3 py-1 bg-slate-700 hover:bg-slate-600 text-white text-sm rounded"
+            className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-sm rounded-lg transition-all flex items-center gap-1"
           >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
             New
           </button>
 
-          <label className="px-3 py-1 bg-slate-700 hover:bg-slate-600 text-white text-sm rounded cursor-pointer">
+          <label className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-sm rounded-lg cursor-pointer transition-all flex items-center gap-1">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+            </svg>
             Import
             <input
               type="file"
@@ -387,8 +406,11 @@ export default function CollabEditorPage() {
 
           <button
             onClick={() => setShowExportModal(true)}
-            className="px-3 py-1 bg-slate-700 hover:bg-slate-600 text-white text-sm rounded"
+            className="px-3 py-1.5 bg-purple-600 hover:bg-purple-500 text-white text-sm rounded-lg transition-all flex items-center gap-1"
           >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+            </svg>
             Export
           </button>
         </div>
@@ -408,42 +430,63 @@ export default function CollabEditorPage() {
 
       {/* Export Modal */}
       {showExportModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-slate-800 rounded-lg p-6 max-w-md w-full mx-4">
-            <h2 className="text-xl font-semibold text-white mb-4">Export Document</h2>
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-slate-900 border border-slate-700 rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
+                <svg className="w-5 h-5 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+              </div>
+              <h2 className="text-xl font-semibold text-white">Export Document</h2>
+            </div>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">Format</label>
-                <select
-                  value={exportFormat}
-                  onChange={(e) => setExportFormat(e.target.value as any)}
-                  className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded text-white"
-                >
-                  <option value="markdown">Markdown (.md)</option>
-                  <option value="html">HTML with Annotations (.html)</option>
-                  <option value="json">Full Document (.json)</option>
-                </select>
+                <label className="block text-sm text-slate-400 mb-2">Format</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {[
+                    { value: 'markdown', label: 'Markdown', icon: '📝' },
+                    { value: 'html', label: 'HTML', icon: '🌐' },
+                    { value: 'json', label: 'JSON', icon: '{ }' },
+                  ].map(format => (
+                    <button
+                      key={format.value}
+                      onClick={() => setExportFormat(format.value as any)}
+                      className={`p-3 rounded-lg border text-center transition-all ${
+                        exportFormat === format.value
+                          ? 'bg-purple-500/20 border-purple-500 text-purple-300'
+                          : 'bg-slate-800/50 border-slate-700 text-slate-400 hover:border-slate-500'
+                      }`}
+                    >
+                      <div className="text-lg mb-1">{format.icon}</div>
+                      <div className="text-sm">{format.label}</div>
+                    </button>
+                  ))}
+                </div>
               </div>
 
-              <div className="text-sm text-gray-400">
-                {exportFormat === 'markdown' && 'Export as plain Markdown file'}
-                {exportFormat === 'html' && 'Export as HTML with tracked changes and comments visible'}
-                {exportFormat === 'json' && 'Export full document with all metadata, changes, and comments'}
+              <div className="bg-slate-800/50 rounded-lg p-3 text-sm text-slate-400">
+                {exportFormat === 'markdown' && '📄 Export as plain Markdown file for universal editing'}
+                {exportFormat === 'html' && '🌐 Export as HTML with tracked changes and comments visible in browser'}
+                {exportFormat === 'json' && '📦 Export full document with all metadata, changes, and comments for backup'}
               </div>
             </div>
 
             <div className="flex justify-end gap-3 mt-6">
               <button
                 onClick={() => setShowExportModal(false)}
-                className="px-4 py-2 text-gray-400 hover:text-white"
+                className="px-4 py-2 text-slate-400 hover:text-white transition-colors rounded-lg"
               >
                 Cancel
               </button>
               <button
                 onClick={handleExport}
-                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded"
+                className="px-5 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg transition-colors flex items-center gap-2"
               >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
                 Export
               </button>
             </div>

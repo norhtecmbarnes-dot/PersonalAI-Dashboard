@@ -50,7 +50,7 @@ class ToolRegistry {
       },
       execute: async (params) => {
         const { sqlDatabase } = await import('@/lib/database/sqlite');
-        await sqlDatabase.initialize();
+        sqlDatabase.initialize();
         try {
           const results = await sqlDatabase.all(params.query);
           return { success: true, data: results };
@@ -143,7 +143,7 @@ class ToolRegistry {
       execute: async (params) => {
         try {
           const { sqlDatabase } = await import('@/lib/database/sqlite');
-          await sqlDatabase.initialize();
+          sqlDatabase.initialize();
           
           const parseDate = (dateStr: string): number => {
             if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(dateStr)) {
@@ -208,7 +208,7 @@ class ToolRegistry {
       execute: async (params) => {
         try {
           const { sqlDatabase } = await import('@/lib/database/sqlite');
-          await sqlDatabase.initialize();
+          sqlDatabase.initialize();
 
           const now = new Date();
           let startDate: number;
@@ -253,7 +253,7 @@ class ToolRegistry {
       execute: async (params) => {
         try {
           const { sqlDatabase } = await import('@/lib/database/sqlite');
-          await sqlDatabase.initialize();
+          sqlDatabase.initialize();
 
           const deleted = sqlDatabase.deleteEvent(params.event_id);
           return { success: deleted, data: { message: deleted ? 'Event deleted' : 'Event not found' } };
@@ -270,7 +270,7 @@ class ToolRegistry {
       execute: async () => {
         try {
           const { sqlDatabase } = await import('@/lib/database/sqlite');
-          await sqlDatabase.initialize();
+          sqlDatabase.initialize();
 
           const docs = sqlDatabase.getDocuments?.() || [];
           return { 
@@ -1203,7 +1203,7 @@ class ToolRegistry {
     
     try {
       const { sqlDatabase } = await import('@/lib/database/sqlite');
-      await sqlDatabase.initialize();
+      sqlDatabase.initialize();
       
       const customTools = sqlDatabase.getCustomTools(true);
       

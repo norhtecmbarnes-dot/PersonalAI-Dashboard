@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { MarkdownRenderer } from '@/components/MarkdownRenderer';
 
 interface Brand {
@@ -26,7 +26,9 @@ export default function BrandChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showScrollButton, setShowScrollButton] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadBrands();
@@ -35,6 +37,19 @@ export default function BrandChatPage() {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
+
+  // Handle scroll to show/hide scroll button
+  const handleChatScroll = useCallback(() => {
+    if (chatContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+      setShowScrollButton(!isNearBottom);
+    }
+  }, []);
+
+  const scrollToBottom = useCallback(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, []);
 
   const loadBrands = async () => {
     try {
@@ -145,7 +160,7 @@ export default function BrandChatPage() {
           </div>
 
           {/* Chat Area */}
-          <div className="lg:col-span-3 bg-gray-800 rounded-lg p-4 flex flex-col" style={{ minHeight: '600px' }}>
+          <div className="lg:col-span-3 bg-gray-800 rounded-lg p-4 flex flex-col relative" style={{ minHeight: '600px' }}>
             {selectedBrand ? (
               <>
                 {/* Brand Info */}
@@ -181,7 +196,11 @@ export default function BrandChatPage() {
                 </div>
 
                 {/* Messages */}
-                <div className="flex-1 overflow-y-auto mb-4 max-h-[400px]">
+                <div 
+                  ref={chatContainerRef}
+                  onScroll={handleChatScroll}
+                  className="flex-1 overflow-y-auto mb-4 max-h-[400px] relative"
+                >
                   {messages.length === 0 ? (
                     <div className="text-center text-gray-400 h-full flex flex-col items-center justify-center">
                       <div className="text-4xl mb-4">💬</div>
@@ -220,6 +239,19 @@ export default function BrandChatPage() {
                     </div>
                   )}
                   <div ref={messagesEndRef} />
+                  
+                  {/* Scroll to Bottom Button */}
+                  {showScrollButton && (
+                    <button
+                      onClick={scrollToBottom}
+                      className="absolute bottom-2 right-2 z-10 p-3 bg-purple-600 hover:bg-purple-500 text-white rounded-full shadow-lg transition-all duration-200 hover:scale-110"
+                      title="Scroll to bottom"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+                      </svg>
+                    </button>
+                  )}
                 </div>
 
                 {/* Input */}

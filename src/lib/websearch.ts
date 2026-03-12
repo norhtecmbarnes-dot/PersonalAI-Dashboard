@@ -73,7 +73,7 @@ export async function performWebSearch(query: string): Promise<SearchResult[]> {
     
     try {
       const { sqlDatabase } = await import('./database/sqlite');
-      await sqlDatabase.initialize();
+      sqlDatabase.initialize();
       
       const dbTavily = sqlDatabase.getApiKey('tavily');
       const dbBrave = sqlDatabase.getApiKey('brave');
@@ -105,8 +105,12 @@ export async function performWebSearch(query: string): Promise<SearchResult[]> {
           }));
         }
       } catch (error) {
-        errors.push(`Ollama: ${error instanceof Error ? error.message : 'failed'}`);
+        const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+        console.error('[WebSearch] Ollama error:', errorMsg);
+        errors.push(`Ollama: ${errorMsg}`);
       }
+    } else {
+      console.log('[WebSearch] No OLLAMA_API_KEY configured - skipping Ollama search');
     }
 
     // Priority 1: Tavily API (requires API key)

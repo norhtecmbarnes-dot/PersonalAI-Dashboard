@@ -31,7 +31,7 @@ export class VectorLake {
   }
 
   async processQuery(userQuery: string): Promise<VectorLakeResult> {
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
 
     const similarEntries = sqlDatabase.findSimilarQueries(userQuery, this.similarityThreshold);
     

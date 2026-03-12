@@ -1,5 +1,100 @@
 # Change Log - AI Dashboard
 
+## Version 2.5.0 (March 12, 2026)
+
+---
+
+### BitNet Integration - CPU-Only AI Inference
+
+**NEW: BitNet Support for GPU-Free Computing**
+
+This release adds support for Microsoft's BitNet, enabling AI inference on machines WITHOUT a GPU:
+
+- **1.58-bit Quantization** - Run models on CPU with minimal quality loss
+- **55-82% Energy Reduction** - Significantly lower power consumption
+- **1.37x-6.17x Speedup** - Faster inference compared to standard models
+- **No Internet Required** - Completely offline inference once models are downloaded
+
+**Key Features:**
+- Settings page integration for BitNet configuration
+- Path configuration for BitNet installation directory
+- Model selection (BitNet b1.58 2B, Large, 3B)
+- Automatic installation checking
+- CPU fallback when Ollama is unavailable
+
+**Files Added:**
+- `src/lib/services/bitnet.ts` - BitNet service module
+- `src/app/api/bitnet/route.ts` - BitNet API endpoint
+
+**Files Modified:**
+- `src/lib/models/model-router.ts` - Added BitNet models to AVAILABLE_MODELS
+- `src/app/settings/page.tsx` - Added BitNet configuration UI
+
+---
+
+## Version 2.4.0 (March 11, 2026)
+
+---
+
+### Security & Database Improvements
+
+**SQLite Database Migration:**
+- Replaced `@sqlite.org/sqlite-wasm` (browser-only) with `better-sqlite3` (Node.js native)
+- Fixed critical bug where API keys couldn't be saved/retrieved
+- Database now properly persists all settings and API keys
+
+**API Key Security:**
+- API keys are stored locally in `data/assistant.db` (SQLite)
+- Keys are NEVER exposed to frontend - only `hasKey: boolean` status returned
+- Settings API now redacts API key values: `api_key_*` returns `[REDACTED]`
+- Database and all user data excluded from git via `.gitignore`
+- Created `SECURITY.md` documenting all security practices
+
+**Files Modified:**
+- `src/lib/database/sqlite.ts` - Uses `better-sqlite3` with synchronous API
+- `src/lib/database/sqlite-wrapper.ts` - New compatibility wrapper
+- `src/app/api/settings/route.ts` - Redacts API key values in GET response
+- `src/lib/websearch.ts` - Fixed async/await call to initialize()
+- `src/lib/browser/web-search-tool.ts` - Fixed async/await call to initialize()
+- `SECURITY.md` - New security documentation
+
+---
+
+### Government Search Feature (Example Plugin)
+
+**NEW: `/gov-search` Page - Personal Example Plugin**
+
+This is a personal addition demonstrating how users can extend the dashboard with custom integrations:
+
+- **SAM.gov Search** - Search government contract opportunities
+  - Requires free API key from https://sam.gov
+  - Get key: Login → Workspace → API Keys
+  - Filter by date range, keyword, agency
+  - View solicitation numbers, deadlines, award amounts
+
+- **USASpending.gov Search** - Federal spending data (no API key required)
+  - Search contracts, grants, loans, direct payments
+  - Filter by agency, NAICS code, date range
+  - View award amounts, recipients, funding agencies
+
+**Note:** This feature is a personal example of extending the dashboard. Users can:
+1. Copy the pattern to create their own data source integrations
+2. Add custom API endpoints in `src/app/api/`
+3. Create UI pages in `src/app/[feature]/page.tsx`
+4. Register the service in `src/lib/services/`
+
+**Files Added:**
+- `src/app/gov-search/page.tsx` - Government search UI
+- `src/app/api/sam-searches/route.ts` - SAM search history API
+- `src/components/TopNav.tsx` - Added "Gov Search" navigation link
+
+**Files Modified:**
+- `src/lib/database/sqlite.ts` - SAM/USASpending tables already existed
+- `src/lib/services/sam-gov.ts` - SAM.gov service with SQLite persistence
+- `src/lib/integrations/usaspending.ts` - USASpending.gov service
+
+---
+
 ## Version 2.3.2 (March 6, 2026)
 
 ---

@@ -5,7 +5,7 @@ import { sqlDatabase } from '@/lib/database/sqlite';
 
 export async function GET() {
   try {
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
     
     const docs = sqlDatabase.getDocuments(undefined, 'telegram_config');
     

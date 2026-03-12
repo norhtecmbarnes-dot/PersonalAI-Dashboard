@@ -224,24 +224,49 @@ export async function executeWebSearchTool(args: {
   max_results?: number;
   freshness?: 'day' | 'week' | 'month' | 'year';
 }): Promise<string> {
-  const apiKey = process.env.OLLAMA_API_KEY;
+  // Get API key from env or database
+  let apiKey = process.env.OLLAMA_API_KEY;
+  
+  try {
+    const { sqlDatabase } = await import('../database/sqlite');
+    sqlDatabase.initialize();
+    const dbKey = sqlDatabase.getApiKey('ollama');
+    if (dbKey) {
+      apiKey = dbKey;
+    }
+  } catch {
+    // Continue with env var
+  }
   
   // Check if API key is configured
-  if (!apiKey) {
+  if (!apiKey || apiKey === 'your-ollama-api-key-here' || apiKey === '') {
     return `## Web Search Not Configured
 
-To enable web search, you need an Ollama API key:
+To enable web search, you need an **Ollama API key**:
 
-1. **Get a free API key** at https://ollama.com/settings/keys
-2. **Add to .env.local:**
-   \`\`\`
-   OLLAMA_API_KEY=your-key-here
-   \`\`\`
-3. **Restart the server**
+### Get Your Free API Key:
+1. Go to **[https://ollama.com/settings/keys](https://ollama.com/settings/keys)**
+2. Sign in or create an account
+3. Generate a free API key
 
-Alternatively, the system will try browser-based search (requires Playwright/Chromium).
+### Configure the Key:
 
-Your search query was: "${args.query}"`;
+**Option 1: Add to .env.local file**
+\`\`\`bash
+OLLAMA_API_KEY=your-key-here
+\`\`\`
+Then restart the server.
+
+**Option 2: Add via Settings Page**
+1. Go to **Settings** (gear icon)
+2. Find **API Keys** section
+3. Add \`ollama\` as provider with your key
+
+---
+
+Your search query was: **"${args.query}**
+
+*Alternative: Set TAVILY_API_KEY or BRAVE_API_KEY for other search providers.*`;
   }
 
   try {
@@ -251,7 +276,12 @@ Your search query was: "${args.query}"`;
     });
 
     if (response.results.length === 0) {
-      return `No search results found for "${args.query}". Try a different search term.`;
+      return `No search results found for "${args.query}". 
+
+Try:
+- Using different keywords
+- Being more specific
+- Checking your spelling`;
     }
 
     // Format results for AI consumption
@@ -269,10 +299,34 @@ Your search query was: "${args.query}"`;
 
     return `## Web Search Results for "${args.query}"\n\n${formatted}`;
   } catch (error) {
+    const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+    
+    // Provide helpful error messages
+    if (errorMsg.includes('401') || errorMsg.includes('Unauthorized')) {
+      return `## Web Search Error: Invalid API Key
+
+Your OLLAMA_API_KEY appears to be invalid or expired.
+
+1. Check your key at [ollama.com/settings/keys](https://ollama.com/settings/keys)
+2. Update it in .env.local or Settings
+3. Restart the server`;
+    }
+    
+    if (errorMsg.includes('429') || errorMsg.includes('rate') || errorMsg.includes('limit')) {
+      return `## Web Search Error: Rate Limited
+
+You've hit the rate limit for Ollama web search.
+
+- Wait a few minutes and try again
+- Consider upgrading your Ollama plan
+- Use alternative: /search command with TAVILY_API_KEY`;
+    }
+    
     return `## Web Search Error
 
 Failed to search for "${args.query}":
-${error instanceof Error ? error.message : 'Unknown error'}
+
+**${errorMsg}**
 
 Please check:
 1. Your OLLAMA_API_KEY is valid

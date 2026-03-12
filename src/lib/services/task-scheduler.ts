@@ -275,7 +275,7 @@ class TaskScheduler {
       return; // Prevent duplicate initialization
     }
     
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
     await this.ensureDefaultTasks();
     this.isInitialized = true;
   }

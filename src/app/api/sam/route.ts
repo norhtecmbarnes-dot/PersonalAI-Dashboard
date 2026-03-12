@@ -4,7 +4,7 @@ import { sanitizeString } from '@/lib/utils/validation';
 
 export async function GET(request: NextRequest) {
   try {
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
     
     const { searchParams } = new URL(request.url);
     const keyword = searchParams.get('keyword');

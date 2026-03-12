@@ -6,7 +6,7 @@ import { streamChatCompletion } from '@/lib/models/sdk.server';
 
 export async function GET(request: Request) {
   try {
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
 
     const { searchParams } = new URL(request.url);
     const action = searchParams.get('action');
