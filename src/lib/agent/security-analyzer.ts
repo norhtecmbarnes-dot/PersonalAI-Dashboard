@@ -46,58 +46,159 @@ const SECURITY_PATTERNS = [
   {
     type: 'vulnerability' as const,
     patterns: [
-      { regex: /eval\s*\(/gi, title: 'Dangerous eval() usage', severity: 'critical' as const, recommendation: 'Replace eval() with safer alternatives like JSON.parse() or Function constructor' },
-      { regex: /Function\s*\(/gi, title: 'Dynamic function creation', severity: 'high' as const, recommendation: 'Avoid dynamic function creation - use predefined functions instead' },
-      { regex: /innerHTML\s*=/gi, title: 'Potential XSS via innerHTML', severity: 'high' as const, recommendation: 'Use textContent or sanitize HTML before assignment' },
-      { regex: /dangerouslySetInnerHTML/gi, title: 'React dangerouslySetInnerHTML', severity: 'high' as const, recommendation: 'Ensure content is properly sanitized before rendering' },
-      { regex: /document\.write/gi, title: 'document.write usage', severity: 'medium' as const, recommendation: 'Avoid document.write - use DOM manipulation methods instead' },
-      { regex: /localStorage\.setItem\([^,]+,\s*[^;]*\+[^;]*\)/gi, title: 'Unsanitized localStorage write', severity: 'medium' as const, recommendation: 'Validate and sanitize data before storing' },
+      {
+        regex: /eval\s*\(/gi,
+        title: 'Dangerous eval() usage',
+        severity: 'critical' as const,
+        recommendation:
+          'Replace eval() with safer alternatives like JSON.parse() or Function constructor',
+      },
+      {
+        regex: /Function\s*\(/gi,
+        title: 'Dynamic function creation',
+        severity: 'high' as const,
+        recommendation: 'Avoid dynamic function creation - use predefined functions instead',
+      },
+      {
+        regex: /innerHTML\s*=/gi,
+        title: 'Potential XSS via innerHTML',
+        severity: 'high' as const,
+        recommendation: 'Use textContent or sanitize HTML before assignment',
+      },
+      {
+        regex: /dangerouslySetInnerHTML/gi,
+        title: 'React dangerouslySetInnerHTML',
+        severity: 'high' as const,
+        recommendation: 'Ensure content is properly sanitized before rendering',
+      },
+      {
+        regex: /document\.write/gi,
+        title: 'document.write usage',
+        severity: 'medium' as const,
+        recommendation: 'Avoid document.write - use DOM manipulation methods instead',
+      },
+      {
+        regex: /localStorage\.setItem\([^,]+,\s*[^;]*\+[^;]*\)/gi,
+        title: 'Unsanitized localStorage write',
+        severity: 'medium' as const,
+        recommendation: 'Validate and sanitize data before storing',
+      },
     ],
     autoFixable: false,
   },
   {
     type: 'vulnerability' as const,
     patterns: [
-      { regex: /password\s*[=:]\s*['"`][^'"`]+['"`]/gi, title: 'Hardcoded password', severity: 'critical' as const, recommendation: 'Use environment variables or secure secret management' },
-      { regex: /api[_-]?key\s*[=:]\s*['"`][^'"`]+['"`]/gi, title: 'Hardcoded API key', severity: 'critical' as const, recommendation: 'Move API keys to environment variables' },
-      { regex: /secret\s*[=:]\s*['"`][^'"`]+['"`]/gi, title: 'Hardcoded secret', severity: 'critical' as const, recommendation: 'Use environment variables or secure vault' },
-      { regex: /token\s*[=:]\s*['"`][^'"`]+['"`]/gi, title: 'Hardcoded token', severity: 'high' as const, recommendation: 'Store tokens in environment variables' },
+      {
+        regex: /password\s*[=:]\s*['"`][^'"`]+['"`]/gi,
+        title: 'Hardcoded password',
+        severity: 'critical' as const,
+        recommendation: 'Use environment variables or secure secret management',
+      },
+      {
+        regex: /api[_-]?key\s*[=:]\s*['"`][^'"`]+['"`]/gi,
+        title: 'Hardcoded API key',
+        severity: 'critical' as const,
+        recommendation: 'Move API keys to environment variables',
+      },
+      {
+        regex: /secret\s*[=:]\s*['"`][^'"`]+['"`]/gi,
+        title: 'Hardcoded secret',
+        severity: 'critical' as const,
+        recommendation: 'Use environment variables or secure vault',
+      },
+      {
+        regex: /token\s*[=:]\s*['"`][^'"`]+['"`]/gi,
+        title: 'Hardcoded token',
+        severity: 'high' as const,
+        recommendation: 'Store tokens in environment variables',
+      },
     ],
     autoFixable: false,
   },
   {
     type: 'misconfiguration' as const,
     patterns: [
-      { regex: /cors\s*:?\s*['"`]\*['"`]/gi, title: 'Overly permissive CORS', severity: 'high' as const, recommendation: 'Specify allowed origins instead of wildcard' },
-      { regex: /credentials\s*:?\s*['"`]include['"`]/gi, title: 'Credentials in CORS requests', severity: 'medium' as const, recommendation: 'Only include credentials when necessary' },
-      { regex: /http:\/\//gi, title: 'HTTP instead of HTTPS', severity: 'medium' as const, recommendation: 'Use HTTPS for secure communication' },
+      {
+        regex: /cors\s*:?\s*['"`]\*['"`]/gi,
+        title: 'Overly permissive CORS',
+        severity: 'high' as const,
+        recommendation: 'Specify allowed origins instead of wildcard',
+      },
+      {
+        regex: /credentials\s*:?\s*['"`]include['"`]/gi,
+        title: 'Credentials in CORS requests',
+        severity: 'medium' as const,
+        recommendation: 'Only include credentials when necessary',
+      },
+      {
+        regex: /http:\/\//gi,
+        title: 'HTTP instead of HTTPS',
+        severity: 'medium' as const,
+        recommendation: 'Use HTTPS for secure communication',
+      },
     ],
     autoFixable: false,
   },
   {
     type: 'code-smell' as const,
     patterns: [
-      { regex: /console\.log\([^)]*\)/gi, title: 'Console.log in production code', severity: 'low' as const, recommendation: 'Remove or use proper logging library' },
-      { regex: /TODO|FIXME|HACK|XXX/gi, title: 'Technical debt marker', severity: 'low' as const, recommendation: 'Address or document these items properly' },
-      { regex: /catch\s*\([^)]*\)\s*\{\s*\}/gi, title: 'Empty catch block', severity: 'medium' as const, recommendation: 'Handle errors properly or at least log them' },
-      { regex: /async\s+function\s+\w+\([^)]*\)\s*\{[^}]*await[^}]*\.then\(/gi, title: 'Mixed async/await and promises', severity: 'low' as const, recommendation: 'Use consistent async/await pattern' },
+      {
+        regex: /console\.log\([^)]*\)/gi,
+        title: 'Console.log in production code',
+        severity: 'low' as const,
+        recommendation: 'Remove or use proper logging library',
+      },
+      {
+        regex: /TODO|FIXME|HACK|XXX/gi,
+        title: 'Technical debt marker',
+        severity: 'low' as const,
+        recommendation: 'Address or document these items properly',
+      },
+      {
+        regex: /catch\s*\([^)]*\)\s*\{\s*\}/gi,
+        title: 'Empty catch block',
+        severity: 'medium' as const,
+        recommendation: 'Handle errors properly or at least log them',
+      },
+      {
+        regex: /async\s+function\s+\w+\([^)]*\)\s*\{[^}]*await[^}]*\.then\(/gi,
+        title: 'Mixed async/await and promises',
+        severity: 'low' as const,
+        recommendation: 'Use consistent async/await pattern',
+      },
     ],
     autoFixable: true,
   },
   {
     type: 'best-practice' as const,
     patterns: [
-      { regex: /var\s+\w+\s*=/gi, title: 'Using var instead of let/const', severity: 'low' as const, recommendation: 'Use let or const for better scoping' },
-      { regex: /==\s*['"`]|['"`]\s*==/gi, title: 'Loose equality comparison', severity: 'low' as const, recommendation: 'Use strict equality (===) instead' },
-      { regex: /!=\s*['"`]|['"`]\s*!=/gi, title: 'Loose inequality comparison', severity: 'low' as const, recommendation: 'Use strict inequality (!==) instead' },
+      {
+        regex: /var\s+\w+\s*=/gi,
+        title: 'Using var instead of let/const',
+        severity: 'low' as const,
+        recommendation: 'Use let or const for better scoping',
+      },
+      {
+        regex: /==\s*['"`]|['"`]\s*==/gi,
+        title: 'Loose equality comparison',
+        severity: 'low' as const,
+        recommendation: 'Use strict equality (===) instead',
+      },
+      {
+        regex: /!=\s*['"`]|['"`]\s*!=/gi,
+        title: 'Loose inequality comparison',
+        severity: 'low' as const,
+        recommendation: 'Use strict inequality (!==) instead',
+      },
     ],
     autoFixable: true,
   },
 ];
 
 const TRIVIAL_FIXES: Map<string, (code: string) => string> = new Map([
-  ['Console.log in production code', (code) => code.replace(/console\.log\([^)]*\);?/g, '')],
-  ['Using var instead of let/const', (code) => code.replace(/\bvar\s+(\w+)\s*=/g, 'const $1 =')],
+  ['Console.log in production code', code => code.replace(/console\.log\([^)]*\);?/g, '')],
+  ['Using var instead of let/const', code => code.replace(/\bvar\s+(\w+)\s*=/g, 'const $1 =')],
 ]);
 
 class SecurityAnalyzer {
@@ -121,8 +222,8 @@ class SecurityAnalyzer {
           this.fixedIssues = new Set(JSON.parse(fixed));
         }
       }
-    } catch {
-      // Load failed
+    } catch (error) {
+      console.warn('Security analyzer: Failed to load history:', error);
     }
   }
 
@@ -132,12 +233,14 @@ class SecurityAnalyzer {
         localStorage.setItem('security_scan_history', JSON.stringify(this.scanHistory.slice(-30)));
         localStorage.setItem('security_fixed_issues', JSON.stringify([...this.fixedIssues]));
       }
-    } catch {
-      // Save failed
+    } catch (error) {
+      console.warn('Security analyzer: Failed to save history:', error);
     }
   }
 
-  async scanForIssues(files: Array<{ path: string; content: string }>): Promise<SecurityScanResult> {
+  async scanForIssues(
+    files: Array<{ path: string; content: string }>
+  ): Promise<SecurityScanResult> {
     const issues: SecurityIssue[] = [];
     const now = Date.now();
 
@@ -180,7 +283,7 @@ class SecurityAnalyzer {
       for (const pattern of category.patterns) {
         let match;
         const regex = new RegExp(pattern.regex.source, pattern.regex.flags);
-        
+
         while ((match = regex.exec(content)) !== null) {
           const lineNumber = content.substring(0, match.index).split('\n').length;
           const lineContent = lines[lineNumber - 1] || '';
@@ -214,7 +317,11 @@ class SecurityAnalyzer {
     return issues;
   }
 
-  async attemptAutoFix(issueId: string, filePath: string, content: string): Promise<{
+  async attemptAutoFix(
+    issueId: string,
+    filePath: string,
+    content: string
+  ): Promise<{
     success: boolean;
     newContent?: string;
     message: string;
@@ -230,19 +337,19 @@ class SecurityAnalyzer {
 
     const fixFunction = TRIVIAL_FIXES.get(issue.title);
     if (!fixFunction) {
-      return { 
-        success: false, 
-        message: 'No auto-fix available for this issue type. Escalating to OpenCode.' 
+      return {
+        success: false,
+        message: 'No auto-fix available for this issue type. Escalating to OpenCode.',
       };
     }
 
     try {
       const newContent = fixFunction(content);
-      
+
       if (newContent === content) {
-        return { 
-          success: false, 
-          message: 'Auto-fix applied but no changes made. Escalating to OpenCode.' 
+        return {
+          success: false,
+          message: 'Auto-fix applied but no changes made. Escalating to OpenCode.',
         };
       }
 
@@ -255,16 +362,16 @@ class SecurityAnalyzer {
         message: 'Successfully applied auto-fix',
       };
     } catch (error) {
-      return { 
-        success: false, 
-        message: 'Auto-fix failed. Escalating to OpenCode.' 
+      return {
+        success: false,
+        message: 'Auto-fix failed. Escalating to OpenCode.',
       };
     }
   }
 
   async escalateToOpenCode(issue: SecurityIssue): Promise<OpenCodeTask> {
-    const priority = issue.severity === 'critical' ? 'urgent' : 
-                      issue.severity === 'high' ? 'high' : 'normal';
+    const priority =
+      issue.severity === 'critical' ? 'urgent' : issue.severity === 'high' ? 'high' : 'normal';
 
     const task: OpenCodeTask = {
       id: `opencode_${Date.now()}`,
@@ -296,10 +403,12 @@ class SecurityAnalyzer {
 
   private generateRecommendations(issues: SecurityIssue[]): string[] {
     const recommendations: string[] = [];
-    
+
     const critical = issues.filter(i => i.severity === 'critical');
     if (critical.length > 0) {
-      recommendations.push(`🚨 ${critical.length} critical security issues found. Review and fix immediately.`);
+      recommendations.push(
+        `🚨 ${critical.length} critical security issues found. Review and fix immediately.`
+      );
     }
 
     const high = issues.filter(i => i.severity === 'high');
@@ -336,7 +445,7 @@ class SecurityAnalyzer {
     if (task) {
       task.status = 'completed';
       task.resolution = resolution;
-      
+
       const issue = this.findIssue(task.securityIssueId);
       if (issue) {
         issue.status = 'fixed';

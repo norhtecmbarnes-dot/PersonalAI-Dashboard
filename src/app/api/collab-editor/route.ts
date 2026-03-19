@@ -22,7 +22,7 @@ async function generateAIEdit(
     tone?: string;
     length?: string;
   } = {}
-): Promise<{ changes: TrackedChange[]; comments: Comment[]; newText?: string }> {
+): Promise<{ changes: TrackedChange[]; comments: Comment[]; newText?: string; reason?: string }> {
   const actionPrompts: Record<string, string> = {
     fix_grammar: `Fix any grammar, spelling, punctuation, and style issues in the following text. Keep the same meaning and tone. Return ONLY the corrected text, no explanations.
 
@@ -103,28 +103,67 @@ ${context.brandVoice ? `Brand voice guidelines: ${context.brandVoice.slice(0, 50
       return { changes: [], comments };
     }
 
-    const changes: TrackedChange[] = [{
-      id: generateId(),
-      type: 'format',
-      status: 'pending',
-      author: 'ai',
-      position: 0,
-      positionEnd: text.length,
-      originalText: text,
-      newText: aiResponse,
-      timestamp: Date.now(),
-      metadata: {
-        grammarFix: action === 'fix_grammar',
-        expanded: action === 'expand',
-        simplified: action === 'simplify',
-        rephrased: action === 'rewrite',
-      },
-    }];
+    const reason = await generateChangeReason(action, text, aiResponse, context);
 
-    return { changes, comments: [], newText: aiResponse };
+    const changes: TrackedChange[] = [
+      {
+        id: generateId(),
+        type: 'format',
+        status: 'pending',
+        author: 'ai',
+        position: 0,
+        positionEnd: text.length,
+        originalText: text,
+        newText: aiResponse,
+        timestamp: Date.now(),
+        reason,
+        metadata: {
+          grammarFix: action === 'fix_grammar',
+          expanded: action === 'expand',
+          simplified: action === 'simplify',
+          rephrased: action === 'rewrite',
+        },
+      },
+    ];
+
+    return { changes, comments: [], newText: aiResponse, reason };
   } catch (error) {
     console.error('[CollabEditor API] AI generation error:', error);
     throw error;
+  }
+}
+
+async function generateChangeReason(
+  action: string,
+  original: string,
+  revised: string,
+  context: { brandVoice?: string; documentType?: string }
+): Promise<string> {
+  const reasonPrompt = `You are an editing assistant. Explain the key changes made in ONE concise sentence (max 15 words).
+
+Action: ${action}
+Original: "${original.slice(0, 100)}${original.length > 100 ? '...' : ''}"
+Revised: "${revised.slice(0, 100)}${revised.length > 100 ? '...' : ''}"
+${context.brandVoice ? `Brand voice: ${context.brandVoice.slice(0, 100)}` : ''}
+
+Example responses:
+- "Fixed subject-verb agreement and removed passive voice"
+- "Added specific examples to support main claim"
+- "Simplified technical jargon for general audience"
+- "Strengthened opening with more engaging hook"
+
+Response (one sentence only):`;
+
+  try {
+    const response = await chatCompletion({
+      messages: [{ role: 'user', content: sanitizePrompt(reasonPrompt, 500) }],
+      model: 'qwen3.5:2b',
+      temperature: 0.2,
+      maxTokens: 50,
+    });
+    return response.message?.content?.trim() || `Applied ${action.replace('_', ' ')}`;
+  } catch {
+    return `Applied ${action.replace('_', ' ')}`;
   }
 }
 
@@ -134,13 +173,18 @@ export async function POST(request: NextRequest) {
     const { action, documentId, selection, context, options } = body;
 
     if (!action) {
-      return NextResponse.json(
-        { success: false, error: 'Action is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ success: false, error: 'Action is required' }, { status: 400 });
     }
 
-    const validActions = ['fix_grammar', 'expand', 'simplify', 'rewrite', 'suggest', 'generate', 'comment'];
+    const validActions = [
+      'fix_grammar',
+      'expand',
+      'simplify',
+      'rewrite',
+      'suggest',
+      'generate',
+      'comment',
+    ];
     if (!validActions.includes(action)) {
       return NextResponse.json(
         { success: false, error: `Invalid action. Must be one of: ${validActions.join(', ')}` },
@@ -199,9 +243,17 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       actions: [
-        { id: 'fix_grammar', label: 'Fix Grammar', description: 'Correct grammar, spelling, and punctuation' },
+        {
+          id: 'fix_grammar',
+          label: 'Fix Grammar',
+          description: 'Correct grammar, spelling, and punctuation',
+        },
         { id: 'expand', label: 'Expand', description: 'Add more detail and depth to the text' },
-        { id: 'simplify', label: 'Simplify', description: 'Make the text clearer and easier to understand' },
+        {
+          id: 'simplify',
+          label: 'Simplify',
+          description: 'Make the text clearer and easier to understand',
+        },
         { id: 'rewrite', label: 'Rewrite', description: 'Rephrase for better clarity and flow' },
         { id: 'suggest', label: 'Suggest', description: 'Get improvement suggestions as comments' },
         { id: 'generate', label: 'Generate', description: 'Create new content based on context' },

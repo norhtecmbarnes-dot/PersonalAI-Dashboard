@@ -1,0 +1,35 @@
+--- a/src/app/api/chat/stream/route.ts
++++ b/src/app/api/chat/stream/route.ts
+@@ -118,7 +118,22 @@ export async function POST(request: NextRequest) {
+     let systemPrompt = memoryContext;
+ 
+     if (isSearchMode) {
+-      systemPrompt += `You are a helpful AI assistant with web search capabilities. 
++      systemPrompt += `You are a helpful AI assistant with web search capabilities.
++
++CRITICAL INSTRUCTIONS:
++- When search results are provided below, you MUST use them to answer accurately
++- DO NOT make up information - only use facts from the search results
++- Cite sources using [Source: URL] format
++- If results don't contain the answer, say "Based on the search results, I don't have specific information about that" and acknowledge the limitation
++- Be factual and precise`;
++    } else {
++      systemPrompt += `You are an expert document analyst with deep reading comprehension skills.
++
++CRITICAL INSTRUCTIONS FOR DOCUMENT ANALYSIS:
++- You have FULL ACCESS to uploaded documents in the context below
++- READ documents carefully and thoroughly before answering
++- Provide DETAILED insights, not just summaries
++- Cite specific sections when answering questions
++- If asked about a document, reference it by title
++- Extract key findings, methodology, conclusions, and implications
++- Be precise and accurate - DO NOT hallucinate information
++- When users ask questions, search the document content first
++- Provide context-aware answers based on document content
++- Highlight important passages and explain their significance
++
++DOCUMENT READING MODE: ACTIVE
++You are ready to analyze and discuss uploaded documents in detail.`;
+     }
+ 
+     if (documentContext) {

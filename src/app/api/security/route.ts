@@ -4,36 +4,56 @@ import { NextResponse } from 'next/server';
 import { securityAgent } from '@/lib/agent/security-agent';
 import { securityAnalyzer } from '@/lib/agent/security-analyzer';
 
-async function getSourceFiles(dir: string, files: Array<{ path: string; content: string }> = []): Promise<Array<{ path: string; content: string }>> {
+async function getSourceFiles(
+  dir: string,
+  files: Array<{ path: string; content: string }> = []
+): Promise<Array<{ path: string; content: string }>> {
   const fs = await import('fs');
   const path = await import('path');
-  
+
   try {
     const entries = fs.readdirSync(dir);
-    
+
     for (const entry of entries) {
       const fullPath = path.join(dir, entry);
-      
-      if (entry === 'node_modules' || entry === '.next' || entry === '.git' || entry === 'dist' || entry === 'build') {
+
+      if (
+        entry === 'node_modules' ||
+        entry === '.next' ||
+        entry === '.git' ||
+        entry === 'dist' ||
+        entry === 'build'
+      ) {
         continue;
       }
-      
+
       try {
         const stat = fs.statSync(fullPath);
-        
+
         if (stat.isDirectory()) {
           await getSourceFiles(fullPath, files);
-        } else if (entry.endsWith('.ts') || entry.endsWith('.tsx') || entry.endsWith('.js') || entry.endsWith('.jsx')) {
+        } else if (
+          entry.endsWith('.ts') ||
+          entry.endsWith('.tsx') ||
+          entry.endsWith('.js') ||
+          entry.endsWith('.jsx')
+        ) {
           try {
             const content = fs.readFileSync(fullPath, 'utf-8');
             const relativePath = fullPath.replace(process.cwd(), '').replace(/^[\/\\]/, '');
             files.push({ path: relativePath, content });
-          } catch {}
+          } catch (error) {
+            console.warn(`Failed to read file ${fullPath}:`, error);
+          }
         }
-      } catch {}
+      } catch (error) {
+        console.warn(`Failed to stat ${fullPath}:`, error);
+      }
     }
-  } catch {}
-  
+  } catch (error) {
+    console.warn(`Failed to read directory ${dir}:`, error);
+  }
+
   return files;
 }
 
@@ -55,7 +75,7 @@ export async function POST(request: Request) {
     if (action === 'deep-scan') {
       const targetFiles = body.files || [];
       let files: Array<{ path: string; content: string }> = [];
-      
+
       if (targetFiles.length === 0) {
         files = await getSourceFiles(process.cwd());
       } else {
@@ -71,7 +91,7 @@ export async function POST(request: Request) {
       }
 
       const result = await securityAnalyzer.scanForIssues(files);
-      
+
       return NextResponse.json({
         success: true,
         scanId: result.id,
@@ -83,13 +103,16 @@ export async function POST(request: Request) {
 
     if (action === 'autofix') {
       const { issueId, filePath, content } = body;
-      
+
       if (!issueId || !filePath || !content) {
-        return NextResponse.json({ error: 'Missing required fields: issueId, filePath, content' }, { status: 400 });
+        return NextResponse.json(
+          { error: 'Missing required fields: issueId, filePath, content' },
+          { status: 400 }
+        );
       }
 
       const result = await securityAnalyzer.attemptAutoFix(issueId, filePath, content);
-      
+
       return NextResponse.json({
         success: result.success,
         newContent: result.newContent,
@@ -99,13 +122,13 @@ export async function POST(request: Request) {
 
     if (action === 'escalate') {
       const { issue } = body;
-      
+
       if (!issue) {
         return NextResponse.json({ error: 'Missing issue data' }, { status: 400 });
       }
 
       const task = await securityAnalyzer.escalateToOpenCode(issue);
-      
+
       return NextResponse.json({
         success: true,
         taskId: task.id,
@@ -116,13 +139,13 @@ export async function POST(request: Request) {
 
     if (action === 'dismiss') {
       const { issueId } = body;
-      
+
       if (!issueId) {
         return NextResponse.json({ error: 'Missing issueId' }, { status: 400 });
       }
 
       securityAnalyzer.dismissIssue(issueId);
-      
+
       return NextResponse.json({
         success: true,
         message: 'Issue dismissed',

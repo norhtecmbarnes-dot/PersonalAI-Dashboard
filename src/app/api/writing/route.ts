@@ -15,31 +15,40 @@ Original text:
 
 Provide ONLY the expanded text, no explanations or meta-commentary.`;
 
-const OUTLINE_PROMPT = `You are an expert at organizing information. Create a detailed outline from the following topic or content.
+const OUTLINE_PROMPT = `You are an expert at organizing information. Create a detailed, comprehensive outline from the following topic or content.
 
 Topic/Content:
 """
 {text}
 """
 
-Create a hierarchical outline with:
-- Main sections (Roman numerals: I, II, III)
-- Subsections (letters: A, B, C)  
-- Details (numbers: 1, 2, 3)
-- Key points for each section
+Create a hierarchical outline with the following structure:
 
-Format:
 # {Title}
 
-I. {Main Section}
-   A. {Subsection}
-      1. {Detail}
-      2. {Detail}
-   B. {Subsection}
-II. {Main Section}
-   ...
+## I. {Main Section}
+### A. {Subsection}
+#### 1. {Detail/Point}
+   - Supporting evidence or example
+   - Additional context
+#### 2. {Detail/Point}
+   - Supporting evidence or example
+### B. {Subsection}
+   (Continue pattern...)
 
-Provide ONLY the outline, no explanations.`;
+## II. {Next Main Section}
+   (Continue pattern...)
+
+Requirements:
+- Use Markdown formatting with # for main title, ## for sections, ### for subsections
+- Include at least 3-5 main sections
+- Each section should have 2-4 subsections
+- Each subsection should have 2-3 detailed points
+- Add bullet points for supporting details
+- Ensure logical flow and progression
+- Make it comprehensive enough to guide full content creation
+
+Provide ONLY the outline, no explanations or meta-commentary.`;
 
 const CONTINUE_PROMPT = `You are an expert writer. Continue the following text naturally, maintaining the same style, tone, and context. Write approximately the same length as the original.
 
@@ -386,14 +395,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'action required' }, { status: 400 });
     }
 
-    const sanitizedText = sanitizePrompt(text, 8000);
+    const sanitizedText = sanitizePrompt(text, 6000); // Reduced from 8000 to 6000
     const sanitizedStyle = style ? sanitizePrompt(style, 100) : 'professional';
 
     let memoryContext = '';
     try {
-      memoryContext = memoryFileService.getSystemPrompt().slice(0, 1500);
-    } catch (e) {
-    }
+      memoryContext = memoryFileService.getSystemPrompt().slice(0, 800); // Reduced from 1500 to 800 tokens
+    } catch (e) {}
 
     let brandContext = '';
     if (brandId) {
@@ -479,22 +487,165 @@ export async function POST(request: NextRequest) {
       case 'email_template':
         prompt = EMAIL_TEMPLATE_PROMPT.replace('{text}', sanitizedText);
         break;
+      case 'review':
+        prompt = `You are an expert editor reviewing the following text. Provide specific, actionable suggestions for improvement.
+
+Text to review:
+"""
+{text}
+"""
+
+For each suggestion, identify:
+1. The specific text or section
+2. The type of improvement (clarity, grammar, flow, structure, word choice)
+3. Your suggested revision
+4. Brief explanation of why this improves the text
+
+Format each suggestion as:
+- **Location**: [quote the text]
+- **Issue**: [describe the issue]
+- **Suggestion**: [provide revised text]
+- **Reason**: [explain why]
+
+Focus on:
+- Clarity and readability
+- Grammar and spelling
+- Logical flow and transitions
+- Word choice and tone
+- Structure and organization
+
+Provide 3-10 specific, actionable suggestions.`;
+        break;
+      case 'track_changes':
+        prompt = `You are an expert editor making tracked changes to the following text. Show each change with before/after and explain the reason.
+
+Original text:
+"""
+{text}
+"""
+
+For each edit, provide:
+1. Original text (what you're changing)
+2. Edited text (your revision)
+3. Change type (addition, deletion, modification)
+4. Reason for the change
+
+Format as JSON array of changes:
+[
+  {{
+    "original": "text being changed",
+    "edited": "your revision",
+    "changeType": "addition|deletion|modification",
+    "reason": "why this improves the text"
+  }}
+]
+
+Make 5-15 meaningful improvements focusing on:
+- Clarity and precision
+- Grammar and mechanics
+- Flow and transitions
+- Word choice and variety
+- Sentence structure
+- Overall coherence
+
+Return ONLY the JSON array, no other text.`;
+        break;
       default:
-        return NextResponse.json({ error: 'Invalid action. Use: expand, outline, continue, rewrite, simplify, elaborate, structure, proposal, grammar, humanize, sbir, capture_plan, deadline_finder, evaluation_factors, compliance_matrix, proposal_outline, past_performance, risk_identification, diagram, blog_post, social_media, ad_copy, product_description, email_template' }, { status: 400 });
+        return NextResponse.json(
+          {
+            error:
+              'Invalid action. Use: expand, outline, continue, rewrite, simplify, elaborateate, structure, proposal, grammar, humanize, sbir, capture_plan, deadline_finder, evaluation_factors, compliance_matrix, proposal_outline, past_performance, risk_identification, diagram, blog_post, social_media, ad_copy, product_description, email_template, review, track_changes',
+          },
+          { status: 400 }
+        );
     }
 
     const combinedContext = (brandContext ? brandContext + '\n\n' : '') + memoryContext;
     const systemMessage = {
       role: 'system' as const,
-      content: combinedContext + '\n\nYou are a skilled writing assistant. Follow instructions precisely and provide only the requested output.'
+      content:
+        combinedContext +
+        '\n\nYou are a skilled writing assistant. Follow instructions precisely and provide only the requested output.',
     };
 
     const useModel = model || 'kimi-k2.5';
-    
+
+    // Handle track_changes action separately - it returns JSON
+    if (action === 'track_changes') {
+      try {
+        const response = await chatCompletion({
+          model: useModel,
+          messages: [systemMessage, { role: 'user', content: prompt }],
+          temperature: 0.3,
+          maxTokens: 4000,
+        });
+
+        const resultText = response.message?.content || '';
+
+        // Try to parse JSON from response
+        let changes = [];
+        try {
+          const jsonMatch = resultText.match(/\[([\s\S]*?)\]/);
+          if (jsonMatch) {
+            changes = JSON.parse(jsonMatch[0]);
+          }
+        } catch (e) {
+          console.error('Failed to parse changes JSON:', e);
+        }
+
+        // Generate improved text by applying accepted changes
+        let improvedText = sanitizedText;
+        changes.forEach((change: any) => {
+          if (change.original && change.edited) {
+            improvedText = improvedText.replace(change.original, change.edited);
+          }
+        });
+
+        return NextResponse.json({
+          success: true,
+          result: improvedText,
+          changes: changes.map((c: any, i: number) => ({
+            id: `change_${i}`,
+            original: c.original,
+            edited: c.edited,
+            changeType: c.changeType,
+            reason: c.reason,
+            accepted: false,
+            rejected: false,
+          })),
+          model: useModel,
+        });
+      } catch (error) {
+        return NextResponse.json({ error: 'Failed to process track changes' }, { status: 500 });
+      }
+    }
+
+    // Handle review action - returns suggestions
+    if (action === 'review') {
+      try {
+        const response = await chatCompletion({
+          model: useModel,
+          messages: [systemMessage, { role: 'user', content: prompt }],
+          temperature: 0.5,
+          maxTokens: 4000,
+        });
+
+        const resultText = response.message?.content || '';
+
+        return NextResponse.json({
+          success: true,
+          result: resultText,
+          model: useModel,
+        });
+      } catch (error) {
+        return NextResponse.json({ error: 'Failed to process review' }, { status: 500 });
+      }
+    }
+
     if (process.env.NODE_ENV !== 'production') {
       console.log('[Writing] Processing:', action, 'with model:', useModel);
     }
-    
+
     // Handle streaming
     if (stream) {
       const encoder = new TextEncoder();
@@ -510,7 +661,7 @@ export async function POST(request: NextRequest) {
 
             const content = result.message?.content || '';
             const sseData = JSON.stringify({
-              choices: [{ delta: { content }, finish_reason: 'stop' }]
+              choices: [{ delta: { content }, finish_reason: 'stop' }],
             });
             controller.enqueue(encoder.encode(`data: ${sseData}\n\n`));
           } catch (error) {
@@ -518,15 +669,15 @@ export async function POST(request: NextRequest) {
           } finally {
             controller.close();
           }
-        }
+        },
       });
 
       return new Response(responseStream, {
         headers: {
           'Content-Type': 'text/event-stream',
           'Cache-Control': 'no-cache',
-          'Connection': 'keep-alive',
-        }
+          Connection: 'keep-alive',
+        },
       });
     }
 
@@ -539,7 +690,7 @@ export async function POST(request: NextRequest) {
     });
 
     const content = result.message?.content || '';
-    
+
     console.log('[Writing] Result length:', content.length, 'characters');
 
     return NextResponse.json({
@@ -551,9 +702,9 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('Writing assistant error:', error);
     return NextResponse.json(
-      { 
+      {
         success: false,
-        error: 'Failed to process request', 
+        error: 'Failed to process request',
         details: error instanceof Error ? error.message : 'Unknown error',
         stack: error instanceof Error ? error.stack : undefined,
       },
@@ -686,6 +837,7 @@ export async function GET(request: NextRequest) {
         parameters: ['text'],
       },
     ],
-    usage: 'POST with { action: "expand|outline|proposal|sbir|capture_plan|grammar|humanize|...", text: "your text", model: "optional", stream: false }',
+    usage:
+      'POST with { action: "expand|outline|proposal|sbir|capture_plan|grammar|humanize|...", text: "your text", model: "optional", stream: false }',
   });
 }

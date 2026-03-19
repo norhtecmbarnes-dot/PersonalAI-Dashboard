@@ -23,8 +23,8 @@ export default function SettingsPage() {
   const [apiKeys, setApiKeys] = useState<ApiKeys>({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [message, setMessage] = useState<{type: 'success' | 'error', text: string} | null>(null);
-  const [activeTab, setActiveTab] = useState<'api' | 'tools' | 'models'>('api');
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const [activeTab, setActiveTab] = useState<'api' | 'tools' | 'models' | 'performance'>('api');
 
   const [keys, setKeys] = useState<Record<string, string>>({
     ollama: '',
@@ -44,8 +44,13 @@ export default function SettingsPage() {
 
   const [customTools, setCustomTools] = useState<CustomTool[]>([]);
   const [editingTool, setEditingTool] = useState<Partial<CustomTool> | null>(null);
-  const [newParam, setNewParam] = useState({ name: '', type: 'string', description: '', required: true });
-  
+  const [newParam, setNewParam] = useState({
+    name: '',
+    type: 'string',
+    description: '',
+    required: true,
+  });
+
   // BitNet state
   const [bitnetPath, setBitnetPath] = useState('');
   const [bitnetEnabled, setBitnetEnabled] = useState(false);
@@ -87,7 +92,9 @@ export default function SettingsPage() {
     if (!bitnetPath) return;
     setCheckingBitnet(true);
     try {
-      const response = await fetch(`/api/bitnet?action=check&path=${encodeURIComponent(bitnetPath)}`);
+      const response = await fetch(
+        `/api/bitnet?action=check&path=${encodeURIComponent(bitnetPath)}`
+      );
       const data = await response.json();
       setBitnetStatus({
         configured: data.installed || false,
@@ -157,19 +164,19 @@ export default function SettingsPage() {
   const saveApiKey = async (provider: string) => {
     setSaving(true);
     setMessage(null);
-    
+
     try {
       const response = await fetch('/api/settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          provider, 
-          value: keys[provider as keyof typeof keys] 
+        body: JSON.stringify({
+          provider,
+          value: keys[provider as keyof typeof keys],
         }),
       });
-      
+
       const data = await response.json();
-      
+
       if (data.success) {
         setMessage({ type: 'success', text: `${provider} API key saved!` });
         loadApiKeys();
@@ -187,7 +194,7 @@ export default function SettingsPage() {
 
   const clearApiKey = async (provider: string) => {
     setSaving(true);
-    
+
     try {
       await fetch('/api/settings', {
         method: 'POST',
@@ -309,38 +316,58 @@ export default function SettingsPage() {
         </p>
 
         {message && (
-          <div className={`mb-6 p-4 rounded-lg ${
-            message.type === 'success' ? 'bg-green-900/50 text-green-400' : 'bg-red-900/50 text-red-400'
-          }`}>
+          <div
+            className={`mb-6 p-4 rounded-lg ${
+              message.type === 'success'
+                ? 'bg-green-900/50 text-green-400'
+                : 'bg-red-900/50 text-red-400'
+            }`}
+          >
             {message.text}
           </div>
         )}
 
         {/* Tabs */}
-        <div className="flex gap-2 mb-6">
+        <div className="flex gap-2 mb-6 overflow-x-auto">
           <button
             onClick={() => setActiveTab('api')}
-            className={`px-4 py-2 rounded-lg font-medium ${
-              activeTab === 'api' ? 'bg-purple-600 text-white' : 'bg-gray-800 text-gray-400 hover:text-white'
+            className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap ${
+              activeTab === 'api'
+                ? 'bg-purple-600 text-white'
+                : 'bg-gray-800 text-gray-400 hover:text-white'
             }`}
           >
             API Keys
           </button>
           <button
             onClick={() => setActiveTab('tools')}
-            className={`px-4 py-2 rounded-lg font-medium ${
-              activeTab === 'tools' ? 'bg-purple-600 text-white' : 'bg-gray-800 text-gray-400 hover:text-white'
+            className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap ${
+              activeTab === 'tools'
+                ? 'bg-purple-600 text-white'
+                : 'bg-gray-800 text-gray-400 hover:text-white'
             }`}
           >
             Custom Tools
           </button>
           <button
             onClick={() => setActiveTab('models')}
-            className={`px-4 py-2 rounded-lg font-medium ${
-              activeTab === 'models' ? 'bg-purple-600 text-white' : 'bg-gray-800 text-gray-400 hover:text-white'
+            className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap ${
+              activeTab === 'models'
+                ? 'bg-purple-600 text-white'
+                : 'bg-gray-800 text-gray-400 hover:text-white'
             }`}
           >
             Model Settings
+          </button>
+          <button
+            onClick={() => setActiveTab('performance')}
+            className={`px-4 py-2 rounded-lg font-medium whitespace-nowrap ${
+              activeTab === 'performance'
+                ? 'bg-purple-600 text-white'
+                : 'bg-gray-800 text-gray-400 hover:text-white'
+            }`}
+          >
+            Performance
           </button>
         </div>
 
@@ -349,37 +376,113 @@ export default function SettingsPage() {
           <div className="bg-gray-800 rounded-lg p-6">
             <h2 className="text-xl font-semibold text-white mb-4">API Keys</h2>
             <p className="text-gray-400 text-sm mb-4">
-              Keys are stored locally in your database. For local LLMs (Ollama), you don't need external API keys.
+              Keys are stored locally in your database. For local LLMs (Ollama), you don't need
+              external API keys.
             </p>
-            
+
             <div className="space-y-4">
               {[
                 // AI Model Providers
-                { id: 'ollama', name: 'Ollama Cloud (Web Search)', desc: 'FREE web search with Ollama - get key at ollama.com/settings/keys', category: 'Web Search', highlight: true },
+                {
+                  id: 'ollama',
+                  name: 'Ollama Cloud (Web Search)',
+                  desc: 'FREE web search with Ollama - get key at ollama.com/settings/keys',
+                  category: 'Web Search',
+                  highlight: true,
+                },
                 // AI Model Providers
-                { id: 'gemini', name: 'Google Gemini', desc: 'Gemini 2.0 Flash, Pro - get key at aistudio.google.com', category: 'AI Models' },
-                { id: 'openai', name: 'OpenAI', desc: 'GPT-4o, GPT-4, GPT-3.5 - get key at platform.openai.com', category: 'AI Models' },
-                { id: 'anthropic', name: 'Anthropic', desc: 'Claude 3.5 Sonnet, Opus - get key at console.anthropic.com', category: 'AI Models' },
-                { id: 'openrouter', name: 'OpenRouter', desc: 'Access 100+ AI models - get key at openrouter.ai', category: 'AI Models' },
-                { id: 'glm', name: 'GLM/Zhipu', desc: 'GLM-4, ChatGLM models from Zhipu AI', category: 'AI Models' },
-                { id: 'deepseek', name: 'DeepSeek', desc: 'DeepSeek V3, R1 models - get key at deepseek.com', category: 'AI Models' },
-                { id: 'groq', name: 'Groq', desc: 'Ultra-fast inference - get key at console.groq.com', category: 'AI Models' },
-                { id: 'mistral', name: 'Mistral AI', desc: 'Mistral Large, Medium - get key at console.mistral.ai', category: 'AI Models' },
+                {
+                  id: 'gemini',
+                  name: 'Google Gemini',
+                  desc: 'Gemini 2.0 Flash, Pro - get key at aistudio.google.com',
+                  category: 'AI Models',
+                },
+                {
+                  id: 'openai',
+                  name: 'OpenAI',
+                  desc: 'GPT-4o, GPT-4, GPT-3.5 - get key at platform.openai.com',
+                  category: 'AI Models',
+                },
+                {
+                  id: 'anthropic',
+                  name: 'Anthropic',
+                  desc: 'Claude 3.5 Sonnet, Opus - get key at console.anthropic.com',
+                  category: 'AI Models',
+                },
+                {
+                  id: 'openrouter',
+                  name: 'OpenRouter',
+                  desc: 'Access 100+ AI models - get key at openrouter.ai',
+                  category: 'AI Models',
+                },
+                {
+                  id: 'glm',
+                  name: 'GLM/Zhipu',
+                  desc: 'GLM-4, ChatGLM models from Zhipu AI',
+                  category: 'AI Models',
+                },
+                {
+                  id: 'deepseek',
+                  name: 'DeepSeek',
+                  desc: 'DeepSeek V3, R1 models - get key at deepseek.com',
+                  category: 'AI Models',
+                },
+                {
+                  id: 'groq',
+                  name: 'Groq',
+                  desc: 'Ultra-fast inference - get key at console.groq.com',
+                  category: 'AI Models',
+                },
+                {
+                  id: 'mistral',
+                  name: 'Mistral AI',
+                  desc: 'Mistral Large, Medium - get key at console.mistral.ai',
+                  category: 'AI Models',
+                },
                 // Search Providers
-                { id: 'tavily', name: 'Tavily (Web Search)', desc: 'Best for web search - get key at tavily.com', category: 'Search' },
-                { id: 'brave', name: 'Brave Search', desc: 'Alternative search - get key at brave.com/search/api', category: 'Search' },
-                { id: 'serpapi', name: 'SerpAPI', desc: 'Google search results - get key at serpapi.com', category: 'Search' },
+                {
+                  id: 'tavily',
+                  name: 'Tavily (Web Search)',
+                  desc: 'Best for web search - get key at tavily.com',
+                  category: 'Search',
+                },
+                {
+                  id: 'brave',
+                  name: 'Brave Search',
+                  desc: 'Alternative search - get key at brave.com/search/api',
+                  category: 'Search',
+                },
+                {
+                  id: 'serpapi',
+                  name: 'SerpAPI',
+                  desc: 'Google search results - get key at serpapi.com',
+                  category: 'Search',
+                },
                 // Government APIs
-                { id: 'sam', name: 'SAM.gov', desc: 'Government contracts API - get key at sam.gov', category: 'Government' },
-              ].map((provider) => (
-                <div key={provider.id} className={`bg-gray-900 rounded p-4 ${provider.highlight ? 'ring-2 ring-purple-500' : ''}`}>
+                {
+                  id: 'sam',
+                  name: 'SAM.gov',
+                  desc: 'Government contracts API - get key at sam.gov',
+                  category: 'Government',
+                },
+              ].map(provider => (
+                <div
+                  key={provider.id}
+                  className={`bg-gray-900 rounded p-4 ${provider.highlight ? 'ring-2 ring-purple-500' : ''}`}
+                >
                   <div className="flex items-center justify-between mb-2">
                     <label className="text-white font-medium">
                       {provider.name}
-                      {provider.highlight && <span className="ml-2 text-xs text-purple-400">(Recommended for Web Search)</span>}
+                      {provider.highlight && (
+                        <span className="ml-2 text-xs text-purple-400">
+                          (Recommended for Web Search)
+                        </span>
+                      )}
                     </label>
                     {apiKeys[provider.id] === 'configured' && (
-                      <span className="text-xs text-green-400 bg-green-900/30 px-2 py-1 rounded">● Configured</span>
+                      <span className="text-xs text-green-400 bg-green-900/30 px-2 py-1 rounded">
+                        ● Configured
+                      </span>
                     )}
                   </div>
                   <p className="text-gray-500 text-sm mb-2">{provider.desc}</p>
@@ -387,8 +490,12 @@ export default function SettingsPage() {
                     <input
                       type="password"
                       value={keys[provider.id] || ''}
-                      onChange={(e) => setKeys({ ...keys, [provider.id]: e.target.value })}
-                      placeholder={apiKeys[provider.id] === 'configured' ? 'Enter new key to update...' : 'Enter API key...'}
+                      onChange={e => setKeys({ ...keys, [provider.id]: e.target.value })}
+                      placeholder={
+                        apiKeys[provider.id] === 'configured'
+                          ? 'Enter new key to update...'
+                          : 'Enter API key...'
+                      }
                       className="flex-1 px-4 py-2 bg-gray-800 border border-gray-700 rounded text-white"
                     />
                     <button
@@ -420,24 +527,38 @@ export default function SettingsPage() {
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold text-white">Custom Tools</h2>
                 <button
-                  onClick={() => setEditingTool({ name: '', endpoint: '', method: 'POST', enabled: true, parameters: [] })}
+                  onClick={() =>
+                    setEditingTool({
+                      name: '',
+                      endpoint: '',
+                      method: 'POST',
+                      enabled: true,
+                      parameters: [],
+                    })
+                  }
                   className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded"
                 >
                   + Add Tool
                 </button>
               </div>
               <p className="text-gray-400 text-sm mb-4">
-                Add custom APIs that the AI can call. For local APIs, use http://localhost:PORT or http://127.0.0.1:PORT
+                Add custom APIs that the AI can call. For local APIs, use http://localhost:PORT or
+                http://127.0.0.1:PORT
               </p>
 
               {/* Tool List */}
               {customTools.length > 0 ? (
                 <div className="space-y-2">
-                  {customTools.map((tool) => (
-                    <div key={tool.id} className="flex items-center justify-between bg-gray-900 rounded p-3">
+                  {customTools.map(tool => (
+                    <div
+                      key={tool.id}
+                      className="flex items-center justify-between bg-gray-900 rounded p-3"
+                    >
                       <div>
                         <span className="text-white font-medium">{tool.name}</span>
-                        <span className="text-gray-500 ml-2">{tool.method} {tool.endpoint}</span>
+                        <span className="text-gray-500 ml-2">
+                          {tool.method} {tool.endpoint}
+                        </span>
                       </div>
                       <div className="flex items-center gap-2">
                         <button
@@ -482,11 +603,13 @@ export default function SettingsPage() {
                     <input
                       type="text"
                       value={editingTool.name || ''}
-                      onChange={(e) => setEditingTool({ ...editingTool, name: e.target.value })}
+                      onChange={e => setEditingTool({ ...editingTool, name: e.target.value })}
                       placeholder="e.g., local_api, data_fetcher"
                       className="w-full px-4 py-2 bg-gray-900 border border-gray-700 rounded text-white"
                     />
-                    <p className="text-gray-500 text-sm mt-1">Use lowercase with underscores. The AI will use this name to call the tool.</p>
+                    <p className="text-gray-500 text-sm mt-1">
+                      Use lowercase with underscores. The AI will use this name to call the tool.
+                    </p>
                   </div>
 
                   <div>
@@ -494,7 +617,9 @@ export default function SettingsPage() {
                     <input
                       type="text"
                       value={editingTool.description || ''}
-                      onChange={(e) => setEditingTool({ ...editingTool, description: e.target.value })}
+                      onChange={e =>
+                        setEditingTool({ ...editingTool, description: e.target.value })
+                      }
                       placeholder="What does this tool do?"
                       className="w-full px-4 py-2 bg-gray-900 border border-gray-700 rounded text-white"
                     />
@@ -506,7 +631,7 @@ export default function SettingsPage() {
                       <input
                         type="text"
                         value={editingTool.endpoint || ''}
-                        onChange={(e) => setEditingTool({ ...editingTool, endpoint: e.target.value })}
+                        onChange={e => setEditingTool({ ...editingTool, endpoint: e.target.value })}
                         placeholder="http://localhost:3000/api/endpoint"
                         className="w-full px-4 py-2 bg-gray-900 border border-gray-700 rounded text-white"
                       />
@@ -515,7 +640,7 @@ export default function SettingsPage() {
                       <label className="block text-gray-300 mb-1">Method</label>
                       <select
                         value={editingTool.method || 'POST'}
-                        onChange={(e) => setEditingTool({ ...editingTool, method: e.target.value })}
+                        onChange={e => setEditingTool({ ...editingTool, method: e.target.value })}
                         className="w-full px-4 py-2 bg-gray-900 border border-gray-700 rounded text-white"
                       >
                         <option value="GET">GET</option>
@@ -529,8 +654,10 @@ export default function SettingsPage() {
                   <div>
                     <label className="block text-gray-300 mb-1">Headers (JSON)</label>
                     <textarea
-                      value={editingTool.headers ? JSON.stringify(editingTool.headers, null, 2) : ''}
-                      onChange={(e) => {
+                      value={
+                        editingTool.headers ? JSON.stringify(editingTool.headers, null, 2) : ''
+                      }
+                      onChange={e => {
                         try {
                           const headers = e.target.value ? JSON.parse(e.target.value) : undefined;
                           setEditingTool({ ...editingTool, headers });
@@ -546,12 +673,16 @@ export default function SettingsPage() {
                     <label className="block text-gray-300 mb-1">Body Template (for POST/PUT)</label>
                     <textarea
                       value={editingTool.bodyTemplate || ''}
-                      onChange={(e) => setEditingTool({ ...editingTool, bodyTemplate: e.target.value })}
+                      onChange={e =>
+                        setEditingTool({ ...editingTool, bodyTemplate: e.target.value })
+                      }
                       placeholder='{"query": "{{query}}", "limit": {{limit}}}'
                       className="w-full px-4 py-2 bg-gray-900 border border-gray-700 rounded text-white font-mono text-sm"
                       rows={3}
                     />
-                    <p className="text-gray-500 text-sm mt-1">Use {'{{param}'} to insert parameter values</p>
+                    <p className="text-gray-500 text-sm mt-1">
+                      Use {'{{param}'} to insert parameter values
+                    </p>
                   </div>
 
                   <div>
@@ -559,11 +690,15 @@ export default function SettingsPage() {
                     <input
                       type="text"
                       value={editingTool.responsePath || ''}
-                      onChange={(e) => setEditingTool({ ...editingTool, responsePath: e.target.value })}
+                      onChange={e =>
+                        setEditingTool({ ...editingTool, responsePath: e.target.value })
+                      }
                       placeholder="data.results"
                       className="w-full px-4 py-2 bg-gray-900 border border-gray-700 rounded text-white"
                     />
-                    <p className="text-gray-500 text-sm mt-1">Dot-separated path to extract from response (e.g., data.results)</p>
+                    <p className="text-gray-500 text-sm mt-1">
+                      Dot-separated path to extract from response (e.g., data.results)
+                    </p>
                   </div>
 
                   {/* Parameters */}
@@ -572,11 +707,16 @@ export default function SettingsPage() {
                     {editingTool.parameters && editingTool.parameters.length > 0 && (
                       <div className="space-y-1 mb-2">
                         {editingTool.parameters.map((param, index) => (
-                          <div key={index} className="flex items-center gap-2 bg-gray-900 rounded p-2">
+                          <div
+                            key={index}
+                            className="flex items-center gap-2 bg-gray-900 rounded p-2"
+                          >
                             <span className="text-white">{param.name}</span>
                             <span className="text-gray-500">({param.type})</span>
                             <span className="text-gray-600">{param.description}</span>
-                            {param.required && <span className="text-red-400 text-xs">required</span>}
+                            {param.required && (
+                              <span className="text-red-400 text-xs">required</span>
+                            )}
                             <button
                               onClick={() => removeParameter(index)}
                               className="ml-auto text-red-400 hover:text-red-300"
@@ -591,13 +731,13 @@ export default function SettingsPage() {
                       <input
                         type="text"
                         value={newParam.name}
-                        onChange={(e) => setNewParam({ ...newParam, name: e.target.value })}
+                        onChange={e => setNewParam({ ...newParam, name: e.target.value })}
                         placeholder="Parameter name"
                         className="flex-1 px-3 py-2 bg-gray-900 border border-gray-700 rounded text-white text-sm"
                       />
                       <select
                         value={newParam.type}
-                        onChange={(e) => setNewParam({ ...newParam, type: e.target.value })}
+                        onChange={e => setNewParam({ ...newParam, type: e.target.value })}
                         className="px-3 py-2 bg-gray-900 border border-gray-700 rounded text-white text-sm"
                       >
                         <option value="string">string</option>
@@ -608,7 +748,7 @@ export default function SettingsPage() {
                       <input
                         type="text"
                         value={newParam.description}
-                        onChange={(e) => setNewParam({ ...newParam, description: e.target.value })}
+                        onChange={e => setNewParam({ ...newParam, description: e.target.value })}
                         placeholder="Description"
                         className="flex-1 px-3 py-2 bg-gray-900 border border-gray-700 rounded text-white text-sm"
                       />
@@ -616,7 +756,7 @@ export default function SettingsPage() {
                         <input
                           type="checkbox"
                           checked={newParam.required}
-                          onChange={(e) => setNewParam({ ...newParam, required: e.target.checked })}
+                          onChange={e => setNewParam({ ...newParam, required: e.target.checked })}
                           className="rounded"
                         />
                         Req
@@ -658,14 +798,17 @@ export default function SettingsPage() {
             <p className="text-gray-400 text-sm mb-4">
               Configure default model behavior. For local LLMs, no API keys are needed.
             </p>
-            
+
             <div className="bg-gray-900 rounded-lg p-4">
               <h3 className="text-white font-medium mb-2">Local Models (Ollama)</h3>
               <p className="text-gray-400 text-sm">
-                Local models are served by Ollama at http://localhost:11434. Make sure Ollama is running and your models are pulled.
+                Local models are served by Ollama at http://localhost:11434. Make sure Ollama is
+                running and your models are pulled.
               </p>
               <p className="text-gray-500 text-sm mt-2">
-                Example commands: <code className="bg-gray-800 px-2 py-1 rounded">ollama pull glm-4.7-flash</code> or <code className="bg-gray-800 px-2 py-1 rounded">ollama pull llava</code>
+                Example commands:{' '}
+                <code className="bg-gray-800 px-2 py-1 rounded">ollama pull glm-4.7-flash</code> or{' '}
+                <code className="bg-gray-800 px-2 py-1 rounded">ollama pull llava</code>
               </p>
             </div>
 
@@ -675,9 +818,15 @@ export default function SettingsPage() {
                 For image processing, install a vision-capable model:
               </p>
               <ul className="text-gray-400 text-sm list-disc list-inside">
-                <li><code className="bg-gray-800 px-1 rounded">llava</code> - General vision model</li>
-                <li><code className="bg-gray-800 px-1 rounded">qwen2-vl</code> - Qwen vision model</li>
-                <li><code className="bg-gray-800 px-1 rounded">moondream</code> - Fast vision model</li>
+                <li>
+                  <code className="bg-gray-800 px-1 rounded">llava</code> - General vision model
+                </li>
+                <li>
+                  <code className="bg-gray-800 px-1 rounded">qwen2-vl</code> - Qwen vision model
+                </li>
+                <li>
+                  <code className="bg-gray-800 px-1 rounded">moondream</code> - Fast vision model
+                </li>
               </ul>
             </div>
 
@@ -687,8 +836,8 @@ export default function SettingsPage() {
                 BitNet - CPU-Optimized 1.58-bit Models
               </h3>
               <p className="text-gray-400 text-sm mb-4">
-                Run AI models on CPU without a GPU. BitNet uses 1.58-bit quantization for efficient inference.
-                Perfect for machines without dedicated graphics cards.
+                Run AI models on CPU without a GPU. BitNet uses 1.58-bit quantization for efficient
+                inference. Perfect for machines without dedicated graphics cards.
               </p>
 
               <div className="space-y-4">
@@ -697,7 +846,7 @@ export default function SettingsPage() {
                     type="checkbox"
                     id="bitnet-enabled"
                     checked={bitnetEnabled}
-                    onChange={(e) => setBitnetEnabled(e.target.checked)}
+                    onChange={e => setBitnetEnabled(e.target.checked)}
                     className="w-4 h-4 rounded"
                   />
                   <label htmlFor="bitnet-enabled" className="text-gray-300">
@@ -706,12 +855,14 @@ export default function SettingsPage() {
                 </div>
 
                 <div>
-                  <label className="block text-gray-300 mb-1 text-sm">BitNet Installation Path</label>
+                  <label className="block text-gray-300 mb-1 text-sm">
+                    BitNet Installation Path
+                  </label>
                   <div className="flex gap-2">
                     <input
                       type="text"
                       value={bitnetPath}
-                      onChange={(e) => setBitnetPath(e.target.value)}
+                      onChange={e => setBitnetPath(e.target.value)}
                       placeholder="C:\path\to\BitNet or /home/user/BitNet"
                       className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm"
                     />
@@ -730,10 +881,14 @@ export default function SettingsPage() {
 
                 {bitnetStatus && (
                   <div className="flex flex-wrap gap-2 text-sm">
-                    <span className={`px-2 py-1 rounded ${bitnetStatus.installed ? 'bg-green-900/50 text-green-400' : 'bg-red-900/50 text-red-400'}`}>
+                    <span
+                      className={`px-2 py-1 rounded ${bitnetStatus.installed ? 'bg-green-900/50 text-green-400' : 'bg-red-900/50 text-red-400'}`}
+                    >
                       {bitnetStatus.installed ? '✓ Installed' : '✗ Not Found'}
                     </span>
-                    <span className={`px-2 py-1 rounded ${bitnetStatus.model ? 'bg-green-900/50 text-green-400' : 'bg-yellow-900/50 text-yellow-400'}`}>
+                    <span
+                      className={`px-2 py-1 rounded ${bitnetStatus.model ? 'bg-green-900/50 text-green-400' : 'bg-yellow-900/50 text-yellow-400'}`}
+                    >
                       {bitnetStatus.model ? '✓ Model Ready' : '○ Model Not Downloaded'}
                     </span>
                   </div>
@@ -743,7 +898,7 @@ export default function SettingsPage() {
                   <label className="block text-gray-300 mb-1 text-sm">Model Selection</label>
                   <select
                     value={bitnetModel}
-                    onChange={(e) => setBitnetModel(e.target.value)}
+                    onChange={e => setBitnetModel(e.target.value)}
                     className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm"
                   >
                     <option value="bitnet-b1.58-2b">BitNet b1.58 2B (Recommended)</option>
@@ -760,9 +915,24 @@ export default function SettingsPage() {
                     <strong className="text-white">Setup Instructions:</strong>
                   </p>
                   <ol className="text-gray-400 space-y-1 list-decimal list-inside">
-                    <li>Clone: <code className="bg-gray-900 px-1 rounded">git clone --recursive https://github.com/microsoft/BitNet.git</code></li>
-                    <li>Install: <code className="bg-gray-900 px-1 rounded">cd BitNet && pip install -r requirements.txt</code></li>
-                    <li>Download model: <code className="bg-gray-900 px-1 rounded">python setup_env.py -md models/BitNet-b1.58-2B-4T -q i2_s</code></li>
+                    <li>
+                      Clone:{' '}
+                      <code className="bg-gray-900 px-1 rounded">
+                        git clone --recursive https://github.com/microsoft/BitNet.git
+                      </code>
+                    </li>
+                    <li>
+                      Install:{' '}
+                      <code className="bg-gray-900 px-1 rounded">
+                        cd BitNet && pip install -r requirements.txt
+                      </code>
+                    </li>
+                    <li>
+                      Download model:{' '}
+                      <code className="bg-gray-900 px-1 rounded">
+                        python setup_env.py -md models/BitNet-b1.58-2B-4T -q i2_s
+                      </code>
+                    </li>
                     <li>Enter the path to BitNet directory above</li>
                   </ol>
                   <p className="text-gray-500 text-xs mt-2">
@@ -782,11 +952,121 @@ export default function SettingsPage() {
           </div>
         )}
 
+        {/* Performance Tab */}
+        {activeTab === 'performance' && (
+          <div className="space-y-6">
+            <div className="bg-gray-800 rounded-lg p-6">
+              <h2 className="text-xl font-semibold text-white mb-4">Token Optimization</h2>
+              <p className="text-gray-400 mb-4">
+                Reduce token usage to save costs and improve response speed.
+              </p>
+
+              <div className="space-y-4">
+                <div className="bg-gray-900 rounded p-4">
+                  <h3 className="text-white font-medium mb-2">Current Settings</h3>
+                  <ul className="text-gray-400 text-sm space-y-2">
+                    <li>• Max context tokens: 2048 (reduced from 4096)</li>
+                    <li>• Reserved tokens: 256 (reduced from 512)</li>
+                    <li>• Memory injection limit: 800 tokens (reduced from 1500)</li>
+                    <li>• Conversation history: Last 20 messages (auto-trimmed)</li>
+                    <li>• Memory search results: 3 items (reduced from 5)</li>
+                  </ul>
+                </div>
+
+                <div className="bg-gray-900 rounded p-4">
+                  <h3 className="text-white font-medium mb-2">Task Schedule Optimization</h3>
+                  <ul className="text-gray-400 text-sm space-y-2">
+                    <li>• Security scans: Weekly (reduced from every 12 hours)</li>
+                    <li>• Self-reflection: Weekly (reduced from daily)</li>
+                    <li>• Intelligence reports: Daily (unchanged)</li>
+                    <li>• Cache cleanup: Daily (new)</li>
+                  </ul>
+                </div>
+
+                <div className="bg-green-900/30 border border-green-700 rounded p-4">
+                  <h3 className="text-green-400 font-medium mb-2">Benefits</h3>
+                  <ul className="text-green-300 text-sm space-y-2">
+                    <li>✓ ~50% reduction in token usage</li>
+                    <li>✓ Faster response times</li>
+                    <li>✓ Lower API costs for cloud models</li>
+                    <li>✓ Reduced memory footprint</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-gray-800 rounded-lg p-6">
+              <h2 className="text-xl font-semibold text-white mb-4">Model Routing</h2>
+              <p className="text-gray-400 mb-4">
+                Smart model selection based on task type to optimize performance and cost.
+              </p>
+
+              <div className="space-y-3">
+                <div className="bg-gray-900 rounded p-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-white font-medium">Fast Tasks (Local 2B)</span>
+                    <span className="text-green-400 text-sm">✓ Active</span>
+                  </div>
+                  <p className="text-gray-500 text-xs mt-1">
+                    Heartbeat, health checks, memory search, quick security scans
+                  </p>
+                </div>
+
+                <div className="bg-gray-900 rounded p-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-white font-medium">Chat Tasks (Cloud Capable)</span>
+                    <span className="text-green-400 text-sm">✓ Active</span>
+                  </div>
+                  <p className="text-gray-500 text-xs mt-1">
+                    User chat conversations use glm-5:cloud or kimi-k2.5
+                  </p>
+                </div>
+
+                <div className="bg-gray-900 rounded p-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-white font-medium">Complex Tasks (Cloud Thinking)</span>
+                    <span className="text-green-400 text-sm">✓ Active</span>
+                  </div>
+                  <p className="text-gray-500 text-xs mt-1">
+                    Writing assistant, analysis, code generation use large cloud models
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-gray-800 rounded-lg p-6">
+              <h2 className="text-xl font-semibold text-white mb-4">Session Management</h2>
+              <p className="text-gray-400 mb-4">
+                Background tasks automatically pause during active chat sessions.
+              </p>
+
+              <div className="bg-gray-900 rounded p-4">
+                <h3 className="text-white font-medium mb-2">Priority System</h3>
+                <ul className="text-gray-400 text-sm space-y-2">
+                  <li>
+                    • <strong className="text-green-400">Critical:</strong> Always run (security
+                    alerts)
+                  </li>
+                  <li>
+                    • <strong className="text-blue-400">High:</strong> Run during idle (security
+                    scans)
+                  </li>
+                  <li>
+                    • <strong className="text-yellow-400">Normal:</strong> User-initiated tasks
+                  </li>
+                  <li>
+                    • <strong className="text-orange-400">Low:</strong> Pause during active use
+                    (research, reflection, cleanup)
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
+
         <div className="mt-6 bg-gray-800 rounded-lg p-6">
           <h2 className="text-xl font-semibold text-white mb-4">Telegram Bot</h2>
-          <p className="text-gray-400 mb-4">
-            Configure your Telegram bot for messaging.
-          </p>
+          <p className="text-gray-400 mb-4">Configure your Telegram bot for messaging.</p>
           <a
             href="/telegram"
             className="inline-block px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"

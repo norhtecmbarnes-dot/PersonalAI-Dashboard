@@ -65,6 +65,7 @@ onlyoffice-data/
 # Temporary files
 tmp/
 temp/
+nul
 
 # Secrets (never commit these)
 *.pem
@@ -88,3 +89,11 @@ ses_*.md
 book-output/*.md
 book-output/*.docx
 book-output/*.pdf
+
+# Aider
+.aider*
+
+# Temporary documentation files
+COMPLETION_NOTICE.txt
+POST_TO_GITHUB.txt
+*.log

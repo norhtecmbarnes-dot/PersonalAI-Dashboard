@@ -838,10 +838,10 @@ ollama pull qwen3.5:9b
 ```
 
 With local models:
-- No API keys required
-- No network calls to external services
-- All data stays on your machine
-- 100% offline capable
+• No API keys required
+• No network calls to external services
+• All data stays on your machine
+• 100% offline capable
 
 ---
 

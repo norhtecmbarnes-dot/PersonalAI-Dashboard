@@ -1,53 +1,295 @@
-# Chapter 14: Canvas Fullscreen Mode - Better Viewing for Your Creations
+# Chapter 14: Builder - Visual Components and Database Forms
 
 ## What You'll Learn in This Chapter
 
-• **What fullscreen mode is** and why it matters
-• **How to implement it** in your Canvas component
-• **Device preview modes** - Mobile, tablet, desktop
-• **Responsive design** in fullscreen
-• **How to customize** the experience
+• **Builder overview** - Combining Canvas and Forms into one tool
+• **Visual Builder** - AI-generated UI components (Canvas)
+• **Database Forms** - Create forms connected to SQLite tables
+• **Fullscreen mode** - Better viewing for your creations
+• **Device preview** - Mobile, tablet, desktop views
 
 ---
 
-## Opening: Why Fullscreen?
+## Opening: Why Combine Canvas and Forms?
 
-Imagine you've just created a beautiful dashboard with the Canvas AI. You want to:
-• **Show it to your team** on a big screen
-• **Test it on different devices** without distractions
-• **See every detail** without squinting at a small preview
-• **Present it to clients** professionally
+The Builder combines two powerful features into one unified tool:
 
-**The small preview box is helpful, but sometimes you need the BIG picture!**
+1. **Visual Builder** (formerly Canvas) - Generate UI components with AI
+2. **Database Forms** - Create forms that insert data into your database
+
+**Why combine them?**
+• Forms are just another type of visual component
+• Both use the same backend (SQLite tables)
+• Shared UI patterns (templates, previews, device modes)
+• Simpler navigation for users
 
 ---
 
-## What is Fullscreen Mode?
+## The Builder Interface
 
-Fullscreen mode expands your Canvas preview to fill the entire screen. It's like zooming in on a photo, but for your entire UI.
-
-### Before vs After
-
-**Normal Mode:**
 ```
-┌─────────────────────────────────────────────────┐
-│  Sidebar    │  Canvas Preview (small box)       │
-│  (controls) │  ┌────────────────────────────┐  │
-│             │  │                            │  │
-│             │  │   Your UI                  │  │
-│             │  │   (limited space)          │  │
-│             │  └────────────────────────────┘  │
-└─────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────┐
+│  Builder                                           [Home]  │
+├─────────────────────────────────────────────────────────────┤
+│  [🎨 Visual Builder]  [📋 Database Forms]                    │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  ┌─────────────────────┐  ┌────────────────────────────────┐│
+│  │  Controls           │  │  Preview                        ││
+│  │  ─────────────────  │  │  ──────────────────────────────  ││
+│  │  [AI Toggle]       │  │  ┌────────────────────────────┐  ││
+│  │  [Table Binding]   │  │  │                            │  ││
+│  │  [Description]     │  │  │   Your Generated UI        │  ││
+│  │  [Templates]      │  │  │   (or Form Preview)        │  ││
+│  │                    │  │  │                            │  ││
+│  └─────────────────────┘  └────────────────────────────────┘│
+└─────────────────────────────────────────────────────────────┘
 ```
 
-**Fullscreen Mode:**
+---
+
+## Visual Builder Tab
+
+The Visual Builder generates UI components from natural language descriptions.
+
+### PROMPT: Create Basic Builder Page
+
 ```
-┌──────────────────────────────────────────────────────────────┐
-│ Header with controls                                         │
-├──────────────────────────────────────────────────────────────┤
-│                                                              │
-│                                                              │
-│                                                              │
+Create a new page at src/app/builder/page.tsx that:
+
+1. Has two tabs: "Visual Builder" and "Database Forms"
+2. Visual Builder tab:
+   - AI toggle for LLM generation
+   - Description textarea for UI requests
+   - Quick templates (Dashboard, Form, Charts, etc.)
+   - Device preview toggle (mobile/tablet/desktop)
+   - Fullscreen mode button
+   - Preview area that renders generated HTML
+
+3. Use Tailwind CSS with slate/purple theme
+4. Import PageModelSelector component for model selection
+```
+
+### Available Templates
+
+| Template | Description |
+|----------|-------------|
+| Landing Page | Complete landing page with hero, features, pricing |
+| Dashboard | Metrics cards, charts, data tables |
+| Sales Pipeline | CRM deal stages, values, probabilities |
+| Contact Form | Name, email, subject, message fields |
+| Login Form | Email, password, remember me |
+| Data Table | Searchable table with sorting |
+| Charts | Bar and line charts for analytics |
+
+---
+
+## Database Forms Tab
+
+Create forms that connect directly to SQLite tables.
+
+### PROMPT: Add Forms Tab to Builder
+
+```
+Add a "Database Forms" tab to the Builder page with:
+
+1. List View:
+   - Show saved forms (name, table, field count)
+   - Show available database tables
+   - Buttons: Fill Form, Edit, Delete
+
+2. Create View:
+   - Table selector dropdown
+   - Auto-generate fields from table schema
+   - Field editor (name, type, label, required)
+   - Live preview on right side
+
+3. Fill View:
+   - Form fields from saved form
+   - Submit to /api/database/insert
+   - Success/error feedback
+
+The forms should:
+• Load tables from /api/database/tables
+• Load schemas from /api/database/tables/[name]/schema
+• Save forms to /api/database/forms
+• Insert data to /api/database/insert
+```
+
+### Field Types
+
+| SQL Type | Form Field Type |
+|----------|----------------|
+| TEXT, VARCHAR | text |
+| INTEGER, REAL, NUM | number |
+| DATE, DATETIME | date |
+| BOOLEAN | checkbox |
+
+---
+
+## Fullscreen Mode
+
+Fullscreen mode expands your preview to fill the entire screen.
+
+### PROMPT: Add Fullscreen Mode
+
+```typescript
+// In your Builder component
+const [isFullscreen, setIsFullscreen] = useState(false);
+const containerRef = useRef<HTMLDivElement>(null);
+
+const toggleFullscreen = () => {
+  if (!isFullscreen) {
+    if (containerRef.current?.requestFullscreen) {
+      containerRef.current.requestFullscreen()
+        .then(() => setIsFullscreen(true))
+        .catch(console.error);
+    }
+  } else {
+    if (document.exitFullscreen) {
+      document.exitFullscreen()
+        .then(() => setIsFullscreen(false))
+        .catch(console.error);
+    }
+  }
+};
+
+// Listen for fullscreen changes
+useEffect(() => {
+  const handleChange = () => setIsFullscreen(!!document.fullscreenElement);
+  document.addEventListener('fullscreenchange', handleChange);
+  return () => document.removeEventListener('fullscreenchange', handleChange);
+}, []);
+
+// In JSX
+<button onClick={toggleFullscreen}>
+  {isFullscreen ? 'Exit Fullscreen' : '⛶ Fullscreen'}
+</button>
+```
+
+---
+
+## Device Preview
+
+Test your components on different screen sizes.
+
+### PROMPT: Add Device Preview
+
+```
+Add device preview buttons to the Builder:
+
+1. Three buttons: [Mobile] [Tablet] [Desktop]
+2. Mobile: max-w-sm (centered)
+3. Tablet: max-w-2xl (centered)  
+4. Desktop: full width
+
+CSS for the preview container:
+<div className={`
+  bg-white rounded-xl overflow-hidden
+  ${previewDevice === 'mobile' ? 'max-w-sm mx-auto' :
+    previewDevice === 'tablet' ? 'max-w-2xl mx-auto' : ''}
+`} style={{ minHeight: '500px' }}>
+  {/* Rendered content */}
+</div>
+```
+
+---
+
+## Integration with Home Page
+
+The Builder is accessible from the top navigation.
+
+### Navigation Update
+
+```tsx
+// In TopNav.tsx
+<NavLink href="/builder">Builder</NavLink>
+
+// Remove separate Canvas and Forms links
+// - Was: /database/forms
+// - Was: /canvas  
+// - Now: /builder (combines both)
+```
+
+---
+
+## API Endpoints Used
+
+| Endpoint | Purpose |
+|----------|---------|
+| POST /api/canvas | Generate UI from description |
+| GET /api/canvas?action=tables | List database tables |
+| GET /api/database/tables | List tables for forms |
+| GET /api/database/tables/[name]/schema | Get column info |
+| GET /api/database/forms | List saved forms |
+| POST /api/database/forms | Save/delete form |
+| POST /api/database/insert | Insert form data |
+
+---
+
+## Complete Builder Page
+
+### PROMPT: Full Implementation
+
+```
+Create a complete Builder page at src/app/builder/page.tsx that:
+
+1. Exports default BuilderPage component
+2. Has tabs: "Visual Builder" | "Database Forms"
+3. Visual Builder tab includes:
+   - AI Contextualization toggle
+   - Database Table binding option
+   - Description input
+   - Quick templates grid
+   - Device preview toggle
+   - Fullscreen button
+   - Copy HTML button
+
+4. Database Forms tab includes:
+   - Form list view
+   - Create form view  
+   - Fill form view
+   - Table selection
+   - Auto-generate fields from schema
+
+5. Import PageModelSelector from '@/components/PageModelSelector'
+6. Use Tailwind CSS with slate-900 gradient background
+7. Make it responsive and user-friendly
+
+8. Remove the old pages:
+   - Delete src/app/canvas/page.tsx
+   - Delete src/app/database/forms/page.tsx
+   - Update navigation in TopNav.tsx
+```
+
+---
+
+## Key Takeaways
+
+✅ **Builder** = Visual Builder + Database Forms in one page
+
+✅ **Visual Builder** generates UI from text descriptions using AI
+
+✅ **Database Forms** create data-entry forms connected to SQLite
+
+✅ **Fullscreen Mode** expands preview to entire screen
+
+✅ **Device Preview** tests responsive design
+
+✅ **Tabbed Interface** keeps navigation simple
+
+---
+
+## Next Steps
+
+1. Test Visual Builder with different prompts
+2. Create a form from a database table
+3. Fill out the form and verify data inserts
+4. Try fullscreen mode and device preview
+
+---
+
+**Next: Chapter 15 - Presentations and Styling**
 │              YOUR UI (fills entire screen)                   │
 │                                                              │
 │                                                              │

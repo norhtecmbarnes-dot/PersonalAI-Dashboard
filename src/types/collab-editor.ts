@@ -1,4 +1,4 @@
-export type ChangeType = 'insert' | 'delete' | 'format' | 'move';
+export type ChangeType = 'insert' | 'delete' | 'format' | 'move' | 'ai_suggestion';
 export type ChangeStatus = 'pending' | 'accepted' | 'rejected';
 export type Author = 'user' | 'ai';
 
@@ -7,6 +7,7 @@ export interface TrackedChange {
   type: ChangeType;
   status: ChangeStatus;
   author: Author;
+  authorColor?: string;
   position: number;
   positionEnd: number;
   originalText: string;
@@ -58,15 +59,15 @@ export interface CollabDocument {
   createdAt: number;
   updatedAt: number;
   author: string;
-  
+
   brandId?: string;
   brandName?: string;
-  
+
   projectId?: string;
   projectName?: string;
-  
+
   documentType: 'proposal' | 'book' | 'article' | 'report' | 'general';
-  
+
   metadata: {
     wordCount: number;
     charCount: number;

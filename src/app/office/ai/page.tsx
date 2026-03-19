@@ -5,7 +5,13 @@ import Link from 'next/link';
 import { ModelSelector } from '@/components/ModelSelector';
 
 type SpreadsheetAction = 'analyze' | 'formula' | 'clean' | 'chart' | 'predict' | 'generate-data';
-type PresentationAction = 'bullets' | 'speaker-notes' | 'outline' | 'improve' | 'summary' | 'create-from-outline';
+type PresentationAction =
+  | 'bullets'
+  | 'speaker-notes'
+  | 'outline'
+  | 'improve'
+  | 'summary'
+  | 'create-from-outline';
 
 export default function OfficeAIPage() {
   const [activeTab, setActiveTab] = useState<'spreadsheet' | 'presentation'>('spreadsheet');
@@ -36,12 +42,14 @@ export default function OfficeAIPage() {
   const [purpose, setPurpose] = useState('inform');
   const [slidesInput, setSlidesInput] = useState('');
   const [outlineInput, setOutlineInput] = useState('');
-  
+
   // Presentation branding state
   const [logo, setLogo] = useState<string | null>(null);
-  const [colorTheme, setColorTheme] = useState<'default' | 'black-white' | 'white-black' | 'blue-white'>('default');
+  const [colorTheme, setColorTheme] = useState<
+    'default' | 'black-white' | 'white-black' | 'blue-white'
+  >('default');
   const [selectedBrandId, setSelectedBrandId] = useState<string>('');
-  const [brands, setBrands] = useState<Array<{id: string, name: string, logo?: string}>>([]);
+  const [brands, setBrands] = useState<Array<{ id: string; name: string; logo?: string }>>([]);
 
   const spreadsheetActions = [
     { id: 'analyze', name: 'Analyze', icon: '📊', desc: 'Analyze data for insights and patterns' },
@@ -58,7 +66,12 @@ export default function OfficeAIPage() {
     { id: 'outline', name: 'Outline', icon: '📋', desc: 'Create presentation outline' },
     { id: 'improve', name: 'Improve', icon: '✏️', desc: 'Improve slide content' },
     { id: 'summary', name: 'Summary', icon: '📝', desc: 'Summarize presentation' },
-    { id: 'create-from-outline', name: 'From Outline', icon: '🏗️', desc: 'Create slides from outline' },
+    {
+      id: 'create-from-outline',
+      name: 'From Outline',
+      icon: '🏗️',
+      desc: 'Create slides from outline',
+    },
   ] as const;
 
   const handleSpreadsheetSubmit = async () => {
@@ -74,7 +87,10 @@ export default function OfficeAIPage() {
           data = { spreadsheetData };
           break;
         case 'formula':
-          data = { requirement: formulaRequirement, columns: formulaColumns.split(',').map(c => c.trim()) };
+          data = {
+            requirement: formulaRequirement,
+            columns: formulaColumns.split(',').map(c => c.trim()),
+          };
           break;
         case 'clean':
           data = { spreadsheetData, instructions: cleanInstructions };
@@ -93,22 +109,29 @@ export default function OfficeAIPage() {
       const response = await fetch('/api/office-ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          type: 'spreadsheet', 
-          action: spreadsheetAction, 
+        body: JSON.stringify({
+          type: 'spreadsheet',
+          action: spreadsheetAction,
           data,
-          model: selectedModel || undefined
+          model: selectedModel || undefined,
         }),
       });
 
       const json = await response.json();
       if (json.success) {
-        setResult(typeof json.analysis === 'string' ? json.analysis :
-                  typeof json.formula === 'string' ? json.formula :
-                  typeof json.cleanedData === 'string' ? json.cleanedData :
-                  typeof json.chartConfig === 'object' ? JSON.stringify(json.chartConfig, null, 2) :
-                  typeof json.predictions === 'string' ? json.predictions :
-                  json.csv || JSON.stringify(json, null, 2));
+        setResult(
+          typeof json.analysis === 'string'
+            ? json.analysis
+            : typeof json.formula === 'string'
+              ? json.formula
+              : typeof json.cleanedData === 'string'
+                ? json.cleanedData
+                : typeof json.chartConfig === 'object'
+                  ? JSON.stringify(json.chartConfig, null, 2)
+                  : typeof json.predictions === 'string'
+                    ? json.predictions
+                    : json.csv || JSON.stringify(json, null, 2)
+        );
       } else {
         setError(json.error || 'Failed');
       }
@@ -159,24 +182,26 @@ export default function OfficeAIPage() {
       const response = await fetch('/api/office-ai', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          type: 'presentation', 
-          action: presentationAction, 
+        body: JSON.stringify({
+          type: 'presentation',
+          action: presentationAction,
           data,
           styling,
-          model: selectedModel || undefined
+          model: selectedModel || undefined,
         }),
       });
 
       const json = await response.json();
       if (json.success) {
-        setResult(json.bullets?.join('\n• ') || 
-                  json.speakerNotes || 
-                  json.outline || 
-                  json.improvements || 
-                  json.summary ||
-                  json.slides ||
-                  JSON.stringify(json, null, 2));
+        setResult(
+          json.bullets?.join('\n• ') ||
+            json.speakerNotes ||
+            json.outline ||
+            json.improvements ||
+            json.summary ||
+            json.slides ||
+            JSON.stringify(json, null, 2)
+        );
       } else {
         setError(json.error || 'Failed');
       }
@@ -194,7 +219,9 @@ export default function OfficeAIPage() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-3xl font-bold text-white">Office AI Tools</h1>
-            <p className="text-slate-400 mt-1">AI-powered features for spreadsheets and presentations</p>
+            <p className="text-slate-400 mt-1">
+              AI-powered features for spreadsheets and presentations
+            </p>
           </div>
           <div className="flex gap-2 items-center">
             <ModelSelector
@@ -204,11 +231,17 @@ export default function OfficeAIPage() {
               showHealth={true}
               className="w-64"
             />
-            <Link href="/office" className="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600">
+            <Link
+              href="/office"
+              className="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600"
+            >
               Documents
             </Link>
-            <Link href="/writing" className="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600">
-              Writing
+            <Link
+              href="/writing-studio"
+              className="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600"
+            >
+              Writing Studio
             </Link>
           </div>
         </div>
@@ -246,7 +279,7 @@ export default function OfficeAIPage() {
                 <div className="bg-slate-800/50 backdrop-blur rounded-xl p-4">
                   <h2 className="text-lg font-semibold text-white mb-3">Select Action</h2>
                   <div className="grid grid-cols-3 gap-2">
-                    {spreadsheetActions.map((a) => (
+                    {spreadsheetActions.map(a => (
                       <button
                         key={a.id}
                         onClick={() => setSpreadsheetAction(a.id)}
@@ -268,13 +301,15 @@ export default function OfficeAIPage() {
                 <div className="bg-slate-800/50 backdrop-blur rounded-xl p-4">
                   <h2 className="text-lg font-semibold text-white mb-3">Input</h2>
 
-                  {(spreadsheetAction === 'analyze' || spreadsheetAction === 'clean' || 
-                    spreadsheetAction === 'chart' || spreadsheetAction === 'predict') && (
+                  {(spreadsheetAction === 'analyze' ||
+                    spreadsheetAction === 'clean' ||
+                    spreadsheetAction === 'chart' ||
+                    spreadsheetAction === 'predict') && (
                     <div className="mb-4">
                       <label className="block text-slate-300 mb-2">Spreadsheet Data (CSV)</label>
                       <textarea
                         value={spreadsheetData}
-                        onChange={(e) => setSpreadsheetData(e.target.value)}
+                        onChange={e => setSpreadsheetData(e.target.value)}
                         placeholder="Name, Sales, Region&#10;John, 5000, East&#10;Jane, 7000, West&#10;..."
                         className="w-full h-40 bg-slate-900 text-white p-3 rounded-lg border border-slate-700 focus:border-green-500 focus:outline-none font-mono text-sm"
                       />
@@ -284,21 +319,25 @@ export default function OfficeAIPage() {
                   {spreadsheetAction === 'formula' && (
                     <>
                       <div className="mb-4">
-                        <label className="block text-slate-300 mb-2">What do you want the formula to do?</label>
+                        <label className="block text-slate-300 mb-2">
+                          What do you want the formula to do?
+                        </label>
                         <input
                           type="text"
                           value={formulaRequirement}
-                          onChange={(e) => setFormulaRequirement(e.target.value)}
+                          onChange={e => setFormulaRequirement(e.target.value)}
                           placeholder="e.g., Calculate total sales for East region"
                           className="w-full bg-slate-900 text-white px-4 py-2 rounded-lg border border-slate-700 focus:border-green-500 focus:outline-none"
                         />
                       </div>
                       <div className="mb-4">
-                        <label className="block text-slate-300 mb-2">Column Names (comma-separated)</label>
+                        <label className="block text-slate-300 mb-2">
+                          Column Names (comma-separated)
+                        </label>
                         <input
                           type="text"
                           value={formulaColumns}
-                          onChange={(e) => setFormulaColumns(e.target.value)}
+                          onChange={e => setFormulaColumns(e.target.value)}
                           placeholder="Name, Sales, Region, Date"
                           className="w-full bg-slate-900 text-white px-4 py-2 rounded-lg border border-slate-700 focus:border-green-500 focus:outline-none"
                         />
@@ -312,7 +351,7 @@ export default function OfficeAIPage() {
                       <input
                         type="text"
                         value={cleanInstructions}
-                        onChange={(e) => setCleanInstructions(e.target.value)}
+                        onChange={e => setCleanInstructions(e.target.value)}
                         placeholder="e.g., Remove duplicates, standardize dates"
                         className="w-full bg-slate-900 text-white px-4 py-2 rounded-lg border border-slate-700 focus:border-green-500 focus:outline-none"
                       />
@@ -325,7 +364,7 @@ export default function OfficeAIPage() {
                       <input
                         type="text"
                         value={chartPurpose}
-                        onChange={(e) => setChartPurpose(e.target.value)}
+                        onChange={e => setChartPurpose(e.target.value)}
                         placeholder="e.g., Show sales trends over time"
                         className="w-full bg-slate-900 text-white px-4 py-2 rounded-lg border border-slate-700 focus:border-green-500 focus:outline-none"
                       />
@@ -338,7 +377,7 @@ export default function OfficeAIPage() {
                       <input
                         type="text"
                         value={predictionType}
-                        onChange={(e) => setPredictionType(e.target.value)}
+                        onChange={e => setPredictionType(e.target.value)}
                         placeholder="e.g., next 5 periods"
                         className="w-full bg-slate-900 text-white px-4 py-2 rounded-lg border border-slate-700 focus:border-green-500 focus:outline-none"
                       />
@@ -352,7 +391,7 @@ export default function OfficeAIPage() {
                         <input
                           type="text"
                           value={generatePrompt}
-                          onChange={(e) => setGeneratePrompt(e.target.value)}
+                          onChange={e => setGeneratePrompt(e.target.value)}
                           placeholder="e.g., Employee records with name, department, salary, hire date"
                           className="w-full bg-slate-900 text-white px-4 py-2 rounded-lg border border-slate-700 focus:border-green-500 focus:outline-none"
                         />
@@ -362,7 +401,7 @@ export default function OfficeAIPage() {
                         <input
                           type="number"
                           value={generateRows}
-                          onChange={(e) => setGenerateRows(e.target.value)}
+                          onChange={e => setGenerateRows(e.target.value)}
                           placeholder="10"
                           className="w-full bg-slate-900 text-white px-4 py-2 rounded-lg border border-slate-700 focus:border-green-500 focus:outline-none"
                         />
@@ -375,7 +414,9 @@ export default function OfficeAIPage() {
                     disabled={loading}
                     className="w-full px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 font-medium"
                   >
-                    {loading ? 'Processing...' : spreadsheetActions.find(a => a.id === spreadsheetAction)?.name || 'Process'}
+                    {loading
+                      ? 'Processing...'
+                      : spreadsheetActions.find(a => a.id === spreadsheetAction)?.name || 'Process'}
                   </button>
                 </div>
               </>
@@ -387,7 +428,7 @@ export default function OfficeAIPage() {
                 <div className="bg-slate-800/50 backdrop-blur rounded-xl p-4">
                   <h2 className="text-lg font-semibold text-white mb-3">Select Action</h2>
                   <div className="grid grid-cols-3 gap-2">
-                    {presentationActions.map((a) => (
+                    {presentationActions.map(a => (
                       <button
                         key={a.id}
                         onClick={() => setPresentationAction(a.id)}
@@ -408,24 +449,56 @@ export default function OfficeAIPage() {
                 {/* Presentation Styling Options */}
                 <div className="bg-slate-800/50 backdrop-blur rounded-xl p-4">
                   <h2 className="text-lg font-semibold text-white mb-3">Presentation Styling</h2>
-                  
+
                   {/* Template Selection */}
                   <div className="mb-4">
                     <label className="block text-slate-300 mb-2">Template Style</label>
                     <div className="grid grid-cols-2 gap-2">
                       {[
-                        { id: 'corporate', name: 'Corporate', desc: 'Professional, clean, business-focused', colors: 'bg-slate-100 text-slate-900' },
-                        { id: 'modern-dark', name: 'Modern Dark', desc: 'Dark background, white text, sleek', colors: 'bg-slate-900 text-white' },
-                        { id: 'minimal', name: 'Minimal', desc: 'White background, simple, elegant', colors: 'bg-white text-slate-900 border border-slate-300' },
-                        { id: 'creative', name: 'Creative', desc: 'Bold colors, dynamic, eye-catching', colors: 'bg-gradient-to-br from-purple-600 to-blue-600 text-white' },
-                        { id: 'tech', name: 'Tech', desc: 'Blue gradients, modern, innovative', colors: 'bg-gradient-to-br from-blue-600 to-cyan-500 text-white' },
-                        { id: 'elegant', name: 'Elegant', desc: 'Black background, gold accents, premium', colors: 'bg-black text-yellow-400 border border-yellow-600' },
-                      ].map((template) => (
+                        {
+                          id: 'corporate',
+                          name: 'Corporate',
+                          desc: 'Professional, clean, business-focused',
+                          colors: 'bg-slate-100 text-slate-900',
+                        },
+                        {
+                          id: 'modern-dark',
+                          name: 'Modern Dark',
+                          desc: 'Dark background, white text, sleek',
+                          colors: 'bg-slate-900 text-white',
+                        },
+                        {
+                          id: 'minimal',
+                          name: 'Minimal',
+                          desc: 'White background, simple, elegant',
+                          colors: 'bg-white text-slate-900 border border-slate-300',
+                        },
+                        {
+                          id: 'creative',
+                          name: 'Creative',
+                          desc: 'Bold colors, dynamic, eye-catching',
+                          colors: 'bg-gradient-to-br from-purple-600 to-blue-600 text-white',
+                        },
+                        {
+                          id: 'tech',
+                          name: 'Tech',
+                          desc: 'Blue gradients, modern, innovative',
+                          colors: 'bg-gradient-to-br from-blue-600 to-cyan-500 text-white',
+                        },
+                        {
+                          id: 'elegant',
+                          name: 'Elegant',
+                          desc: 'Black background, gold accents, premium',
+                          colors: 'bg-black text-yellow-400 border border-yellow-600',
+                        },
+                      ].map(template => (
                         <button
                           key={template.id}
                           onClick={() => setColorTheme(template.id as any)}
                           className={`p-3 rounded-lg text-left transition-all ${template.colors} ${
-                            colorTheme === template.id ? 'ring-2 ring-orange-500 ring-offset-2 ring-offset-slate-800' : ''
+                            colorTheme === template.id
+                              ? 'ring-2 ring-orange-500 ring-offset-2 ring-offset-slate-800'
+                              : ''
                           }`}
                         >
                           <div className="font-medium text-sm">{template.name}</div>
@@ -440,7 +513,7 @@ export default function OfficeAIPage() {
                     <label className="block text-slate-300 mb-2">Color Scheme Override</label>
                     <select
                       value={colorTheme}
-                      onChange={(e) => setColorTheme(e.target.value as any)}
+                      onChange={e => setColorTheme(e.target.value as any)}
                       className="w-full bg-slate-900 text-white px-4 py-2 rounded-lg border border-slate-700 focus:border-orange-500 focus:outline-none"
                     >
                       <option value="default">Use Template Colors</option>
@@ -458,7 +531,11 @@ export default function OfficeAIPage() {
                     <div className="flex items-center gap-4">
                       {logo && (
                         <div className="w-16 h-16 bg-white rounded-lg flex items-center justify-center overflow-hidden">
-                          <img src={logo} alt="Logo" className="max-w-full max-h-full object-contain" />
+                          <img
+                            src={logo}
+                            alt="Logo"
+                            className="max-w-full max-h-full object-contain"
+                          />
                         </div>
                       )}
                       <label className="flex-1 cursor-pointer">
@@ -470,11 +547,11 @@ export default function OfficeAIPage() {
                         <input
                           type="file"
                           accept="image/png,image/svg+xml,image/jpeg"
-                          onChange={(e) => {
+                          onChange={e => {
                             const file = e.target.files?.[0];
                             if (file) {
                               const reader = new FileReader();
-                              reader.onload = (event) => {
+                              reader.onload = event => {
                                 setLogo(event.target?.result as string);
                               };
                               reader.readAsDataURL(file);
@@ -492,7 +569,9 @@ export default function OfficeAIPage() {
                         </button>
                       )}
                     </div>
-                    <p className="text-slate-500 text-xs mt-1">Logo will appear on title slide and footer of each slide</p>
+                    <p className="text-slate-500 text-xs mt-1">
+                      Logo will appear on title slide and footer of each slide
+                    </p>
                   </div>
 
                   {/* Brand Selection */}
@@ -500,7 +579,7 @@ export default function OfficeAIPage() {
                     <label className="block text-slate-300 mb-2">Use Brand Profile</label>
                     <select
                       value={selectedBrandId}
-                      onChange={(e) => {
+                      onChange={e => {
                         setSelectedBrandId(e.target.value);
                         const brand = brands.find(b => b.id === e.target.value);
                         if (brand?.logo) {
@@ -510,7 +589,7 @@ export default function OfficeAIPage() {
                       className="w-full bg-slate-900 text-white px-4 py-2 rounded-lg border border-slate-700 focus:border-orange-500 focus:outline-none"
                     >
                       <option value="">No Brand (Custom)</option>
-                      {brands.map((brand) => (
+                      {brands.map(brand => (
                         <option key={brand.id} value={brand.id}>
                           {brand.name}
                         </option>
@@ -523,16 +602,18 @@ export default function OfficeAIPage() {
                 <div className="bg-slate-800/50 backdrop-blur rounded-xl p-4">
                   <h2 className="text-lg font-semibold text-white mb-3">Input</h2>
 
-                  {(presentationAction === 'bullets' || presentationAction === 'speaker-notes' || 
+                  {(presentationAction === 'bullets' ||
+                    presentationAction === 'speaker-notes' ||
                     presentationAction === 'improve') && (
                     <>
-                      {(presentationAction === 'speaker-notes' || presentationAction === 'improve') && (
+                      {(presentationAction === 'speaker-notes' ||
+                        presentationAction === 'improve') && (
                         <div className="mb-4">
                           <label className="block text-slate-300 mb-2">Slide Title</label>
                           <input
                             type="text"
                             value={slideTitle}
-                            onChange={(e) => setSlideTitle(e.target.value)}
+                            onChange={e => setSlideTitle(e.target.value)}
                             placeholder="e.g., Q4 Sales Results"
                             className="w-full bg-slate-900 text-white px-4 py-2 rounded-lg border border-slate-700 focus:border-orange-500 focus:outline-none"
                           />
@@ -542,7 +623,7 @@ export default function OfficeAIPage() {
                         <label className="block text-slate-300 mb-2">Content</label>
                         <textarea
                           value={slideContent}
-                          onChange={(e) => setSlideContent(e.target.value)}
+                          onChange={e => setSlideContent(e.target.value)}
                           placeholder="Enter the content you want to convert or improve..."
                           className="w-full h-40 bg-slate-900 text-white p-3 rounded-lg border border-slate-700 focus:border-orange-500 focus:outline-none"
                         />
@@ -552,7 +633,7 @@ export default function OfficeAIPage() {
                           <label className="block text-slate-300 mb-2">Style</label>
                           <select
                             value={bulletStyle}
-                            onChange={(e) => setBulletStyle(e.target.value)}
+                            onChange={e => setBulletStyle(e.target.value)}
                             className="w-full bg-slate-900 text-white px-4 py-2 rounded-lg border border-slate-700 focus:border-orange-500 focus:outline-none"
                           >
                             <option value="professional and concise">Professional & Concise</option>
@@ -572,7 +653,7 @@ export default function OfficeAIPage() {
                         <input
                           type="text"
                           value={presentationTopic}
-                          onChange={(e) => setPresentationTopic(e.target.value)}
+                          onChange={e => setPresentationTopic(e.target.value)}
                           placeholder="e.g., Introduction to Machine Learning"
                           className="w-full bg-slate-900 text-white px-4 py-2 rounded-lg border border-slate-700 focus:border-orange-500 focus:outline-none"
                         />
@@ -583,7 +664,7 @@ export default function OfficeAIPage() {
                           <input
                             type="text"
                             value={audience}
-                            onChange={(e) => setAudience(e.target.value)}
+                            onChange={e => setAudience(e.target.value)}
                             placeholder="e.g., executives, engineers"
                             className="w-full bg-slate-900 text-white px-4 py-2 rounded-lg border border-slate-700 focus:border-orange-500 focus:outline-none"
                           />
@@ -593,7 +674,7 @@ export default function OfficeAIPage() {
                           <input
                             type="number"
                             value={duration}
-                            onChange={(e) => setDuration(e.target.value)}
+                            onChange={e => setDuration(e.target.value)}
                             placeholder="15"
                             className="w-full bg-slate-900 text-white px-4 py-2 rounded-lg border border-slate-700 focus:border-orange-500 focus:outline-none"
                           />
@@ -603,7 +684,7 @@ export default function OfficeAIPage() {
                         <label className="block text-slate-300 mb-2">Purpose</label>
                         <select
                           value={purpose}
-                          onChange={(e) => setPurpose(e.target.value)}
+                          onChange={e => setPurpose(e.target.value)}
                           className="w-full bg-slate-900 text-white px-4 py-2 rounded-lg border border-slate-700 focus:border-orange-500 focus:outline-none"
                         >
                           <option value="inform">Inform</option>
@@ -621,7 +702,7 @@ export default function OfficeAIPage() {
                       <label className="block text-slate-300 mb-2">Slides Content</label>
                       <textarea
                         value={slidesInput}
-                        onChange={(e) => setSlidesInput(e.target.value)}
+                        onChange={e => setSlidesInput(e.target.value)}
                         placeholder="Paste all slide content here..."
                         className="w-full h-48 bg-slate-900 text-white p-3 rounded-lg border border-slate-700 focus:border-orange-500 focus:outline-none"
                       />
@@ -633,7 +714,7 @@ export default function OfficeAIPage() {
                       <label className="block text-slate-300 mb-2">Outline</label>
                       <textarea
                         value={outlineInput}
-                        onChange={(e) => setOutlineInput(e.target.value)}
+                        onChange={e => setOutlineInput(e.target.value)}
                         placeholder="Paste presentation outline here..."
                         className="w-full h-48 bg-slate-900 text-white p-3 rounded-lg border border-slate-700 focus:border-orange-500 focus:outline-none"
                       />
@@ -645,7 +726,10 @@ export default function OfficeAIPage() {
                     disabled={loading}
                     className="w-full px-6 py-3 bg-orange-600 text-white rounded-lg hover:bg-orange-700 disabled:opacity-50 font-medium"
                   >
-                    {loading ? 'Processing...' : presentationActions.find(a => a.id === presentationAction)?.name || 'Process'}
+                    {loading
+                      ? 'Processing...'
+                      : presentationActions.find(a => a.id === presentationAction)?.name ||
+                        'Process'}
                   </button>
                 </div>
               </>
@@ -702,7 +786,7 @@ export default function OfficeAIPage() {
         <div className="mt-6 bg-slate-800/30 rounded-xl p-6">
           <h3 className="text-lg font-semibold text-white mb-3">API Reference</h3>
           <pre className="bg-slate-900 p-4 rounded-lg text-green-400 text-sm overflow-x-auto">
-{`POST /api/office-ai
+            {`POST /api/office-ai
 
 // Spreadsheet
 { "type": "spreadsheet", "action": "analyze", "data": { "spreadsheetData": "..." } }

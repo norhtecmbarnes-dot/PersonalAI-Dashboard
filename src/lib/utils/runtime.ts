@@ -4,9 +4,11 @@
  */
 
 export const isNodeRuntime = (): boolean => {
-  return typeof process !== 'undefined' && 
-         typeof process.cwd === 'function' &&
-         typeof require !== 'undefined';
+  return (
+    typeof process !== 'undefined' &&
+    typeof process.cwd === 'function' &&
+    typeof require !== 'undefined'
+  );
 };
 
 export const isEdgeRuntime = (): boolean => {
@@ -21,10 +23,13 @@ export const importNodeModule = async <T>(moduleName: string): Promise<T | null>
   if (!isNodeRuntime()) {
     return null;
   }
-  
+
   try {
-    // Use dynamic import with eval to prevent static analysis
-    const mod = await eval(`import('${moduleName}')`);
+    // Use dynamic import safely - validate module name first
+    if (!/^[a-zA-Z0-9\-_./]+$/.test(moduleName)) {
+      throw new Error('Invalid module name');
+    }
+    const mod = await import(moduleName);
     return mod as T;
   } catch (e) {
     console.warn(`Failed to import ${moduleName}:`, e);
@@ -38,6 +43,8 @@ export const importNodeModule = async <T>(moduleName: string): Promise<T | null>
  */
 export const assertNodeRuntime = (operation: string): void => {
   if (!isNodeRuntime()) {
-    throw new Error(`${operation} requires Node.js runtime. This operation is not available in Edge Runtime.`);
+    throw new Error(
+      `${operation} requires Node.js runtime. This operation is not available in Edge Runtime.`
+    );
   }
 };

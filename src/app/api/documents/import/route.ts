@@ -8,7 +8,7 @@ import { validateString, sanitizeString } from '@/lib/utils/validation';
 export async function POST(request: Request) {
   try {
     sqlDatabase.initialize();
-    
+
     const formData = await request.formData();
     const file = formData.get('file') as File;
     const remember = formData.get('remember') === 'true';
@@ -20,22 +20,16 @@ export async function POST(request: Request) {
     // Validate file
     const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
     if (file.size > MAX_FILE_SIZE) {
-      return NextResponse.json(
-        { error: 'File too large. Maximum size is 50MB' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: 'File too large. Maximum size is 50MB' }, { status: 400 });
     }
 
     // Validate file name
     const fileNameValidation = validateString(file.name, 'file name', {
       maxLength: 255,
-      required: true
+      required: true,
     });
     if (!fileNameValidation.valid) {
-      return NextResponse.json(
-        { error: fileNameValidation.error },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: fileNameValidation.error }, { status: 400 });
     }
 
     // Validate file type
@@ -47,11 +41,11 @@ export async function POST(request: Request) {
       'application/xml',
       'text/html',
       'application/pdf',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     ];
     const fileType = file.name.split('.').pop()?.toLowerCase();
     const VALID_EXTENSIONS = ['txt', 'md', 'csv', 'json', 'xml', 'html', 'pdf', 'docx'];
-    
+
     if (!VALID_EXTENSIONS.includes(fileType || '')) {
       return NextResponse.json(
         { error: 'Invalid file type. Allowed: ' + VALID_EXTENSIONS.join(', ') },
@@ -61,15 +55,37 @@ export async function POST(request: Request) {
 
     let content = '';
     const sanitizedFileName = sanitizeString(file.name);
-    
-    if (fileType === 'txt' || fileType === 'md' || fileType === 'csv' || fileType === 'json' || fileType === 'xml' || fileType === 'html') {
+
+    if (
+      fileType === 'txt' ||
+      fileType === 'md' ||
+      fileType === 'csv' ||
+      fileType === 'json' ||
+      fileType === 'xml' ||
+      fileType === 'html'
+    ) {
       content = await file.text();
     } else if (fileType === 'pdf') {
-      const text = await file.text();
-      content = text || `[PDF Document: ${sanitizedFileName}]\n\nNote: Full PDF parsing requires server-side processing. The document has been imported with available text content.`;
+      try {
+        const pdfParse = require('pdf-parse');
+        const arrayBuffer = await file.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+
+        console.log('PDF file size:', buffer.length, 'bytes');
+        const data = await pdfParse(buffer);
+
+        console.log('PDF extraction result:', {
+          textLength: data.text?.length,
+          numpages: data.numpages,
+          hasText: !!data.text?.trim(),
+        });
+        content = data.text || `[PDF: ${sanitizedFileName} - No text extracted]`;
+      } catch (e) {
+        console.error('PDF extraction failed:', e);
+        content = `[PDF: ${sanitizedFileName} - Extraction failed: ${e instanceof Error ? e.message : 'Unknown error'}]`;
+      }
     } else if (fileType === 'docx') {
-      const text = await file.text();
-      content = text || `[Word Document: ${sanitizedFileName}]\n\nNote: Full Word parsing requires server-side processing. The document has been imported with available text content.`;
+      content = `[Word: ${sanitizedFileName} - Text extraction requires server processing]`;
     } else {
       content = await file.text();
     }
@@ -116,7 +132,10 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Document import error:', error);
     return NextResponse.json(
-      { error: 'Failed to import document', details: error instanceof Error ? error.message : 'Unknown error' },
+      {
+        error: 'Failed to import document',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
       { status: 500 }
     );
   }
@@ -131,10 +150,13 @@ export async function GET(request: Request) {
       sqlDatabase.initialize();
     } catch (dbError) {
       console.error('Database init error:', dbError);
-      return NextResponse.json({ 
-        error: 'Database initialization failed', 
-        details: dbError instanceof Error ? dbError.message : 'Unknown error' 
-      }, { status: 500 });
+      return NextResponse.json(
+        {
+          error: 'Database initialization failed',
+          details: dbError instanceof Error ? dbError.message : 'Unknown error',
+        },
+        { status: 500 }
+      );
     }
 
     switch (action) {
@@ -179,5 +201,38 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error('Document API error:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+  }
+}
+
+export async function DELETE(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get('id');
+
+    if (!id) {
+      return NextResponse.json({ error: 'Document ID required' }, { status: 400 });
+    }
+
+    sqlDatabase.initialize();
+    const deleted = sqlDatabase.deleteNote(id);
+
+    if (!deleted) {
+      return NextResponse.json({ error: 'Document not found' }, { status: 404 });
+    }
+
+    return NextResponse.json({
+      success: true,
+      message: 'Document deleted',
+      id,
+    });
+  } catch (error) {
+    console.error('Document delete error:', error);
+    return NextResponse.json(
+      {
+        error: 'Failed to delete document',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      },
+      { status: 500 }
+    );
   }
 }

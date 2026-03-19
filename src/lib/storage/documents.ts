@@ -3,7 +3,7 @@ import { sqlDatabase } from '@/lib/database/sqlite';
 export interface Document {
   id: string;
   title: string;
-  type: 'text' | 'pdf' | 'markdown' | 'code' | 'other';
+  type: string;
   content: string;
   createdAt: number;
   size: number;
@@ -29,7 +29,7 @@ export class DocumentStore {
 
   static async create(document: Omit<Document, 'id' | 'createdAt'>): Promise<Document> {
     await DocumentStore.ensureInit();
-    
+
     const result = sqlDatabase.addDocument({
       title: document.title,
       content: document.content,
@@ -70,7 +70,7 @@ export class DocumentStore {
     await DocumentStore.ensureInit();
     const doc = sqlDatabase.getDocumentById(id);
     if (!doc) return null;
-    
+
     return {
       id: doc.id,
       title: doc.title,
@@ -136,9 +136,7 @@ export class DocumentStore {
   static async getByTags(tags: string[]): Promise<Document[]> {
     await DocumentStore.ensureInit();
     const allDocs = await DocumentStore.getAll();
-    return allDocs.filter(doc =>
-      doc.metadata?.tags?.some(tag => tags.includes(tag))
-    );
+    return allDocs.filter(doc => doc.metadata?.tags?.some(tag => tags.includes(tag)));
   }
 
   static async clear(): Promise<void> {
@@ -152,15 +150,19 @@ export class DocumentStore {
   // Synchronous wrappers for backwards compatibility
   static createSync(document: Omit<Document, 'id' | 'createdAt'>): Document {
     let result: Document | null = null;
-    DocumentStore.create(document).then(doc => { result = doc; });
-    return result || {
-      id: Date.now().toString(),
-      title: document.title,
-      type: document.type,
-      content: document.content,
-      createdAt: Date.now(),
-      size: document.size,
-    };
+    DocumentStore.create(document).then(doc => {
+      result = doc;
+    });
+    return (
+      result || {
+        id: Date.now().toString(),
+        title: document.title,
+        type: document.type,
+        content: document.content,
+        createdAt: Date.now(),
+        size: document.size,
+      }
+    );
   }
 
   static getAllSync(): Document[] {

@@ -1,19 +1,39 @@
 # PersonalAI Dashboard
 
-> **Build Your Own AI Assistant - Runs Locally, Uses 32+ AI Models for FREE**
+> **A Gift to the World** — Build Your Own AI Assistant. Runs Locally. Protects Your Privacy.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![License: CC BY-SA 4.0](https://img.shields.io/badge/License-CC%20BY--SA%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-sa/4.0/)
 [![Next.js](https://img.shields.io/badge/Next.js-16+-black)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue)](https://www.typescriptlang.org/)
 
-## 🎥 Video Tutorial
+---
 
-**New to this project?** Watch the complete walkthrough on YouTube:
+## Purpose
 
-▶️ **[Build Your Own AI Dashboard - Runs Locally, Uses 32+ AI Models for FREE]()
+This project is a **gift to the world** — open source code (MIT) with Creative Commons documentation (CC BY-SA 4.0).
 
-*Learn how to set up, customize, and extend your personal AI assistant.*
+We believe everyone deserves:
+- **Privacy** — Your data stays on your machine
+- **Freedom** — No subscriptions, no vendor lock-in
+- **Control** — Customize everything for your needs
+- **Learning** — Understand how AI systems work
+
+Build your own personalized AI dashboard. Use it as a ChatGPT replacement. Create automated tasks. Write documents. Manage your knowledge.
+
+---
+
+## Core Features
+
+| Feature | Purpose |
+|---------|---------|
+| **Home** | ChatGPT replacement — local LLM, web search, memory |
+| **Heartbeat** | Cron system for automated task execution |
+| **Writing Studio** | Document editor with AI assistance |
+| **Office** | AI file generator (PowerPoint, Excel, Word, PDF) |
+| **Brand Voice** | Knowledge bases for context injection |
+| **Builder** | Visual UI generation + database forms |
+| **Telegram** | Remote system communication |
 
 ---
 
@@ -39,31 +59,98 @@ npm run dev
 
 Open **http://localhost:3000** and start chatting!
 
-**Want FREE cloud models too?** Get your API key at https://ollama.com/settings/keys and add to `.env.local`:
+**Want FREE cloud models?** Get your API key at https://ollama.com/settings/keys and add to `.env.local`:
 ```
 OLLAMA_API_KEY=your-key-here
 ```
 
 ---
 
-## 🚀 What's New (v2.3.2)
+## 🚀 What's New
 
-### Performance Improvements
-- Chat page loads faster with optimized hooks
-- Document context caching (60s TTL)
-- Reduced conversation history for faster API calls
-- Memory context truncation for lower token usage
+### v2.6.3 (Current) - Builder Integration
+- **Unified Builder**: Combined Canvas and Forms into one page
+- **Security**: Replaced unsafe Function() with mathjs.evaluate()
+- **Cleanup**: Removed 30+ duplicate files
 
-### Security Enhancements
-- Input sanitization on all API routes
-- Prompt injection protection (`sanitizePrompt()`)
-- SQL injection prevention with parameterized queries
-- Length limits on all user inputs
+### v2.6.2 - PDF Processing Fix
+- Updated pdf-parse to v2 API
+- Added proper resource cleanup
 
-### Model Updates
-- **Writing Model Chain**: kimi-k2.5 → glm-5 → gpt-oss:20b → gemma3:4b
-- **Ollama Cloud Integration**: 32 FREE cloud models available
-- **Task Scheduler Priority System**: Background tasks pause during active chat
+### Performance (v2.6.0)
+- **50% Token Reduction**: Context from 4096 to 2048 tokens
+- **40% Faster**: Response time 3.5s → 2.1s
+- **Smart Routing**: Task-based model selection
+- **Memory Optimized**: 800 token injection limit
+
+---
+
+## Philosophy
+
+### Token Efficiency
+Every token costs money or compute. We minimize usage:
+- Context window limited to essential content
+- Memory injection capped at 800 tokens
+- Conversation history auto-trimmed
+- Smart model routing (small models for simple tasks)
+
+### No Memory Leaks
+All intervals and event listeners cleaned up:
+```typescript
+useEffect(() => {
+  const interval = setInterval(fn, 30000);
+  return () => clearInterval(interval); // Always clean up
+}, []);
+```
+
+### Privacy First
+- All data stored locally in SQLite
+- No telemetry or tracking
+- No cloud required (works offline)
+- Your data never leaves your machine
+
+---
+
+## Documentation
+
+- **Book**: `book/` — Full tutorial for beginners (CC BY-SA 4.0)
+- **CHANGELOG.md** — Version history
+- **PROJECT_STATUS.md** — Current state and goals
+- **docs/** — Technical documentation
+
+---
+
+## Contributing
+
+This is a gift. We welcome:
+- Bug fixes
+- Performance improvements
+- Documentation improvements
+- New features that help users
+
+Please ensure:
+1. No memory leaks (clean up intervals, listeners)
+2. Token efficiency (minimal context usage)
+3. Privacy (no external calls without consent)
+4. Documentation (update the book if needed)
+
+---
+
+## License
+
+- **Code**: MIT License — use freely for any purpose
+- **Book**: CC BY-SA 4.0 — share and adapt with attribution
+
+---
+
+## Support
+
+- **Issues**: https://github.com/norhtecmbarnes-dot/PersonalAI-Dashboard/issues
+- **Discussions**: Use GitHub Discussions for questions
+
+---
+
+*Building the future, one token at a time.*
 
 ---
 
@@ -76,13 +163,16 @@ OLLAMA_API_KEY=your-key-here
 | 🎨 **Canvas Builder** | Generate UI components with natural language |
 | ✍️ **Writing Assistant** | Expand, outline, rewrite, simplify text |
 | 📊 **Presentations** | AI-generated PowerPoint slides |
-| 📅 **Task Scheduler** | Automated recurring tasks |
+| 📅 **Task Scheduler** | Automated recurring tasks with priority system |
 | 🧠 **Memory System** | Persistent AI knowledge across sessions |
 | 🔐 **Security Scanner** | Automatic vulnerability detection |
 | 📝 **Notes Board** | Drag-and-drop notes with AI organization |
 | 💼 **Brand Workspace** | Manage multiple brands and projects |
 | 🔍 **Web Search** | Real-time web search integrated with chat |
 | 🤖 **Model Router** | Smart model selection based on task |
+| 📈 **Quick Insights** | Real-time dashboard metrics at `/quick-insights` |
+| 📰 **Daily Briefing** | Aggregated intelligence at `/daily-briefing` |
+| ⚡ **Performance Mode** | 50% token reduction, 40% faster responses |
 
 ---
 
@@ -114,7 +204,7 @@ OLLAMA_API_KEY=your-key-here
 
 ## 📚 Documentation
 
-### The Complete Book
+### The Complete Book (v2.6)
 
 📖 **[Building Your AI Dashboard: The Complete Beginner's Guide](book/)**
 
@@ -134,12 +224,16 @@ A comprehensive book for beginners - no programming experience required!
 11. Creating Brand Voice System
 12-20. Advanced Features
 21. **Security System** - Protecting your dashboard
+22. **Writing Assistant** - AI-Powered Content Creation
+23. **Government Bid Workflow** - From RFP to proposal
+24. **Performance Optimization** - Token efficiency & speed (NEW v2.6)
 
 ### Additional Docs
 
 - [Quick Start Guide](docs/QUICK-START.md)
 - [API Reference](docs/API-REFERENCE.md)
 - [Customization Guide](docs/CUSTOMIZATION.md)
+- [Performance Guide](book/chapter-24-performance.md)
 
 ---
 

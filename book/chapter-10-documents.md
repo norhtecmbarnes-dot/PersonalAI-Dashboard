@@ -8,8 +8,7 @@ A chat assistant that only understands text is limited. What if you could upload
 • Reading **different document formats** (PDF, DOCX, TXT)
 • **Storing documents** in your database
 • Displaying **document content** to the AI
-• Building a **documents page** UI
-• Understanding **file streaming** and processing
+• Building with **prompts** - test each piece, then enhance
 
 ---
 
@@ -64,6 +63,8 @@ User Selects File
 
 Create: `src/app/api/documents/upload/route.ts`
 
+> **Start with minimum code** - We'll test this first, then add more.
+
 ```typescript
 import { NextRequest, NextResponse } from 'next/server';
 import { sqlDatabase } from '@/lib/database/sqlite';
@@ -71,7 +72,7 @@ import { sqlDatabase } from '@/lib/database/sqlite';
 export async function POST(request: NextRequest) {
   try {
     // Initialize database
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
 
     // Get the form data (includes the file)
     const formData = await request.formData();
@@ -86,21 +87,19 @@ export async function POST(request: NextRequest) {
 
     // Validate file type
     const allowedTypes = [
-      'application/pdf',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
       'text/plain',
       'text/markdown',
     ];
 
     if (!allowedTypes.includes(file.type)) {
       return NextResponse.json(
-        { error: 'Invalid file type. Allowed: PDF, DOCX, TXT, MD' },
+        { error: 'Invalid file type. For now, only TXT and MD files work.' },
         { status: 400 }
       );
     }
 
     // Validate file size (10MB max)
-    const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+    const maxSize = 10 * 1024 * 1024;
     if (file.size > maxSize) {
       return NextResponse.json(
         { error: 'File too large. Max size: 10MB' },
@@ -108,36 +107,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Read file content
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    let content: string;
-
-    // Extract text based on file type
-    if (file.type === 'text/plain' || file.type === 'text/markdown') {
-      // Text files - easy!
-      content = buffer.toString('utf-8');
-    } else if (file.type === 'application/pdf') {
-      // PDF - we'll implement this next
-      content = await extractTextFromPDF(buffer);
-    } else if (file.type.includes('wordprocessingml')) {
-      // Word - we'll implement this next
-      content = await extractTextFromWord(buffer);
-    } else {
-      content = '[Binary file content not extractable]';
-    }
+    // Read file content (text files only for now)
+    const content = await file.text();
 
     // Save to database
-    const result = sqlDatabase.addDocument({
+    const result = sqlDatabase.addNote({
       title: file.name,
       content: content,
-      type: file.type,
-      category: 'uploaded',
-      metadata: {
-        originalName: file.name,
-        size: file.size,
-        uploadedAt: new Date().toISOString(),
-      },
+      category: 'document',
+      tags: ['uploaded', file.type],
     });
 
     return NextResponse.json({
@@ -154,43 +132,83 @@ export async function POST(request: NextRequest) {
     );
   }
 }
-
-// Placeholder functions - we'll implement these
-async function extractTextFromPDF(buffer: Buffer): Promise<string> {
-  // For now, return placeholder
-  return '[PDF content - implement with pdf-parse library]';
-}
-
-async function extractTextFromWord(buffer: Buffer): Promise<string> {
-  // For now, return placeholder
-  return '[Word content - implement with mammoth library]';
-}
 ```
-
-**What's happening:**
-• `request.formData()` — Gets the uploaded file
-• `file.arrayBuffer()` — Reads file as binary data
-• File validation — Checks type and size before processing
-• `Buffer.from()` — Converts to Node.js Buffer
-• `sqlDatabase.addDocument()` — Saves to SQLite
 
 ---
 
-## Step 2: Install PDF and Word Libraries
+### 📝 PROMPT: Test Basic File Upload
+
+**Copy this prompt to your AI:**
+
+```
+I'm building a document upload system. I've created a basic API that handles 
+text file uploads. Please help me:
+
+1. Create a simple test page at /test-upload with:
+   - A file input that accepts .txt and .md files
+   - A submit button
+   - Display of the upload result (success or error)
+
+2. The test page should POST to /api/documents/upload
+
+3. Keep it minimal - no styling needed yet, just prove it works
+
+Use React and Next.js App Router (pages in src/app/).
+```
+
+**Expected Result:** You can upload a text file and see a success message with the file name and size.
+
+---
+
+### 📝 PROMPT: If Upload Doesn't Work
+
+**Copy this prompt:**
+
+```
+My file upload isn't working. Here's what I see:
+
+[PASTE YOUR ERROR MESSAGE HERE]
+
+My upload route is at src/app/api/documents/upload/route.ts
+My test page is at src/app/test-upload/page.tsx
+
+Please help debug this. Check:
+1. Is FormData being received correctly?
+2. Is the file type being detected?
+3. Is the database connection working?
+
+Suggest fixes and explain what was wrong.
+```
+
+---
+
+## Step 2: Add PDF and Word Support
+
+Once text upload works, add support for binary files.
+
+First, install the libraries:
 
 ```bash
 npm install pdf-parse mammoth
 ```
 
-Now update the extraction functions:
+> **Note:** pdf-parse v2+ uses a class-based API. The old `pdfParse(buffer)` function no longer works.
+
+Update your extraction functions:
 
 ```typescript
-import pdfParse from 'pdf-parse';
+// At the top of your route file
+import { PDFParse } from 'pdf-parse';
 import mammoth from 'mammoth';
+
+// Add these helper functions
 
 async function extractTextFromPDF(buffer: Buffer): Promise<string> {
   try {
-    const data = await pdfParse(buffer);
+    // pdf-parse v2+ uses PDFParse class
+    const parser = new PDFParse({ data: buffer });
+    const data = await parser.getText();
+    await parser.destroy(); // IMPORTANT: Clean up resources
     return data.text;
   } catch (error) {
     console.error('PDF parsing error:', error);
@@ -209,13 +227,126 @@ async function extractTextFromWord(buffer: Buffer): Promise<string> {
 }
 ```
 
+Now update your POST handler:
+
+```typescript
+export async function POST(request: NextRequest) {
+  try {
+    sqlDatabase.initialize();
+
+    const formData = await request.formData();
+    const file = formData.get('file') as File;
+
+    if (!file) {
+      return NextResponse.json({ error: 'No file provided' }, { status: 400 });
+    }
+
+    // Expanded file types
+    const allowedTypes = [
+      'text/plain',
+      'text/markdown',
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    ];
+    
+    const allowedExtensions = ['txt', 'md', 'pdf', 'docx', 'doc'];
+    const extension = file.name.split('.').pop()?.toLowerCase() || '';
+
+    if (!allowedExtensions.includes(extension)) {
+      return NextResponse.json(
+        { error: `Invalid file type. Allowed: ${allowedExtensions.join(', ')}` },
+        { status: 400 }
+      );
+    }
+
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      return NextResponse.json({ error: 'File too large (max 10MB)' }, { status: 400 });
+    }
+
+    // Read file content based on type
+    let content: string;
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+
+    if (extension === 'pdf') {
+      content = await extractTextFromPDF(buffer);
+    } else if (extension === 'docx' || extension === 'doc') {
+      content = await extractTextFromWord(buffer);
+    } else {
+      // Text files
+      content = buffer.toString('utf-8');
+    }
+
+    // Save to database
+    const result = sqlDatabase.addNote({
+      title: file.name,
+      content: content,
+      category: 'document',
+      tags: ['uploaded', extension],
+    });
+
+    return NextResponse.json({
+      success: true,
+      documentId: result.id,
+      title: file.name,
+      contentLength: content.length,
+      extractedText: content.substring(0, 500) + '...', // Preview
+    });
+  } catch (error) {
+    console.error('Upload error:', error);
+    return NextResponse.json(
+      { error: 'Failed to process upload', details: String(error) },
+      { status: 500 }
+    );
+  }
+}
+```
+
+---
+
+### 📝 PROMPT: Test PDF Upload
+
+```
+I've added PDF and Word support to my upload API. Please help me:
+
+1. Update my test page to accept .pdf and .docx files
+2. Show the extracted text preview in the result
+3. Handle the case where PDF text extraction fails gracefully
+
+The extraction functions are:
+• extractTextFromPDF() - uses pdf-parse v2 API with PDFParse class
+• extractTextFromWord() - uses mammoth library
+
+Current test page is at src/app/test-upload/page.tsx
+```
+
+---
+
+### 📝 PROMPT: Debug PDF Issues
+
+```
+My PDF upload is failing with this error:
+
+[PASTE YOUR ERROR]
+
+The pdf-parse library I'm using is version 2.x which has a different API.
+My code looks like:
+
+const parser = new PDFParse({ data: buffer });
+const data = await parser.getText();
+
+Please help fix this. Also add TypeScript type definitions for pdf-parse v2.
+```
+
 ---
 
 ## Step 3: Create the Documents Page
 
-Create: `src/app/documents/page.tsx`
+Now build the UI for viewing uploaded documents.
 
 ```tsx
+// src/app/documents/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -226,6 +357,7 @@ interface Document {
   type: string;
   contentLength: number;
   createdAt: string;
+  preview?: string;
 }
 
 export default function DocumentsPage() {
@@ -233,7 +365,6 @@ export default function DocumentsPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState('');
 
-  // Load documents on mount
   useEffect(() => {
     loadDocuments();
   }, []);
@@ -242,16 +373,14 @@ export default function DocumentsPage() {
     try {
       const response = await fetch('/api/documents');
       const data = await response.json();
-      if (data.documents) {
-        setDocuments(data.documents);
-      }
+      setDocuments(data.documents || []);
     } catch (error) {
       console.error('Failed to load documents:', error);
     }
   };
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (!file) return;
 
     setIsUploading(true);
@@ -269,159 +398,109 @@ export default function DocumentsPage() {
       const data = await response.json();
 
       if (data.success) {
-        setUploadProgress('Upload complete!');
-        // Refresh document list
+        setUploadProgress(`Uploaded! Extracted ${data.contentLength} characters.`);
         await loadDocuments();
       } else {
         setUploadProgress(`Error: ${data.error}`);
       }
     } catch (error) {
       setUploadProgress('Upload failed. Please try again.');
-      console.error('Upload error:', error);
     } finally {
       setIsUploading(false);
-      // Clear progress after 3 seconds
-      setTimeout(() => setUploadProgress(''), 3000);
+      setTimeout(() => setUploadProgress(''), 5000);
     }
-  };
-
-  const formatFileSize = (bytes: number): string => {
-    if (bytes < 1024) return bytes + ' B';
-    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
-  };
-
-  const getFileIcon = (type: string): string => {
-    if (type.includes('pdf')) return '📄';
-    if (type.includes('word') || type.includes('document')) return '📝';
-    if (type.includes('text')) return '📃';
-    return '📎';
   };
 
   return (
     <div className="max-w-4xl mx-auto p-6">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Documents</h1>
-        <p className="text-gray-600">
-          Upload PDFs, Word documents, or text files to use as context for AI chat.
+      <h1 className="text-2xl font-bold mb-6">Documents</h1>
+
+      {/* Upload Area */}
+      <div className="mb-8 p-6 border-2 border-dashed rounded-lg">
+        <input
+          type="file"
+          accept=".txt,.md,.pdf,.docx"
+          onChange={handleUpload}
+          disabled={isUploading}
+          className="hidden"
+          id="file-upload"
+        />
+        <label
+          htmlFor="file-upload"
+          className="cursor-pointer inline-block px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+        >
+          {isUploading ? 'Uploading...' : 'Upload Document'}
+        </label>
+        <p className="mt-2 text-sm text-gray-500">
+          Supported: PDF, DOCX, TXT, MD (max 10MB)
         </p>
-      </div>
-
-      {/* Upload Section */}
-      <div className="bg-white rounded-lg shadow p-6 mb-8">
-        <h2 className="text-lg font-semibold mb-4">Upload Document</h2>
-        
-        <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-          <input
-            type="file"
-            accept=".pdf,.docx,.txt,.md"
-            onChange={handleFileUpload}
-            disabled={isUploading}
-            className="hidden"
-            id="file-upload"
-          />
-          <label
-            htmlFor="file-upload"
-            className="cursor-pointer inline-flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-          >
-            {isUploading ? 'Uploading...' : 'Select File'}
-          </label>
-          <p className="mt-4 text-sm text-gray-500">
-            Supported formats: PDF, DOCX, TXT, MD (max 10MB)
-          </p>
-        </div>
-
         {uploadProgress && (
-          <div className="mt-4 p-3 bg-blue-50 text-blue-700 rounded">
-            {uploadProgress}
-          </div>
+          <p className="mt-4 text-sm bg-gray-100 p-2 rounded">{uploadProgress}</p>
         )}
       </div>
 
-      {/* Documents List */}
-      <div className="bg-white rounded-lg shadow">
-        <div className="p-6 border-b">
-          <h2 className="text-lg font-semibold">
-            Your Documents ({documents.length})
-          </h2>
-        </div>
-
+      {/* Document List */}
+      <div className="space-y-4">
         {documents.length === 0 ? (
-          <div className="p-12 text-center text-gray-500">
-            <p className="text-4xl mb-4">📂</p>
-            <p>No documents yet. Upload your first file above!</p>
-          </div>
+          <p className="text-gray-500">No documents uploaded yet.</p>
         ) : (
-          <div className="divide-y">
-            {documents.map((doc) => (
-              <div
-                key={doc.id}
-                className="p-4 hover:bg-gray-50 flex items-center justify-between"
-              >
-                <div className="flex items-center gap-4">
-                  <span className="text-2xl">{getFileIcon(doc.type)}</span>
-                  <div>
-                    <h3 className="font-medium text-gray-900">{doc.title}</h3>
-                    <p className="text-sm text-gray-500">
-                      {formatFileSize(doc.contentLength)} • {new Date(doc.createdAt).toLocaleDateString()}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => viewDocument(doc.id)}
-                  className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-                >
-                  View
-                </button>
-              </div>
-            ))}
-          </div>
+          documents.map(doc => (
+            <div key={doc.id} className="p-4 border rounded-lg">
+              <h3 className="font-medium">{doc.title}</h3>
+              <p className="text-sm text-gray-500">
+                {doc.contentLength} characters • {new Date(doc.createdAt).toLocaleDateString()}
+              </p>
+            </div>
+          ))
         )}
       </div>
     </div>
   );
-
-  function viewDocument(id: string) {
-    // We'll implement this in the next step
-    console.log('View document:', id);
-  }
 }
 ```
 
-**What's happening:**
-• `useEffect` — Loads documents when page loads
-• `FormData` — Packages file for upload
-• Hidden file input — Custom styled with label
-• Document list — Shows all uploaded files
-• File type icons — Visual indicators for different formats
+---
+
+### 📝 PROMPT: Enhance Document List
+
+```
+I have a basic documents page that shows uploaded files. Please enhance it with:
+
+1. A search bar to filter documents by title
+2. Click on a document to see its full content
+3. A delete button for each document (with confirmation)
+4. File type icons (📄 PDF, 📝 DOCX, 📃 TXT)
+5. Better styling with Tailwind CSS gradients
+
+The current page is at src/app/documents/page.tsx
+Documents are fetched from /api/documents (GET) which returns { documents: Document[] }
+```
 
 ---
 
-## Step 4: Create Documents List API
-
-Create: `src/app/api/documents/route.ts`
+## Step 4: Create the Documents List API
 
 ```typescript
+// src/app/api/documents/route.ts
 import { NextResponse } from 'next/server';
 import { sqlDatabase } from '@/lib/database/sqlite';
 
 export async function GET() {
   try {
-    await sqlDatabase.initialize();
+    sqlDatabase.initialize();
     
-    const documents = sqlDatabase.getDocuments('uploaded');
+    // Get all documents from the notes table with category 'document'
+    const notes = sqlDatabase.getNotes('document');
     
-    // Format for the frontend
-    const formatted = documents?.map((doc) => ({
-      id: doc.id,
-      title: doc.title,
-      type: doc.type || 'unknown',
-      contentLength: doc.content?.length || 0,
-      createdAt: new Date(doc.createdAt).toISOString(),
-    })) || [];
+    const documents = notes.map(note => ({
+      id: note.id,
+      title: note.title,
+      type: note.tags?.find(t => ['pdf', 'docx', 'txt', 'md'].includes(t)) || 'txt',
+      contentLength: note.content?.length || 0,
+      createdAt: note.createdAt,
+    }));
 
-    return NextResponse.json({ documents: formatted });
+    return NextResponse.json({ documents });
   } catch (error) {
     console.error('Failed to load documents:', error);
     return NextResponse.json(
@@ -434,137 +513,86 @@ export async function GET() {
 
 ---
 
-## Step 5: Create Document View Page
+### 📝 PROMPT: Add Search and Filter
 
-Create: `src/app/documents/[id]/page.tsx`
+```
+Add search and filtering to my documents API. Here's the current endpoint 
+at /api/documents:
 
-```tsx
-'use client';
+[CURRENT CODE]
 
-import { useState, useEffect } from 'react';
-import { useParams } from 'next/navigation';
+Please add:
+1. Query parameter ?search=term to filter by title/content
+2. Query parameter ?type=pdf to filter by file type
+3. Query parameter ?limit=10 for pagination
+4. Return the count of total matching documents
 
-interface Document {
-  id: string;
-  title: string;
-  content: string;
-  type: string;
-  createdAt: string;
-}
-
-export default function DocumentViewPage() {
-  const params = useParams();
-  const [document, setDocument] = useState<Document | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-
-  useEffect(() => {
-    if (params.id) {
-      loadDocument(params.id as string);
-    }
-  }, [params.id]);
-
-  const loadDocument = async (id: string) => {
-    try {
-      const response = await fetch(`/api/documents/${id}`);
-      const data = await response.json();
-      if (data.document) {
-        setDocument(data.document);
-      }
-    } catch (error) {
-      console.error('Failed to load document:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <div className="max-w-4xl mx-auto p-6">
-        <p>Loading document...</p>
-      </div>
-    );
-  }
-
-  if (!document) {
-    return (
-      <div className="max-w-4xl mx-auto p-6">
-        <p className="text-red-600">Document not found.</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="max-w-4xl mx-auto p-6">
-      {/* Header */}
-      <div className="mb-6">
-        <a
-          href="/documents"
-          className="text-blue-600 hover:text-blue-800 text-sm mb-2 inline-block"
-        >
-          ← Back to Documents
-        </a>
-        <h1 className="text-2xl font-bold text-gray-900">{document.title}</h1>
-        <p className="text-sm text-gray-500 mt-1">
-          {document.type} • Uploaded {new Date(document.createdAt).toLocaleDateString()}
-        </p>
-      </div>
-
-      {/* Content */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <div className="prose max-w-none">
-          <pre className="whitespace-pre-wrap font-mono text-sm text-gray-800 bg-gray-50 p-4 rounded overflow-auto max-h-[600px]">
-            {document.content}
-          </pre>
-        </div>
-      </div>
-
-      {/* Actions */}
-      <div className="mt-6 flex gap-4">
-        <a
-          href="/chat"
-          className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 inline-block"
-        >
-          Chat About This Document
-        </a>
-        <button
-          onClick={() => navigator.clipboard.writeText(document.content)}
-          className="bg-gray-200 text-gray-800 px-6 py-2 rounded-lg hover:bg-gray-300"
-        >
-          Copy Content
-        </button>
-      </div>
-    </div>
-  );
-}
+Example: GET /api/documents?search=report&type=pdf&limit=5
 ```
 
-Create the API: `src/app/api/documents/[id]/route.ts`
+---
+
+## Step 5: Chat with Documents
+
+Now connect documents to the AI chat so users can ask questions about their files.
 
 ```typescript
+// src/app/api/documents/chat/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { sqlDatabase } from '@/lib/database/sqlite';
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: { id: string } }
-) {
+export async function POST(request: NextRequest) {
   try {
-    await sqlDatabase.initialize();
-    
-    const document = sqlDatabase.getDocument(params.id);
-    
-    if (!document) {
+    const { documentId, question } = await request.json();
+
+    if (!documentId || !question) {
       return NextResponse.json(
-        { error: 'Document not found' },
-        { status: 404 }
+        { error: 'Missing documentId or question' },
+        { status: 400 }
       );
     }
 
-    return NextResponse.json({ document });
+    // Get document content
+    sqlDatabase.initialize();
+    const notes = sqlDatabase.getNotes('document');
+    const doc = notes.find(n => n.id === documentId);
+
+    if (!doc) {
+      return NextResponse.json({ error: 'Document not found' }, { status: 404 });
+    }
+
+    // Build prompt with document context
+    const prompt = `You are an AI assistant helping the user understand a document.
+
+Document Title: ${doc.title}
+Document Content:
+${doc.content}
+
+User Question: ${question}
+
+Please answer based on the document content. Be specific and cite relevant parts.`;
+
+    // Send to AI model (forward to your chat API)
+    const chatResponse = await fetch('http://localhost:3000/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message: prompt,
+        model: 'glm-4.7-flash', // Or your preferred model
+      }),
+    });
+
+    const data = await chatResponse.json();
+
+    return NextResponse.json({
+      answer: data.message || data.content,
+      documentTitle: doc.title,
+      question: question,
+    });
   } catch (error) {
-    console.error('Failed to load document:', error);
+    console.error('Document chat error:', error);
     return NextResponse.json(
-      { error: 'Failed to load document' },
+      { error: 'Failed to process question' },
       { status: 500 }
     );
   }
@@ -573,44 +601,22 @@ export async function GET(
 
 ---
 
-## Step 6: Connect Documents to Chat
+### 📝 PROMPT: Build Document Chat UI
 
-Update your chat API to include document context:
+```
+I have a document chat API at /api/documents/chat that takes:
+{ documentId: string, question: string }
 
-```typescript
-// In src/app/api/chat/route.ts
+Please create a document chat page at /documents/[id]/chat that:
+1. Shows the document content in a scrollable sidebar
+2. Has a chat interface on the right
+3. Sends questions to the API
+4. Displays the AI response with streaming if possible
+5. Shows conversation history
 
-export async function POST(request: NextRequest) {
-  try {
-    const body = await request.json();
-    const { message, documentIds } = body;
-
-    // ... validation ...
-
-    let context = '';
-    
-    // If document IDs provided, get their content
-    if (documentIds && documentIds.length > 0) {
-      const documents = documentIds.map((id: string) => 
-        sqlDatabase.getDocument(id)
-      ).filter(Boolean);
-      
-      context = documents
-        .map((doc: any) => `Document "${doc.title}":\n${doc.content}`)
-        .join('\n\n---\n\n');
-    }
-
-    // Build prompt with context
-    const prompt = context 
-      ? `Context:\n${context}\n\nUser Question: ${message}`
-      : message;
-
-    // ... send to AI ...
-
-  } catch (error) {
-    // ... error handling ...
-  }
-}
+Use React and Tailwind CSS. The layout should be:
+• Left: Document preview (scrollable, max 400px wide)
+• Right: Chat messages + input box
 ```
 
 ---
@@ -623,47 +629,146 @@ export async function POST(request: NextRequest) {
 │    Data     │     │  (parser)    │     │   Content   │
 │   (Buffer)  │     │              │     │             │
 └─────────────┘     └──────────────┘     └─────────────┘
-                              │
-                    PDF: pdf-parse
-                    Word: mammoth
-                    Text: direct
+                      │
+            PDF: pdf-parse (PDFParse class)
+            Word: mammoth
+            Text: direct conversion
+```
+
+**pdf-parse v2 API Changes:**
+• Old: `await pdfParse(buffer)` returns `{ text, numpages, ... }`
+• New: `new PDFParse({ data: buffer }).getText()` returns `{ text, total, info, ... }`
+• Always call `await parser.destroy()` to free memory
+• Can also extract images and tables with `getImage()`, `getTable()`
+
+---
+
+## 📝 PROMPT: Complete Document System
+
+**Use this to build the full system:**
+
+```
+Build a complete document management system for my AI Dashboard:
+
+PHASE 1 - Basic Upload:
+• Create /api/documents/upload route for file uploads
+• Support TXT, MD files initially
+• Store in SQLite database (use sqlDatabase.addNote)
+• Test with http://localhost:3000/api/documents/upload
+
+PHASE 2 - PDF Support:
+• Add pdf-parse: npm install pdf-parse
+• IMPORTANT: pdf-parse v2+ uses PDFParse class, not function call
+• Create extractTextFromPDF() helper (see code in chapter)
+• Always call parser.destroy() to free memory
+• Support PDF uploads
+
+PHASE 3 - Word Support:
+• Add mammoth: npm install mammoth
+• Create extractTextFromWord() helper
+• Support DOCX uploads
+
+PHASE 4 - Documents Page:
+• Create /documents page with upload UI
+• List all uploaded documents
+• Show file type, size, date
+
+PHASE 5 - Document Chat:
+• Create /api/documents/chat endpoint
+• Get document content from database
+• Send to AI with context
+• Return answer
+
+Use the existing codebase at:
+• Database: src/lib/database/sqlite.ts (sqlDatabase)
+• Chat API: src/app/api/chat/route.ts
+
+Use Next.js App Router and Tailwind CSS.
 ```
 
 ---
 
-## PROMPT YOU CAN USE
+## Common Issues and Fixes
 
-Want to enhance document handling?
+### PDF Not Extracting Text
 
+**Problem:** PDF uploads but returns empty text.
+
+**Check:**
+```typescript
+// Are you using the new pdf-parse v2 API?
+// OLD (won't work):
+const data = await pdfParse(buffer);
+
+// NEW (correct):
+const parser = new PDFParse({ data: buffer });
+const data = await parser.getText();
+await parser.destroy();
 ```
-Add these features to the document upload system:
-1. Drag-and-drop file upload area
-2. Document preview before uploading
-3. Search within documents
-4. Document categories/tags
-5. Export document content as download
-6. Delete documents with confirmation
 
-Use React and Tailwind CSS.
+**Debug:**
+```typescript
+console.log('PDF result:', {
+  textLength: data.text?.length,
+  total: data.total,
+  info: data.info,
+});
+```
+
+### File Type Not Detected
+
+**Problem:** File uploads but type is unknown.
+
+**Fix:** Use both MIME type AND extension:
+```typescript
+const extension = file.name.split('.').pop()?.toLowerCase();
+const allowedExtensions = ['pdf', 'docx', 'txt', 'md'];
+
+if (!allowedExtensions.includes(extension || '')) {
+  return NextResponse.json({ error: 'Invalid file type' }, { status: 400 });
+}
+```
+
+### Database Not Storing Content
+
+**Problem:** Document saved but content is empty.
+
+**Fix:** Check database initialization:
+```typescript
+// Make sure to initialize before use
+sqlDatabase.initialize();
 ```
 
 ---
 
 ## Key Takeaways
 
+✅ **Start Simple** — Build text files first, then add binary
+
+✅ **Test Each Step** — Verify before adding complexity
+
+✅ **Use Prompts** — Let AI help you debug and enhance
+
 ✅ **FormData** — Packages files for HTTP upload
 
-✅ **File Validation** — Always check type and size
+✅ **Buffer Processing** — Convert binary to text for extraction
 
-✅ **Buffer Processing** — Convert to text for storage
+✅ **PDF Parsing** — pdf-parse v2+ uses PDFParse class
 
-✅ **PDF Parsing** — Use `pdf-parse` library
-
-✅ **Word Parsing** — Use `mammoth` library
+✅ **Always Clean Up** — Call `parser.destroy()` for PDFs
 
 ✅ **Database Storage** — Store content as text in SQLite
 
-✅ **Dynamic Routes** — `[id]` creates document-specific pages
+---
+
+## Next Steps
+
+1. Test basic text upload ✓
+2. Add PDF support ✓
+3. Add Word support ✓
+4. Build documents page ✓
+5. Add document chat ✓
+6. Integrate with main chat (automatically include recent documents)
 
 ---
 

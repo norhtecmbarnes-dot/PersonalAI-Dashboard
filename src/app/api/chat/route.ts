@@ -2,20 +2,67 @@ import { NextResponse } from 'next/server';
 import { streamChatCompletion, chatCompletion } from '@/lib/models/sdk.server';
 import { vectorLake } from '@/lib/storage/vector-lake';
 import { performWebSearch } from '@/lib/websearch';
-import { ollamaWebSearch, webSearchToolDefinition, executeWebSearchTool } from '@/lib/browser/web-search-tool';
-import { executeBrowserTool, agentBrowserToolDefinition } from '@/lib/browser/agent-browser-service';
+import {
+  ollamaWebSearch,
+  webSearchToolDefinition,
+  executeWebSearchTool,
+} from '@/lib/browser/web-search-tool';
+import {
+  executeBrowserTool,
+  agentBrowserToolDefinition,
+} from '@/lib/browser/agent-browser-service';
 import { aiTools } from '@/lib/browser/ai-tools';
 import { mathTools } from '@/lib/utils/math-tools';
 import { SYSTEM_PROMPT, GREETING } from '@/lib/config/system-prompt';
 import { userPreferences } from '@/lib/config/user-preferences';
 import { memoryFileService } from '@/lib/services/memory-file';
-import { validateString, validateArray, sanitizeString, sanitizeObject, sanitizePrompt } from '@/lib/utils/validation';
+import {
+  validateString,
+  validateArray,
+  sanitizeString,
+  sanitizeObject,
+  sanitizePrompt,
+} from '@/lib/utils/validation';
 import { injectMemoryContext } from '@/lib/memory/memory-injector';
 import { memoryStore } from '@/lib/memory/persistent-store';
 import { rlTrainer, getRLStats, recordFeedback, logConversationTurn } from '@/lib/agent/rl-trainer';
 import { aiSecurityScanner, getSecurityStatus } from '@/lib/security/ai-security-scanner';
 import { deaiify, formatDeaiResult, analyzeText, DeAiMode } from '@/lib/writing/de-ai-ify';
 import { taskScheduler } from '@/lib/services/task-scheduler';
+import { sqlDatabase } from '@/lib/database/sqlite';
+
+let cachedDocumentContext: { data: string; timestamp: number } | null = null;
+const DOC_CACHE_TTL = 300000;
+
+async function getDocumentContext(): Promise<string> {
+  if (cachedDocumentContext && Date.now() - cachedDocumentContext.timestamp < DOC_CACHE_TTL) {
+    return cachedDocumentContext.data;
+  }
+
+  try {
+    sqlDatabase.initialize();
+    const docs = sqlDatabase.getNotes('document');
+
+    if (!docs || docs.length === 0) {
+      cachedDocumentContext = { data: '', timestamp: Date.now() };
+      return '';
+    }
+
+    const docContext = docs
+      .map((doc: any) => {
+        const content = doc.content || '';
+        return `## Document: ${doc.title}\nContent: ${content}\n`;
+      })
+      .join('\n\n');
+
+    const result = `\n\n=== USER UPLOADED DOCUMENTS ===\n${docContext}\n=== END OF DOCUMENTS ===\n\n`;
+    cachedDocumentContext = { data: result, timestamp: Date.now() };
+    return result;
+  } catch (error) {
+    console.error('Error loading document context:', error);
+    return '';
+  }
+}
 
 export interface ChatRequest {
   model: string;
@@ -25,6 +72,7 @@ export interface ChatRequest {
   searchMode?: boolean;
   userName?: string;
   assistantName?: string;
+  skipTools?: boolean;
 }
 
 const MAX_MESSAGE_LENGTH = 10000;
@@ -33,38 +81,33 @@ const MAX_HISTORY_LENGTH = 100;
 export async function POST(request: Request) {
   // Mark session as active - pause low-priority background tasks
   taskScheduler.startSession();
-  
+
   try {
     const body = await request.json();
 
     // Validate request body
-    const messageValidation = validateString(body.message, 'message', { 
+    const messageValidation = validateString(body.message, 'message', {
       maxLength: MAX_MESSAGE_LENGTH,
-      required: true 
+      required: true,
     });
     if (!messageValidation.valid) {
-      return NextResponse.json(
-        { error: messageValidation.error },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: messageValidation.error }, { status: 400 });
     }
 
     const modelValidation = validateString(body.model, 'model', { required: true });
     if (!modelValidation.valid) {
-      return NextResponse.json(
-        { error: modelValidation.error },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: modelValidation.error }, { status: 400 });
     }
 
-    const historyValidation = validateArray(body.conversationHistory, 'conversationHistory', { 
-      maxLength: MAX_HISTORY_LENGTH 
+    // Limit conversation history to last 20 messages for token efficiency
+    const MAX_CONTEXT_MESSAGES = 20;
+    const recentHistory = (body.conversationHistory || []).slice(-MAX_CONTEXT_MESSAGES);
+
+    const historyValidation = validateArray(recentHistory, 'conversationHistory', {
+      maxLength: MAX_HISTORY_LENGTH,
     });
     if (!historyValidation.valid) {
-      return NextResponse.json(
-        { error: historyValidation.error },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: historyValidation.error }, { status: 400 });
     }
 
     // Sanitize inputs - use sanitizePrompt for user message to prevent injection
@@ -73,8 +116,13 @@ export async function POST(request: Request) {
     const conversationHistory = sanitizeObject(body.conversationHistory || []);
     const useVectorLake = Boolean(body.useVectorLake);
     const searchMode = Boolean(body.searchMode);
-    const clientUserName = body.userName ? sanitizePrompt(sanitizeString(body.userName)) : undefined;
-    const clientAssistantName = body.assistantName ? sanitizePrompt(sanitizeString(body.assistantName)) : undefined;
+    const clientUserName = body.userName
+      ? sanitizePrompt(sanitizeString(body.userName))
+      : undefined;
+    const clientAssistantName = body.assistantName
+      ? sanitizePrompt(sanitizeString(body.assistantName))
+      : undefined;
+    const skipTools = Boolean(body.skipTools);
 
     // Handle commands
     // Web search - uses Ollama web search (default)
@@ -82,7 +130,7 @@ export async function POST(request: Request) {
       const query = message.replace('/search ', '').trim();
       const sanitizedQuery = sanitizePrompt(query);
       // Removed verbose logging to reduce console spam
-      
+
       try {
         const result = await executeWebSearchTool({ query: sanitizedQuery, max_results: 5 });
         return NextResponse.json({
@@ -94,9 +142,12 @@ export async function POST(request: Request) {
         // Fallback to legacy search if Ollama search fails
         try {
           const results = await performWebSearch(sanitizedQuery);
-          const formattedResults = results.map((r, i) => 
-            `${i + 1}. **${sanitizePrompt(r.title)}**\n   ${sanitizePrompt(r.url)}\n   ${sanitizePrompt(r.excerpt.slice(0, 200))}...`
-          ).join('\n\n');
+          const formattedResults = results
+            .map(
+              (r, i) =>
+                `${i + 1}. **${sanitizePrompt(r.title)}**\n   ${sanitizePrompt(r.url)}\n   ${sanitizePrompt(r.excerpt.slice(0, 200))}...`
+            )
+            .join('\n\n');
           return NextResponse.json({
             message: `## Web Search Results for "${sanitizedQuery}"\n\n${formattedResults}`,
             done: true,
@@ -183,7 +234,7 @@ export async function POST(request: Request) {
       try {
         const stats = getRLStats();
         const recentConversations = rlTrainer.getRecentConversations(5);
-        
+
         let response = `## RL Training Status\n\n`;
         response += `**Total Conversations:** ${stats.totalConversations}\n`;
         response += `**Training Pairs:** ${stats.totalTrainingPairs}\n`;
@@ -194,7 +245,7 @@ export async function POST(request: Request) {
         response += `**Lessons Learned:** ${stats.improvementsLearned}\n`;
         response += `**Training Runs:** ${stats.trainingRunsCompleted}\n`;
         response += `**Last Training:** ${stats.lastTrainingRun ? new Date(stats.lastTrainingRun).toLocaleString() : 'Never'}\n\n`;
-        
+
         if (recentConversations.length > 0) {
           response += `### Recent Conversations\n`;
           for (const conv of recentConversations) {
@@ -233,16 +284,16 @@ export async function POST(request: Request) {
       try {
         const { securityAgent } = await import('@/lib/agent/security-agent');
         const report = await securityAgent.performSecurityScan();
-        
+
         let response = `## Security Scan Complete\n\n`;
         response += `**Risk Score:** ${report.riskScore}/100\n`;
         response += `**Duration:** ${report.scanDuration}ms\n`;
         response += `**Findings:** ${report.findings.length}\n\n`;
-        
+
         const critical = report.findings.filter(f => f.severity === 'critical');
         const high = report.findings.filter(f => f.severity === 'high');
         const medium = report.findings.filter(f => f.severity === 'medium');
-        
+
         if (critical.length > 0) {
           response += `### Critical Issues (${critical.length})\n`;
           critical.slice(0, 3).forEach(f => {
@@ -252,7 +303,7 @@ export async function POST(request: Request) {
           if (critical.length > 3) response += `  *...and ${critical.length - 3} more*\n`;
           response += `\n`;
         }
-        
+
         if (high.length > 0) {
           response += `### High Issues (${high.length})\n`;
           high.slice(0, 3).forEach(f => {
@@ -261,9 +312,9 @@ export async function POST(request: Request) {
           if (high.length > 3) response += `  *...and ${high.length - 3} more*\n`;
           response += `\n`;
         }
-        
+
         response += `### Summary\n${report.summary}\n`;
-        
+
         return NextResponse.json({ message: response, done: true });
       } catch (error) {
         return NextResponse.json({
@@ -278,7 +329,7 @@ export async function POST(request: Request) {
         const { securityAgent } = await import('@/lib/agent/security-agent');
         const result = await securityAgent.performQuickScan();
         const report = aiSecurityScanner.generateReport(result);
-        
+
         return NextResponse.json({ message: report, done: true });
       } catch (error) {
         return NextResponse.json({
@@ -291,11 +342,11 @@ export async function POST(request: Request) {
     if (message === '/security status') {
       try {
         const status = await getSecurityStatus();
-        
+
         let response = `## Security Status\n\n`;
         response += `**Risk Level:** ${status.riskLevel.toUpperCase()}\n`;
         response += `**Total Issues:** ${status.issueCount}\n`;
-        
+
         if (status.lastScan) {
           response += `**Last Scan:** ${new Date(status.lastScan.timestamp).toLocaleString()}\n`;
           response += `**Last Risk Score:** ${status.lastScan.riskScore}/100\n`;
@@ -307,7 +358,7 @@ export async function POST(request: Request) {
         } else {
           response += `\n*No previous scans found. Run \`/security scan\` to perform a security audit.*\n`;
         }
-        
+
         return NextResponse.json({ message: response, done: true });
       } catch (error) {
         return NextResponse.json({
@@ -320,12 +371,12 @@ export async function POST(request: Request) {
     // De-AI-ify command - transforms AI-generated text to human voice
     if (message.startsWith('/de-ai-ify ')) {
       const input = message.replace('/de-ai-ify ', '').trim();
-      
+
       // Parse options
       let mode: DeAiMode = 'strict';
       let threshold = 8;
       let text = input;
-      
+
       // Check for mode flags
       if (input.includes('--preserve-formal')) {
         mode = 'preserve-formal';
@@ -334,14 +385,14 @@ export async function POST(request: Request) {
         mode = 'academic';
         text = text.replace('--academic', '').trim();
       }
-      
+
       // Check for threshold
       const thresholdMatch = text.match(/--threshold\s+(\d+)/);
       if (thresholdMatch) {
         threshold = parseInt(thresholdMatch[1]);
         text = text.replace(/--threshold\s+\d+/, '').trim();
       }
-      
+
       // Check for --analyze flag (just analyze, don't transform)
       if (input.includes('--analyze')) {
         text = text.replace('--analyze', '').trim();
@@ -349,7 +400,7 @@ export async function POST(request: Request) {
         let response = `## AI Detection Analysis\n\n`;
         response += `**Human-ness Score:** ${analysis.score.toFixed(1)}/10\n`;
         response += `**AI Patterns Found:** ${analysis.patternCount}\n\n`;
-        
+
         if (analysis.issues.length > 0) {
           response += `### Issues Detected\n`;
           for (const issue of analysis.issues) {
@@ -357,24 +408,24 @@ export async function POST(request: Request) {
           }
           response += `\n`;
         }
-        
+
         if (analysis.suggestions.length > 0) {
           response += `### Suggestions\n`;
           for (const suggestion of analysis.suggestions) {
             response += `- ${suggestion}\n`;
           }
         }
-        
+
         return NextResponse.json({ message: response, done: true });
       }
-      
+
       if (!text || text.length < 10) {
         return NextResponse.json({
           message: `## De-AI-ify Help\n\nTransform AI-generated text to human voice.\n\n**Usage:**\n\`\`\`\n/de-ai-ify <text>\n/de-ai-ify <text> --preserve-formal\n/de-ai-ify <text> --academic\n/de-ai-ify <text> --analyze\n/de-ai-ify <text> --threshold 7\n\`\`\`\n\n**Modes:**\n- (default) Strict - Removes all 47 AI patterns\n- \`--preserve-formal\` - Keeps some formal language for business docs\n- \`--academic\` - Preserves academic conventions\n\n**Options:**\n- \`--analyze\` - Just analyze, don't transform\n- \`--threshold N\` - Target score (default: 8)\n\n**Example:**\n\`\`\`\n/de-ai-ify In today's rapidly evolving digital landscape, it's crucial to leverage cutting-edge solutions.\n\`\`\``,
           done: true,
         });
       }
-      
+
       try {
         const result = deaiify(text, mode, { scoreThreshold: threshold });
         const response = formatDeaiResult(result);
@@ -390,32 +441,32 @@ export async function POST(request: Request) {
     // Shorthand /analyze for quick AI detection
     if (message.startsWith('/analyze ')) {
       const text = message.replace('/analyze ', '').trim();
-      
+
       if (!text || text.length < 10) {
         return NextResponse.json({
           message: `## Analyze Help\n\nAnalyze text for AI patterns.\n\n**Usage:** \`/analyze <text>\`\n\n**Example:**\n\`\`\`\n/analyze In today's fast-paced world, leveraging data is crucial for success.\n\`\`\``,
           done: true,
         });
       }
-      
+
       try {
         const analysis = analyzeText(text);
         let response = `## AI Detection Analysis\n\n`;
         response += `**Human-ness Score:** ${analysis.score.toFixed(1)}/10 `;
-        
+
         if (analysis.score >= 8) response += `✨ Natural voice\n`;
         else if (analysis.score >= 6) response += `⚠️ Needs refinement\n`;
         else response += `👤 AI-generated\n`;
-        
+
         response += `**AI Patterns Found:** ${analysis.patternCount}\n\n`;
-        
+
         if (analysis.issues.length > 0) {
           response += `### Issues\n`;
           for (const issue of analysis.issues) {
             response += `- ${issue}\n`;
           }
         }
-        
+
         return NextResponse.json({ message: response, done: true });
       } catch (error) {
         return NextResponse.json({
@@ -428,12 +479,18 @@ export async function POST(request: Request) {
     if (message.startsWith('/sam ')) {
       const query = message.replace('/sam ', '').trim();
       try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/sam?keyword=${encodeURIComponent(query)}`);
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/sam?keyword=${encodeURIComponent(query)}`
+        );
         const data = await response.json();
         if (data.opportunities?.length > 0) {
-          const formatted = data.opportunities.slice(0, 5).map((o: any, i: number) => 
-            `${i + 1}. **${o.title}**\n   ${o.description?.slice(0, 150)}...\n   Posted: ${o.postedDate}`
-          ).join('\n\n');
+          const formatted = data.opportunities
+            .slice(0, 5)
+            .map(
+              (o: any, i: number) =>
+                `${i + 1}. **${o.title}**\n   ${o.description?.slice(0, 150)}...\n   Posted: ${o.postedDate}`
+            )
+            .join('\n\n');
           return NextResponse.json({
             message: `## SAM.gov Opportunities for "${query}"\n\n${formatted}`,
             done: true,
@@ -473,7 +530,7 @@ export async function POST(request: Request) {
     if (message.startsWith('/visualize ')) {
       const vizRequest = message.replace('/visualize ', '').trim();
       const sanitizedVizRequest = sanitizePrompt(vizRequest);
-      
+
       const vizPrompt = `Generate a Chart.js visualization code based on this request: "${sanitizedVizRequest}"
 
 Return ONLY the HTML/JS code for the chart using Chart.js. The code should include:
@@ -505,7 +562,11 @@ Generate appropriate chart type (line, bar, pie, doughnut, etc.) based on the re
         const result = await streamChatCompletion({
           model: 'ollama/qwen3.5:9b',
           messages: [
-            { role: 'system', content: 'You generate Chart.js visualization code. Return ONLY HTML code, no markdown code blocks.' },
+            {
+              role: 'system',
+              content:
+                'You generate Chart.js visualization code. Return ONLY HTML code, no markdown code blocks.',
+            },
             { role: 'user', content: vizPrompt },
           ],
         });
@@ -519,7 +580,7 @@ Generate appropriate chart type (line, bar, pie, doughnut, etc.) based on the re
           }
         }
         chartCode = chartCode.replace(/```html|```/g, '').trim();
-        
+
         if (chartCode.includes('<canvas') && chartCode.includes('Chart')) {
           return NextResponse.json({
             message: chartCode,
@@ -548,46 +609,47 @@ Generate appropriate chart type (line, bar, pie, doughnut, etc.) based on the re
     let persistentMemoryContext = '';
 
     // Parallelize independent async operations
-    const vectorLakePromise = useVectorLake ? (async () => {
-        try {
+    const vectorLakePromise = useVectorLake
+      ? (async () => {
+          try {
             const vlResult = await vectorLake.processQuery(message);
-            const context = vlResult.context ? `\n\nRelevant Context from Knowledge Lake:\n${sanitizePrompt(vlResult.context)}\n\n` : '';
+            const context = vlResult.context
+              ? `\n\nRelevant Context from Knowledge Lake:\n${sanitizePrompt(vlResult.context)}\n\n`
+              : '';
             if (vlResult.organizedData && !vlResult.cached) {
-                await vectorLake.saveOrganizedData(vlResult.organizedData);
+              await vectorLake.saveOrganizedData(vlResult.organizedData);
             }
             return { context, vectorLakeUsed: true, vectorLakeData: vlResult };
-        } catch (vlError) {
+          } catch (vlError) {
             console.error('VectorLake error:', vlError);
             return { context: '', vectorLakeUsed: false, vectorLakeData: null };
-        }
-    })() : Promise.resolve({ context: '', vectorLakeUsed: false, vectorLakeData: null });
+          }
+        })()
+      : Promise.resolve({ context: '', vectorLakeUsed: false, vectorLakeData: null });
 
     const memoryContextPromise = (async () => {
-        try {
-            const memoryPrompt = memoryFileService.getSystemPrompt();
-            return `\n\n--- MEMORY CONTEXT ---\n${sanitizePrompt(memoryPrompt)}\n\n`;
-        } catch (memError) {
-            console.error('Memory load error:', memError);
-            return '';
-        }
+      try {
+        const memoryPrompt = memoryFileService.getSystemPrompt();
+        return `\n\n--- MEMORY CONTEXT ---\n${sanitizePrompt(memoryPrompt)}\n\n`;
+      } catch (memError) {
+        console.error('Memory load error:', memError);
+        return '';
+      }
     })();
 
     const persistentMemoryContextPromise = (async () => {
-        try {
-            await memoryStore.initialize();
-            const memoryResult = await injectMemoryContext(message, 1500);
-            return memoryResult.systemPromptAddition || '';
-        } catch (memError) {
-            console.error('Persistent memory injection error:', memError);
-            return '';
-        }
+      try {
+        await memoryStore.initialize();
+        const memoryResult = await injectMemoryContext(message, 1500);
+        return memoryResult.systemPromptAddition || '';
+      } catch (memError) {
+        console.error('Persistent memory injection error:', memError);
+        return '';
+      }
     })();
 
-    const [vectorLakeResult, memoryContextResult, persistentMemoryContextResult] = await Promise.all([
-        vectorLakePromise,
-        memoryContextPromise,
-        persistentMemoryContextPromise
-    ]);
+    const [vectorLakeResult, memoryContextResult, persistentMemoryContextResult] =
+      await Promise.all([vectorLakePromise, memoryContextPromise, persistentMemoryContextPromise]);
 
     context = vectorLakeResult.context;
     vectorLakeUsed = vectorLakeResult.vectorLakeUsed;
@@ -595,140 +657,170 @@ Generate appropriate chart type (line, bar, pie, doughnut, etc.) based on the re
     memoryContext = memoryContextResult;
     persistentMemoryContext = persistentMemoryContextResult;
 
+    // Get document context
+    const documentContext = await getDocumentContext();
+
     // Add current message to history - use client-provided names or fallback
     const finalUserName = clientUserName || userPreferences.getUserName() || 'User';
-    const finalAssistantName = clientAssistantName || userPreferences.getAssistantName() || 'AI Assistant';
-    
-    const personalizedSystemPrompt = SYSTEM_PROMPT
-      .replace(/{{USER_NAME}}/g, finalUserName)
-      .replace(/{{ASSISTANT_NAME}}/g, finalAssistantName);
-    
+    const finalAssistantName =
+      clientAssistantName || userPreferences.getAssistantName() || 'AI Assistant';
+
+    const personalizedSystemPrompt = SYSTEM_PROMPT.replace(/{{USER_NAME}}/g, finalUserName).replace(
+      /{{ASSISTANT_NAME}}/g,
+      finalAssistantName
+    );
+
     const messages = [
-      { role: 'system', content: persistentMemoryContext + memoryContext + personalizedSystemPrompt },
+      {
+        role: 'system',
+        content:
+          persistentMemoryContext + memoryContext + personalizedSystemPrompt + documentContext,
+      },
       ...(conversationHistory as any[]),
       { role: 'user', content: context + message },
     ];
 
     // Define tools for AI models that support function calling
     // Web search tool is ONLY included when searchMode is enabled
-    const tools = searchMode ? [
-      webSearchToolDefinition,
-      {
-        type: 'function',
-        function: {
-          name: 'scrape_url',
-          description: 'Extract content from a webpage. Use this when you need to read the full content of a specific URL, get article text, or extract information from a website.',
-          parameters: {
-            type: 'object',
-            properties: {
-              url: {
-                type: 'string',
-                description: 'The URL to scrape',
+    const tools = searchMode
+      ? [
+          webSearchToolDefinition,
+          {
+            type: 'function',
+            function: {
+              name: 'scrape_url',
+              description:
+                'Extract content from a webpage. Use this when you need to read the full content of a specific URL, get article text, or extract information from a website.',
+              parameters: {
+                type: 'object',
+                properties: {
+                  url: {
+                    type: 'string',
+                    description: 'The URL to scrape',
+                  },
+                },
+                required: ['url'],
               },
             },
-            required: ['url'],
           },
-        },
-      },
-      {
-        type: 'function',
-        function: {
-          name: 'screenshot_url',
-          description: 'Take a screenshot of a webpage. Use this when you need to see what a website looks like, capture visual information, or verify page layout.',
-          parameters: {
-            type: 'object',
-            properties: {
-              url: {
-                type: 'string',
-                description: 'The URL to screenshot',
+          {
+            type: 'function',
+            function: {
+              name: 'screenshot_url',
+              description:
+                'Take a screenshot of a webpage. Use this when you need to see what a website looks like, capture visual information, or verify page layout.',
+              parameters: {
+                type: 'object',
+                properties: {
+                  url: {
+                    type: 'string',
+                    description: 'The URL to screenshot',
+                  },
+                },
+                required: ['url'],
               },
             },
-            required: ['url'],
           },
-        },
-      },
-      {
-        type: 'function',
-        function: {
-          name: 'research_topic',
-          description: 'Conduct deep research on a topic by searching and scraping multiple sources. Use this when you need comprehensive information, want to analyze multiple sources, or need to gather detailed information about a topic.',
-          parameters: {
-            type: 'object',
-            properties: {
-              topic: {
-                type: 'string',
-                description: 'The topic to research',
-              },
-              depth: {
-                type: 'integer',
-                description: 'Number of sources to analyze (1-5, default: 3)',
-                default: 3,
+          {
+            type: 'function',
+            function: {
+              name: 'research_topic',
+              description:
+                'Conduct deep research on a topic by searching and scraping multiple sources. Use this when you need comprehensive information, want to analyze multiple sources, or need to gather detailed information about a topic.',
+              parameters: {
+                type: 'object',
+                properties: {
+                  topic: {
+                    type: 'string',
+                    description: 'The topic to research',
+                  },
+                  depth: {
+                    type: 'integer',
+                    description: 'Number of sources to analyze (1-5, default: 3)',
+                    default: 3,
+                  },
+                },
+                required: ['topic'],
               },
             },
-            required: ['topic'],
           },
-        },
-      },
-      agentBrowserToolDefinition,
-    ] : [
-      // When search is OFF, only provide memory tools (no web access)
-      {
-        type: 'function',
-        function: {
-          name: 'save_memory',
-          description: 'Save important information to persistent memory for future reference',
-          parameters: {
-            type: 'object',
-            properties: {
-              content: {
-                type: 'string',
-                description: 'The information to save',
-              },
-              key: {
-                type: 'string',
-                description: 'A short key/identifier for this memory',
-              },
-              category: {
-                type: 'string',
-                enum: ['user', 'project', 'brand', 'decision', 'knowledge', 'security', 'preference'],
-                description: 'Category of the memory',
-              },
-              importance: {
-                type: 'integer',
-                description: 'Importance level (1-10, where 10 is most important)',
-                default: 5,
+          agentBrowserToolDefinition,
+        ]
+      : [
+          // When search is OFF, only provide memory tools (no web access)
+          {
+            type: 'function',
+            function: {
+              name: 'save_memory',
+              description: 'Save important information to persistent memory for future reference',
+              parameters: {
+                type: 'object',
+                properties: {
+                  content: {
+                    type: 'string',
+                    description: 'The information to save',
+                  },
+                  key: {
+                    type: 'string',
+                    description: 'A short key/identifier for this memory',
+                  },
+                  category: {
+                    type: 'string',
+                    enum: [
+                      'user',
+                      'project',
+                      'brand',
+                      'decision',
+                      'knowledge',
+                      'security',
+                      'preference',
+                    ],
+                    description: 'Category of the memory',
+                  },
+                  importance: {
+                    type: 'integer',
+                    description: 'Importance level (1-10, where 10 is most important)',
+                    default: 5,
+                  },
+                },
+                required: ['content', 'key'],
               },
             },
-            required: ['content', 'key'],
           },
-        },
-      },
-      {
-        type: 'function',
-        function: {
-          name: 'search_memory',
-          description: 'Search persistent memory for relevant past information',
-          parameters: {
-            type: 'object',
-            properties: {
-              query: {
-                type: 'string',
-                description: 'The search query',
-              },
-              category: {
-                type: 'string',
-                enum: ['user', 'project', 'brand', 'decision', 'knowledge', 'security', 'preference'],
-                description: 'Optional category to filter results',
+          {
+            type: 'function',
+            function: {
+              name: 'search_memory',
+              description: 'Search persistent memory for relevant past information',
+              parameters: {
+                type: 'object',
+                properties: {
+                  query: {
+                    type: 'string',
+                    description: 'The search query',
+                  },
+                  category: {
+                    type: 'string',
+                    enum: [
+                      'user',
+                      'project',
+                      'brand',
+                      'decision',
+                      'knowledge',
+                      'security',
+                      'preference',
+                    ],
+                    description: 'Optional category to filter results',
+                  },
+                },
+                required: ['query'],
               },
             },
-            required: ['query'],
           },
-        },
-      },
-    ];
+        ];
 
-    // Tool call execution loop - limit to 2 iterations for speed
-    const maxToolIterations = 2;
+    // Tool call execution loop - limit to 2 iterations for speed, or skip entirely
+    const maxToolIterations = skipTools ? 0 : 2;
     let currentMessages = [...messages];
     let finalContent = '';
     let toolCallsExecuted: string[] = [];
@@ -736,12 +828,37 @@ Generate appropriate chart type (line, bar, pie, doughnut, etc.) based on the re
     // Use fast model - prefer qwen3.5:9b
     const fastModel = model && model.includes('qwen3.5') ? model : 'ollama/qwen3.5:9b';
 
+    // If skipTools, make a direct call without tools
+    if (skipTools) {
+      const result = await chatCompletion({
+        model: fastModel,
+        messages: currentMessages,
+        temperature: 0.7,
+        maxTokens: 2048,
+      });
+
+      if (result.message) {
+        if (typeof result.message === 'string') {
+          finalContent = result.message;
+        } else if (result.message.content) {
+          finalContent = result.message.content;
+        }
+      }
+
+      taskScheduler.endSession();
+
+      return NextResponse.json({
+        message: finalContent || "I'm still processing. Please ask again.",
+        done: true,
+      });
+    }
+
     for (let iteration = 0; iteration < maxToolIterations; iteration++) {
       const result = await chatCompletion({
         model: fastModel,
         messages: currentMessages,
         temperature: 0.7,
-        maxTokens: 2048,  // Reduced for speed
+        maxTokens: 2048, // Reduced for speed
         tools: tools,
       });
 
@@ -768,7 +885,7 @@ Generate appropriate chart type (line, bar, pie, doughnut, etc.) based on the re
         for (const toolCall of result.tool_calls) {
           const functionName = toolCall.function.name;
           let functionArgs: any = {};
-          
+
           try {
             functionArgs = JSON.parse(toolCall.function.arguments);
           } catch (e) {
@@ -800,10 +917,18 @@ Generate appropriate chart type (line, bar, pie, doughnut, etc.) based on the re
             toolCallsExecuted.push('search_memory');
             try {
               await memoryStore.initialize();
-              const results = await memoryStore.search(functionArgs.query, { category: functionArgs.category });
-              toolResult = results.length > 0 
-                ? results.map((r: any) => `[${sanitizePrompt(r.memory.key)}]: ${sanitizePrompt(r.memory.content)}`).join('\n')
-                : 'No memories found matching query.';
+              const results = await memoryStore.search(functionArgs.query, {
+                category: functionArgs.category,
+              });
+              toolResult =
+                results.length > 0
+                  ? results
+                      .map(
+                        (r: any) =>
+                          `[${sanitizePrompt(r.memory.key)}]: ${sanitizePrompt(r.memory.content)}`
+                      )
+                      .join('\n')
+                  : 'No memories found matching query.';
             } catch (e) {
               toolResult = `Failed to search memory: ${e instanceof Error ? sanitizePrompt(e.message) : 'Unknown error'}`;
             }
@@ -844,11 +969,17 @@ Links found: ${result.result.links.join(', ')}`;
           } else if (functionName === 'research_topic') {
             toolCallsExecuted.push('research_topic');
             try {
-              const result = await aiTools.research_topic(functionArgs.topic, functionArgs.depth || 3);
+              const result = await aiTools.research_topic(
+                functionArgs.topic,
+                functionArgs.depth || 3
+              );
               if (result.success) {
-                const sources = result.result.sources.map((s: any, i: number) => 
-                  `${i + 1}. ${s.title}\n   URL: ${s.url}\n   Content: ${s.content.substring(0, 500)}...`
-                ).join('\n\n');
+                const sources = result.result.sources
+                  .map(
+                    (s: any, i: number) =>
+                      `${i + 1}. ${s.title}\n   URL: ${s.url}\n   Content: ${s.content.substring(0, 500)}...`
+                  )
+                  .join('\n\n');
                 toolResult = `Research on "${sanitizePrompt(result.result.topic)}":\n${sanitizePrompt(result.result.summary)}\n\nSources:\n${sanitizePrompt(sources)}`;
               } else {
                 toolResult = `Research failed: ${sanitizePrompt(result.error || 'Unknown error')}`;
@@ -890,38 +1021,42 @@ Links found: ${result.result.links.join(', ')}`;
         Date.now() - startTime,
         toolCallsExecuted
       );
-      
+
       // End session - resume background tasks
       taskScheduler.endSession();
-      
+
       return NextResponse.json({
         message: finalContent,
         done: true,
         vectorLakeUsed,
-        vectorLakeData: vectorLakeData ? {
-          cached: vectorLakeData.cached,
-          searchTerms: vectorLakeData.searchTerms,
-          organizedData: vectorLakeData.organizedData,
-        } : null,
+        vectorLakeData: vectorLakeData
+          ? {
+              cached: vectorLakeData.cached,
+              searchTerms: vectorLakeData.searchTerms,
+              organizedData: vectorLakeData.organizedData,
+            }
+          : null,
         toolCalls: toolCallsExecuted.length > 0 ? toolCallsExecuted : undefined,
         conversationId, // Return for feedback commands
       });
     } catch (logError) {
       // Don't fail the request if logging fails
       console.error('[RL] Failed to log conversation:', logError);
-      
+
       // End session - resume background tasks
       taskScheduler.endSession();
-      
+
       return NextResponse.json({
         message: finalContent,
         done: true,
         vectorLakeUsed,
-        vectorLakeData: vectorLakeData ? {
-          cached: vectorLakeData.cached,
-          searchTerms: vectorLakeData.searchTerms,
-          organizedData: vectorLakeData.organizedData,
-        } : null,
+        vectorLakeData: vectorLakeData
+          ? {
+              cached: vectorLakeData.cached,
+              searchTerms: vectorLakeData.searchTerms,
+              organizedData: vectorLakeData.organizedData,
+            }
+          : null,
         toolCalls: toolCallsExecuted.length > 0 ? toolCallsExecuted : undefined,
       });
     }
@@ -930,10 +1065,10 @@ Links found: ${result.result.links.join(', ')}`;
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     const errorStack = error instanceof Error ? error.stack : undefined;
     console.error('Chat error stack:', errorStack);
-    
+
     // End session on error too
     taskScheduler.endSession();
-    
+
     return NextResponse.json(
       {
         error: 'Failed to process chat message',

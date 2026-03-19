@@ -4,11 +4,11 @@ This chapter demonstrates how to add a custom data source integration to your AI
 
 ## What You'll Learn
 
-- How to structure a new integration
-- Where to add API endpoints
-- How to create UI pages
-- How to persist data locally
-- Security considerations
+• How to structure a new integration
+• Where to add API endpoints
+• How to create UI pages
+• How to persist data locally
+• Security considerations
 
 ## Overview: What Was Added
 
@@ -386,10 +386,10 @@ data/
 ```
 
 **This data is:**
-- ✅ Stored locally on your machine
-- ✅ Never uploaded to any cloud
-- ✅ Excluded from git (in `.gitignore`)
-- ✅ Under your full control
+• ✅ Stored locally on your machine
+• ✅ Never uploaded to any cloud
+• ✅ Excluded from git (in `.gitignore`)
+• ✅ Under your full control
 
 ## Summary
 

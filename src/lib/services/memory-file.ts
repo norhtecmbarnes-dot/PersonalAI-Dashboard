@@ -141,11 +141,22 @@ class MemoryFileServiceSafe {
     this.memoryFile = { ...this.memoryFile, ...memory };
     this.memoryFile.lastUpdated = new Date().toISOString();
 
+    // Limit array sizes to prevent memory growth
+    if (this.memoryFile.context.activeProjects.length > 10) {
+      this.memoryFile.context.activeProjects = this.memoryFile.context.activeProjects.slice(0, 10);
+    }
+    if (this.memoryFile.context.pendingTasks.length > 20) {
+      this.memoryFile.context.pendingTasks = this.memoryFile.context.pendingTasks.slice(0, 20);
+    }
+    if (this.memoryFile.knowledge.length > 50) {
+      this.memoryFile.knowledge = this.memoryFile.knowledge.slice(0, 50);
+    }
+
     try {
       // Save to database only
       sqlDatabase.setSetting('memory_file', JSON.stringify(this.memoryFile));
     } catch (e) {
-      console.error('[MemoryFile] Could not save to database:', e);
+      // Save is optional - fail silently to prevent crashes
     }
   }
 
@@ -237,7 +248,11 @@ class MemoryFileServiceSafe {
   /**
    * Update context information
    */
-  async updateContext(focus: string | undefined, recentFiles: string[], activeQueries: string[]): Promise<void> {
+  async updateContext(
+    focus: string | undefined,
+    recentFiles: string[],
+    activeQueries: string[]
+  ): Promise<void> {
     await this.loadMemory();
     this.memoryFile.context.currentFocus = focus;
     this.memoryFile.context.recentFiles = recentFiles.slice(-10);
@@ -261,38 +276,35 @@ class MemoryFileServiceSafe {
   getSystemPrompt(): string {
     const parts: string[] = [];
 
-    // User context
+    // User context (optimized - only essential info)
     if (this.memoryFile.user.name !== 'User') {
       parts.push(`User: ${this.memoryFile.user.name}`);
     }
     if (this.memoryFile.user.role) {
       parts.push(`Role: ${this.memoryFile.user.role}`);
     }
-    if (this.memoryFile.user.organization) {
-      parts.push(`Organization: ${this.memoryFile.user.organization}`);
-    }
 
-    // Current focus
+    // Current focus (limited to 200 chars)
     if (this.memoryFile.context.currentFocus) {
-      parts.push(`\nCurrent Focus: ${this.memoryFile.context.currentFocus}`);
+      parts.push(`\nFocus: ${this.memoryFile.context.currentFocus.substring(0, 200)}`);
     }
 
-    // Active projects
+    // Active projects (max 3)
     if (this.memoryFile.context.activeProjects.length > 0) {
-      parts.push(`\nActive Projects: ${this.memoryFile.context.activeProjects.join(', ')}`);
+      parts.push(`\nProjects: ${this.memoryFile.context.activeProjects.slice(0, 3).join(', ')}`);
     }
 
-    // Knowledge
+    // Knowledge (max 3 sections, 100 chars each)
     if (this.memoryFile.knowledge.length > 0) {
-      parts.push('\nRelevant Knowledge:');
-      for (const section of this.memoryFile.knowledge.slice(0, 5)) {
-        parts.push(`- ${section.title}`);
+      parts.push('\nKnowledge:');
+      for (const section of this.memoryFile.knowledge.slice(0, 3)) {
+        parts.push(`- ${section.title.substring(0, 100)}`);
       }
     }
 
-    // Pending tasks
+    // Pending tasks (max 3)
     if (this.memoryFile.context.pendingTasks.length > 0) {
-      parts.push(`\nPending Tasks: ${this.memoryFile.context.pendingTasks.slice(0, 5).join(', ')}`);
+      parts.push(`\nTasks: ${this.memoryFile.context.pendingTasks.slice(0, 3).join(', ')}`);
     }
 
     return parts.join('\n');

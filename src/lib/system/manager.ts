@@ -70,7 +70,11 @@ export class SystemManager {
     this.shutdownHooks.push(hook);
   }
 
-  private updateServiceStatus(name: string, status: ServiceStatus['status'], message?: string): void {
+  private updateServiceStatus(
+    name: string,
+    status: ServiceStatus['status'],
+    message?: string
+  ): void {
     const service = this.status.services.find(s => s.name === name);
     if (service) {
       service.status = status;
@@ -96,7 +100,11 @@ export class SystemManager {
         this.updateServiceStatus('Database', 'running', 'Connected');
         console.log('[System] Database initialized');
       } catch (error) {
-        this.updateServiceStatus('Database', 'error', error instanceof Error ? error.message : 'Unknown error');
+        this.updateServiceStatus(
+          'Database',
+          'error',
+          error instanceof Error ? error.message : 'Unknown error'
+        );
         throw error;
       }
 
@@ -121,7 +129,11 @@ export class SystemManager {
         this.updateServiceStatus('Task Scheduler', 'running', 'Active');
         console.log('[System] Task scheduler started');
       } catch (error) {
-        this.updateServiceStatus('Task Scheduler', 'error', error instanceof Error ? error.message : 'Unknown error');
+        this.updateServiceStatus(
+          'Task Scheduler',
+          'error',
+          error instanceof Error ? error.message : 'Unknown error'
+        );
         console.error('[System] Task scheduler failed:', error);
       }
 
@@ -172,7 +184,7 @@ export class SystemManager {
       this.status.startTime = Date.now();
 
       this.startHealthCheck();
-      
+
       console.log('[System] AI Assistant started successfully');
       return this.status;
     } catch (error) {
@@ -188,7 +200,7 @@ export class SystemManager {
     }
 
     console.log('[System] Shutting down AI Assistant...');
-    
+
     this.stopHealthCheck();
 
     // Stop Task Scheduler
@@ -252,7 +264,7 @@ export class SystemManager {
   private startHealthCheck(): void {
     if (this.healthCheckTimer) return;
 
-    this.healthCheckTimer = setInterval(async () => {
+    this.healthCheckTimer = setInterval(() => {
       for (const service of this.status.services) {
         service.lastCheck = Date.now();
       }
@@ -266,6 +278,13 @@ export class SystemManager {
     }
   }
 
+  // Cleanup to prevent memory leaks
+  dispose(): void {
+    this.stopHealthCheck();
+    this.status.services = [];
+    this.status.running = false;
+  }
+
   updateConfig(config: Partial<SystemConfig>): void {
     this.config = { ...this.config, ...config };
   }
@@ -275,11 +294,14 @@ export class SystemManager {
   }
 
   async checkHealth(): Promise<{ healthy: boolean; services: ServiceStatus[] }> {
-    const runningServices = this.status.services.filter(s => 
-      s.status === 'running' || s.status === 'stopped' && s.name === 'Database'
+    const runningServices = this.status.services.filter(
+      s => s.status === 'running' || (s.status === 'stopped' && s.name === 'Database')
     );
-    const allRunning = this.status.services.every(s => 
-      s.status === 'running' || s.status === 'warning' || s.status === 'stopped' && s.name !== 'Task Scheduler'
+    const allRunning = this.status.services.every(
+      s =>
+        s.status === 'running' ||
+        s.status === 'warning' ||
+        (s.status === 'stopped' && s.name !== 'Task Scheduler')
     );
     return {
       healthy: this.status.running && (allRunning || runningServices.length >= 2),

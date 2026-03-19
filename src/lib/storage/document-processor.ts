@@ -73,17 +73,25 @@ export class DocumentProcessor {
 
   private detectDocumentType(filename: string, mimeType: string): DocumentContext['type'] {
     const ext = filename.split('.').pop()?.toLowerCase();
-    
+
     if (ext === 'pdf' || mimeType === 'application/pdf') return 'pdf';
-    if (ext === 'docx' || ext === 'doc' || mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') return 'docx';
+    if (
+      ext === 'docx' ||
+      ext === 'doc' ||
+      mimeType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+    )
+      return 'docx';
     if (ext === 'txt' || mimeType === 'text/plain') return 'txt';
     if (ext === 'md' || ext === 'markdown') return 'md';
     if (ext === 'html' || ext === 'htm' || mimeType === 'text/html') return 'html';
-    
+
     return 'other';
   }
 
-  private async contextualizeDocument(content: string, filename: string): Promise<{
+  private async contextualizeDocument(
+    content: string,
+    filename: string
+  ): Promise<{
     summary: string;
     tags: string[];
     briefingNotes: string;
@@ -101,12 +109,18 @@ Return ONLY valid JSON with:
 }`;
 
     try {
-      const response = await fetch('/api/chat', {
+      const baseUrl =
+        typeof window !== 'undefined'
+          ? window.location.origin
+          : process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+
+      const response = await fetch(`${baseUrl}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: 'ollama/qwen3.5:9b',
           message: prompt,
+          skipTools: true,
         }),
       });
 
@@ -114,7 +128,7 @@ Return ONLY valid JSON with:
         const data = await response.json();
         const responseContent = data.message?.content || data.message || '';
         const match = responseContent.match(/\{[\s\S]*\}/);
-        
+
         if (match) {
           return JSON.parse(match[0]);
         }
@@ -144,19 +158,25 @@ Consider:
 - Is it news-worthy or trend-setting?`;
 
     try {
-      const response = await fetch('/api/chat', {
+      const baseUrl =
+        typeof window !== 'undefined'
+          ? window.location.origin
+          : process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+
+      const response = await fetch(`${baseUrl}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: 'ollama/qwen3.5:9b',
           message: prompt,
+          skipTools: true,
         }),
       });
 
       if (response.ok) {
         const data = await response.json();
         const content = (data.message?.content || data.message || '').toLowerCase().trim();
-        
+
         if (content.includes('critical')) return 'critical';
         if (content.includes('high')) return 'high';
         if (content.includes('medium')) return 'medium';
@@ -173,12 +193,12 @@ Consider:
     const hash = this.simpleHash(text);
     const embedding: number[] = [];
     const seed = hash;
-    
+
     for (let i = 0; i < 384; i++) {
       const x = Math.sin(seed * (i + 1) * 12.9898) * 43758.5453;
       embedding.push((x - Math.floor(x)) * 2 - 1);
     }
-    
+
     const magnitude = Math.sqrt(embedding.reduce((sum, val) => sum + val * val, 0));
     return embedding.map(val => val / magnitude);
   }
@@ -187,7 +207,7 @@ Consider:
     let hash = 0;
     for (let i = 0; i < text.length; i++) {
       const char = text.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash;
     }
     return Math.abs(hash);
@@ -238,10 +258,11 @@ User's Question: ${question}
 Provide a helpful answer based on the document content. If the question cannot be answered from the document, say so.`;
 
     try {
-      const baseUrl = typeof window !== 'undefined' 
-        ? window.location.origin 
-        : process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
-      
+      const baseUrl =
+        typeof window !== 'undefined'
+          ? window.location.origin
+          : process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+
       const response = await fetch(`${baseUrl}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -254,7 +275,7 @@ Provide a helpful answer based on the document content. If the question cannot b
       if (response.ok) {
         const data = await response.json();
         const answer = data.message?.content || data.message || 'No answer generated';
-        
+
         return {
           documentId,
           question,
@@ -274,16 +295,18 @@ Provide a helpful answer based on the document content. If the question cannot b
     };
   }
 
-  getDocumentsForBriefing(importanceThreshold: 'low' | 'medium' | 'high' | 'critical' = 'medium'): Note[] {
+  getDocumentsForBriefing(
+    importanceThreshold: 'low' | 'medium' | 'high' | 'critical' = 'medium'
+  ): Note[] {
     const importanceOrder = ['low', 'medium', 'high', 'critical'];
     const minImportance = importanceOrder.indexOf(importanceThreshold);
-    
+
     const notes = sqlDatabase.getNotes('briefing');
-    
+
     return notes.filter(note => {
       const importanceTag = note.tags.find(t => t.startsWith('importance:'));
       if (!importanceTag) return false;
-      
+
       const importance = importanceTag.split(':')[1];
       return importanceOrder.indexOf(importance) >= minImportance;
     });
@@ -291,9 +314,9 @@ Provide a helpful answer based on the document content. If the question cannot b
 
   generateWeeklyBriefing(): string {
     const briefingNotes = this.getDocumentsForBriefing('medium');
-    
+
     let briefing = '# Weekly Briefing\n\n';
-    
+
     const critical = briefingNotes.filter(n => n.tags.includes('importance:critical'));
     const high = briefingNotes.filter(n => n.tags.includes('importance:high'));
     const medium = briefingNotes.filter(n => n.tags.includes('importance:medium'));
@@ -330,20 +353,20 @@ Provide a helpful answer based on the document content. If the question cannot b
     let dotProduct = 0;
     let normA = 0;
     let normB = 0;
-    
+
     for (let i = 0; i < a.length; i++) {
       dotProduct += a[i] * b[i];
       normA += a[i] * a[i];
       normB += b[i] * b[i];
     }
-    
+
     return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
   }
 
   searchDocuments(query: string, limit = 5): Note[] {
     const queryEmbedding = this.generateEmbedding(query);
     const notes = sqlDatabase.getNotes();
-    
+
     const results = notes
       .filter(n => n.category === 'document')
       .map(note => ({

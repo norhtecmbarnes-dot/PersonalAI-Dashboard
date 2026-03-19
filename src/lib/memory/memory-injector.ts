@@ -1,4 +1,9 @@
-import { loadScratchpad, getScratchpadSummary, estimateMemoryTokens, Scratchpad } from './scratchpad';
+import {
+  loadScratchpad,
+  getScratchpadSummary,
+  estimateMemoryTokens,
+  Scratchpad,
+} from './scratchpad';
 import { memoryStore, MemoryCategory, MemorySearchResult } from './persistent-store';
 
 function estimateTokens(text: string): number {
@@ -21,7 +26,7 @@ export interface MemoryInjectionResult {
 
 export async function injectMemoryContext(
   userMessage: string,
-  maxTokens: number = 1500
+  maxTokens: number = 800 // Reduced from 1500 to 800 for token efficiency
 ): Promise<MemoryInjectionResult> {
   const scratchpad = loadScratchpad();
   const parts: string[] = [];
@@ -54,16 +59,16 @@ export async function injectMemoryContext(
 
   if (remainingTokens > 100 && userMessage.length > 10) {
     try {
-      relevantMemories = await memoryStore.search(userMessage, { limit: 5 });
-      
+      relevantMemories = await memoryStore.search(userMessage, { limit: 3 }); // Reduced from 5 to 3
+
       for (const result of relevantMemories) {
         const memoryText = formatMemory(result);
         const memoryTokens = estimateTokens(memoryText);
-        
+
         if (tokenCount + memoryTokens <= maxTokens) {
           parts.push(memoryText);
           tokenCount += memoryTokens;
-          
+
           // Increment access count
           await memoryStore.incrementAccess(result.memory.id);
         }
@@ -85,20 +90,26 @@ export async function injectMemoryContext(
 }
 
 function formatUserProfile(scratchpad: Scratchpad): string {
-  if (!scratchpad.userProfile.name && Object.keys(scratchpad.userProfile.preferences).length === 0) {
+  if (
+    !scratchpad.userProfile.name &&
+    Object.keys(scratchpad.userProfile.preferences).length === 0
+  ) {
     return '';
   }
 
   const parts: string[] = [];
-  
+
   if (scratchpad.userProfile.name) {
     parts.push(`User name: ${scratchpad.userProfile.name}`);
   }
-  
-  if (scratchpad.userProfile.assistantName && scratchpad.userProfile.assistantName !== 'AI Assistant') {
+
+  if (
+    scratchpad.userProfile.assistantName &&
+    scratchpad.userProfile.assistantName !== 'AI Assistant'
+  ) {
     parts.push(`Assistant name: ${scratchpad.userProfile.assistantName}`);
   }
-  
+
   const prefEntries = Object.entries(scratchpad.userProfile.preferences).slice(0, 5);
   if (prefEntries.length > 0) {
     parts.push(`Preferences: ${prefEntries.map(([k, v]) => `${k}=${v}`).join(', ')}`);
@@ -147,7 +158,7 @@ function formatMemory(result: MemorySearchResult): string {
   const { memory, score, matchType } = result;
   const confidence = Math.round(score * 100);
   const category = memory.category.charAt(0).toUpperCase() + memory.category.slice(1);
-  
+
   return `[${category} Memory${confidence > 70 ? ', High Confidence' : ''}] ${memory.key}: ${memory.content}`;
 }
 
@@ -194,20 +205,20 @@ export async function saveImportantFact(
 
 export async function updateSessionFocus(focus: string, topic?: string): Promise<void> {
   const scratchpad = loadScratchpad();
-  
+
   scratchpad.sessionContext.currentFocus = focus;
   if (topic) {
     scratchpad.sessionContext.lastTopic = topic;
   }
   scratchpad.sessionContext.lastSessionDate = Date.now();
-  
+
   const { saveScratchpad } = await import('./scratchpad');
   saveScratchpad(scratchpad);
 }
 
 export async function addPendingTask(task: string): Promise<void> {
   const scratchpad = loadScratchpad();
-  
+
   if (!scratchpad.sessionContext.pendingTasks.includes(task)) {
     scratchpad.sessionContext.pendingTasks.push(task);
     // Keep max 10 pending tasks
@@ -215,15 +226,17 @@ export async function addPendingTask(task: string): Promise<void> {
       scratchpad.sessionContext.pendingTasks = scratchpad.sessionContext.pendingTasks.slice(-10);
     }
   }
-  
+
   const { saveScratchpad } = await import('./scratchpad');
   saveScratchpad(scratchpad);
 }
 
 export async function completePendingTask(task: string): Promise<void> {
   const scratchpad = loadScratchpad();
-  scratchpad.sessionContext.pendingTasks = scratchpad.sessionContext.pendingTasks.filter(t => t !== task);
-  
+  scratchpad.sessionContext.pendingTasks = scratchpad.sessionContext.pendingTasks.filter(
+    t => t !== task
+  );
+
   const { saveScratchpad } = await import('./scratchpad');
   saveScratchpad(scratchpad);
 }
@@ -231,7 +244,7 @@ export async function completePendingTask(task: string): Promise<void> {
 export async function setUserPreference(key: string, value: string): Promise<void> {
   const scratchpad = loadScratchpad();
   scratchpad.userProfile.preferences[key] = value;
-  
+
   const { saveScratchpad } = await import('./scratchpad');
   saveScratchpad(scratchpad);
 }
@@ -240,7 +253,7 @@ export async function setUserName(name: string): Promise<void> {
   const scratchpad = loadScratchpad();
   scratchpad.userProfile.name = name;
   scratchpad.userProfile.updatedAt = Date.now();
-  
+
   const { saveScratchpad } = await import('./scratchpad');
   saveScratchpad(scratchpad);
 }
@@ -249,7 +262,7 @@ export async function setAssistantName(name: string): Promise<void> {
   const scratchpad = loadScratchpad();
   scratchpad.userProfile.assistantName = name;
   scratchpad.userProfile.updatedAt = Date.now();
-  
+
   const { saveScratchpad } = await import('./scratchpad');
   saveScratchpad(scratchpad);
 }

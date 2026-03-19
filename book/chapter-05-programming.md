@@ -330,6 +330,92 @@ Include comments explaining each step.
 
 ---
 
+## Working with AI Tools
+
+You don't have to program alone. AI tools can help you write, debug, and understand code.
+
+### OpenCode (Recommended)
+
+**OpenCode is a free, open-source AI assistant that works in your terminal.**
+
+This is the tool I use and recommend. It's completely free, unlike Claude Code or other paid options.
+
+**Install OpenCode:**
+
+```bash
+# Install via npm
+npm install -g opencode
+
+# Or download from GitHub
+# https://github.com/opencode-ai/opencode
+```
+
+**Use it from your terminal:**
+
+```bash
+# Ask a question
+opencode "How do I read a file in JavaScript?"
+
+# Get help with code
+opencode "Fix this bug: TypeError: Cannot read property 'name' of undefined"
+
+# Generate code
+opencode "Create a Next.js page that displays a list of items"
+```
+
+**Why OpenCode?**
+
+| Feature | OpenCode | Claude Code | Cline | Aider |
+|---------|----------|-------------|-------|-------|
+| **Free** | ✅ Yes | ❌ No | ✅ Yes | ✅ Yes |
+| **Terminal-based** | ✅ Yes | ✅ Yes | ✅ Yes | ✅ Yes |
+| **Easy setup** | ✅ Simple | Moderate | Moderate | Moderate |
+| **Works offline** | ✅ With local models | ❌ | Partial | Partial |
+| **Open source** | ✅ Yes | ❌ No | ✅ Yes | ✅ Yes |
+
+### Other AI Tools
+
+You're free to choose any tool that works for you:
+
+• **OpenCode** (Free, Recommended) — This is what this book assumes you're using
+• **Cline** (Free) — VS Code extension, works well with local models
+• **Aider** (Free) — Terminal-based, good for git workflows
+• **Claude Code** (Paid) — From Anthropic, powerful but costs money
+• **Cursor** (Freemium) — Full IDE with AI built in
+
+### How This Book Uses AI Tools
+
+Throughout this book, you'll see sections like:
+
+**PROMPT YOU CAN USE:**
+
+```
+This is a prompt you can paste into OpenCode 
+or another AI assistant to get help.
+```
+
+When you see these prompts:
+
+1. Copy the prompt
+2. Paste into OpenCode (or your preferred AI tool)
+3. Review the AI's response
+4. Test the code yourself
+5. Ask follow-up questions if needed
+
+### The Human-AI Partnership
+
+AI tools are assistants, not replacements. You still need to:
+
+• **Understand the code** — Don't just copy-paste
+• **Test everything** — AI can make mistakes
+• **Ask questions** — "Why did you do it this way?"
+• **Learn patterns** — See how problems are solved
+• **Debug yourself** — Use AI as a guide, not a crutch
+
+**The goal is to become a better programmer, not to let AI do all the work.**
+
+---
+
 ## Key Takeaways
 
 ✅ **Programming** = Giving precise instructions
@@ -345,6 +431,8 @@ Include comments explaining each step.
 ✅ **Loops** repeat actions
 
 ✅ **Debugging** is finding and fixing mistakes
+
+✅ **OpenCode** is a free AI assistant for programming help
 
 ---
 

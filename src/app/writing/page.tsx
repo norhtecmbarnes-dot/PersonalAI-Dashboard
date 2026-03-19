@@ -1,8 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { ModelSelector } from '@/components/ModelSelector';
+import { MarkdownRenderer } from '@/components/MarkdownRenderer';
+import { saveAs } from 'file-saver';
 
 interface ActionResult {
   action: string;
@@ -10,20 +12,63 @@ interface ActionResult {
   model: string;
 }
 
+interface DocumentChange {
+  id: string;
+  original: string;
+  edited: string;
+  changeType: 'addition' | 'deletion' | 'modification';
+  suggestion?: string;
+  reason?: string;
+  accepted: boolean;
+  rejected: boolean;
+}
+
 export default function WritingAssistantPage() {
   const [input, setInput] = useState('');
-  const [action, setAction] = useState<'expand' | 'outline' | 'continue' | 'rewrite' | 'simplify' | 'elaborate' | 'structure' | 'diagram' | 'blog_post' | 'social_media' | 'ad_copy' | 'product_description' | 'email_template'>('expand');
+  const [action, setAction] = useState<
+    | 'expand'
+    | 'outline'
+    | 'continue'
+    | 'rewrite'
+    | 'simplify'
+    | 'elaborate'
+    | 'structure'
+    | 'diagram'
+    | 'blog_post'
+    | 'social_media'
+    | 'ad_copy'
+    | 'product_description'
+    | 'email_template'
+    | 'review'
+    | 'track_changes'
+  >('expand');
   const [style, setStyle] = useState('professional');
   const [model, setModel] = useState('');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ActionResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Load saved model on mount
+  // Theme state
+  const [theme, setTheme] = useState<'dark' | 'light'>('dark');
+
+  // Track changes state
+  const [changes, setChanges] = useState<DocumentChange[]>([]);
+  const [showChanges, setShowChanges] = useState(false);
+  const [reviewing, setReviewing] = useState(false);
+  const [documentTitle, setDocumentTitle] = useState('Untitled Document');
+
+  // Save state
+  const [saveMenuOpen, setSaveMenuOpen] = useState(false);
+  const saveMenuRef = useRef<HTMLDivElement>(null);
+
+  // Load saved model and theme on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('selectedModel');
-      if (saved) setModel(saved);
+      const savedModel = localStorage.getItem('selectedModel');
+      if (savedModel) setModel(savedModel);
+
+      const savedTheme = localStorage.getItem('writing-theme');
+      if (savedTheme) setTheme(savedTheme as 'dark' | 'light');
     }
   }, []);
 
@@ -34,32 +79,40 @@ export default function WritingAssistantPage() {
     }
   };
 
-  const actions = [
-    { id: 'expand', name: 'Expand', icon: '📄', desc: 'Add more detail, examples, depth (2-3x longer)' },
-    { id: 'outline', name: 'Create Outline', icon: '📋', desc: 'Detailed hierarchical outline' },
-    { id: 'continue', name: 'Continue', icon: '✍️', desc: 'Continue writing naturally' },
-    { id: 'rewrite', name: 'Rewrite', icon: '🔄', desc: 'Rewrite in a different style' },
-    { id: 'simplify', name: 'Simplify', icon: '💡', desc: 'Make easier to understand' },
-    { id: 'elaborate', name: 'Elaborate', icon: '📝', desc: 'Add examples and evidence' },
-    { id: 'structure', name: 'Structure', icon: '📊', desc: 'Organize with headers and bullets' },
-    { id: 'diagram', name: 'Generate Diagram', icon: '🧩', desc: 'Generate Mermaid.js diagram code from description' },
-    { id: 'blog_post', name: 'Blog Post', icon: '📝', desc: 'Generate comprehensive blog post from topic/outline' },
-    { id: 'social_media', name: 'Social Media', icon: '🐦', desc: 'Generate engaging social media content for multiple platforms' },
-    { id: 'ad_copy', name: 'Ad Copy', icon: '📢', desc: 'Generate persuasive advertising copy for products/services' },
-    { id: 'product_description', name: 'Product Description', icon: '🏷️', desc: 'Generate persuasive product descriptions for e-commerce' },
-    { id: 'email_template', name: 'Email Template', icon: '📧', desc: 'Generate professional email templates for marketing' },
-  ] as const;
+  const toggleTheme = () => {
+    const newTheme = theme === 'dark' ? 'light' : 'dark';
+    setTheme(newTheme);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('writing-theme', newTheme);
+    }
+  };
+
+  // Close save menu when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (saveMenuRef.current && !saveMenuRef.current.contains(event.target as Node)) {
+        setSaveMenuOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const handleSubmit = async () => {
-    if (!input.trim()) return;
-    
+    if (!input.trim() && !['review', 'track_changes'].includes(action)) {
+      if (!input.trim() && ['review', 'track_changes'].includes(action)) {
+        setError('Please enter text to review');
+        return;
+      }
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setResult(null);
+    setChanges([]);
 
-    // Use Kimi K2.5 by default - distilled from Claude, excellent for English writing via Ollama Cloud
     const modelToUse = model || 'kimi-k2.5';
-    console.log('[Writing] Submitting with model:', modelToUse);
 
     try {
       const response = await fetch('/api/writing', {
@@ -71,14 +124,20 @@ export default function WritingAssistantPage() {
           style: action === 'rewrite' ? style : undefined,
           model: modelToUse,
           stream: false,
+          trackChanges: action === 'track_changes' || action === 'review',
         }),
       });
 
       const data = await response.json();
-      console.log('[Writing] Response:', data);
 
       if (data.success) {
         setResult(data);
+
+        // Process track changes
+        if (data.changes && Array.isArray(data.changes)) {
+          setChanges(data.changes);
+          setShowChanges(true);
+        }
       } else {
         setError(data.error || 'Failed to process');
       }
@@ -103,20 +162,217 @@ export default function WritingAssistantPage() {
     }
   };
 
+  // Save functions
+  const saveAsTxt = () => {
+    if (!result?.result) return;
+    const blob = new Blob([result.result], { type: 'text/plain' });
+    saveAs(blob, `${documentTitle}.txt`);
+    setSaveMenuOpen(false);
+  };
+
+  const saveAsDocx = async () => {
+    if (!result?.result) return;
+
+    try {
+      const response = await fetch('/api/writing/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          content: result.result,
+          title: documentTitle,
+          format: 'docx',
+        }),
+      });
+
+      if (response.ok) {
+        const blob = await response.blob();
+        saveAs(blob, `${documentTitle}.docx`);
+      }
+      setSaveMenuOpen(false);
+    } catch (err) {
+      console.error('Error saving as DOCX:', err);
+      setError('Failed to save as DOCX');
+    }
+  };
+
+  const saveAsPdf = async () => {
+    if (!result?.result) return;
+
+    // For now, save as text with .pdf extension
+    // In production, would use proper PDF generation
+    const blob = new Blob([result.result], { type: 'application/pdf' });
+    saveAs(blob, `${documentTitle}.pdf`);
+    setSaveMenuOpen(false);
+  };
+
+  const acceptChange = (changeId: string) => {
+    setChanges(
+      changes.map(c => (c.id === changeId ? { ...c, accepted: true, rejected: false } : c))
+    );
+  };
+
+  const rejectChange = (changeId: string) => {
+    setChanges(
+      changes.map(c => (c.id === changeId ? { ...c, accepted: false, rejected: true } : c))
+    );
+  };
+
+  const acceptAllChanges = () => {
+    setChanges(changes.map(c => ({ ...c, accepted: true, rejected: false })));
+  };
+
+  const rejectAllChanges = () => {
+    setChanges(changes.map(c => ({ ...c, accepted: false, rejected: true })));
+  };
+
+  const themeClasses =
+    theme === 'dark'
+      ? 'bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 text-white'
+      : 'bg-gradient-to-br from-blue-50 via-white to-purple-50 text-gray-900';
+
+  const cardClasses =
+    theme === 'dark' ? 'bg-slate-800/50 backdrop-blur' : 'bg-white/80 backdrop-blur shadow-lg';
+
+  const inputClasses =
+    theme === 'dark'
+      ? 'bg-slate-900 text-white border-slate-700 focus:border-purple-500'
+      : 'bg-white text-gray-900 border-gray-300 focus:border-purple-500';
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
+    <div className={`min-h-screen ${themeClasses} p-6 transition-colors duration-300`}>
       <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-white">Writing Assistant</h1>
-            <p className="text-slate-400 mt-1">Expand, outline, and enhance your writing with AI</p>
+            <div className="flex items-center gap-3">
+              <h1
+                className={`text-3xl font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}
+              >
+                Writing Assistant
+              </h1>
+              <input
+                type="text"
+                value={documentTitle}
+                onChange={e => setDocumentTitle(e.target.value)}
+                className={`px-3 py-1 rounded border ${
+                  theme === 'dark'
+                    ? 'bg-slate-800 border-slate-600 text-white'
+                    : 'bg-white border-gray-300 text-gray-900'
+                }`}
+                placeholder="Document Title"
+              />
+            </div>
+            <p className={`${theme === 'dark' ? 'text-slate-400' : 'text-gray-600'} mt-1`}>
+              Expand, outline, and enhance your writing with AI • Track Changes & Review
+            </p>
           </div>
-          <div className="flex gap-2">
-            <Link href="/office" className="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600">
+          <div className="flex gap-2 items-center">
+            {/* Theme Toggle */}
+            <button
+              onClick={toggleTheme}
+              className={`p-2 rounded-lg ${
+                theme === 'dark'
+                  ? 'bg-slate-700 text-yellow-400 hover:bg-slate-600'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+              title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
+            >
+              {theme === 'dark' ? '☀️' : '🌙'}
+            </button>
+
+            {/* Save Button with Dropdown */}
+            <div className="relative" ref={saveMenuRef}>
+              <button
+                onClick={() => setSaveMenuOpen(!saveMenuOpen)}
+                className={`px-4 py-2 rounded-lg ${
+                  theme === 'dark'
+                    ? 'bg-green-600 hover:bg-green-700 text-white'
+                    : 'bg-green-500 hover:bg-green-600 text-white'
+                }`}
+              >
+                💾 Save
+              </button>
+
+              {saveMenuOpen && result?.result && (
+                <div
+                  className={`absolute right-0 mt-2 w-48 rounded-lg shadow-xl z-50 ${
+                    theme === 'dark'
+                      ? 'bg-slate-800 border border-slate-700'
+                      : 'bg-white border border-gray-200'
+                  }`}
+                >
+                  <button
+                    onClick={saveAsTxt}
+                    className={`w-full px-4 py-2 text-left ${
+                      theme === 'dark'
+                        ? 'text-white hover:bg-slate-700'
+                        : 'text-gray-900 hover:bg-gray-100'
+                    }`}
+                  >
+                    📄 Save as TXT
+                  </button>
+                  <button
+                    onClick={saveAsDocx}
+                    className={`w-full px-4 py-2 text-left ${
+                      theme === 'dark'
+                        ? 'text-white hover:bg-slate-700'
+                        : 'text-gray-900 hover:bg-gray-100'
+                    }`}
+                  >
+                    📝 Save as DOCX
+                  </button>
+                  <button
+                    onClick={saveAsPdf}
+                    className={`w-full px-4 py-2 text-left ${
+                      theme === 'dark'
+                        ? 'text-white hover:bg-slate-700'
+                        : 'text-gray-900 hover:bg-gray-100'
+                    }`}
+                  >
+                    📕 Save as PDF
+                  </button>
+                </div>
+              )}
+            </div>
+
+            <Link
+              href="/outline-creator"
+              className={`px-4 py-2 rounded-lg ${
+                theme === 'dark'
+                  ? 'bg-purple-600 text-white hover:bg-purple-700'
+                  : 'bg-purple-500 text-white hover:bg-purple-600'
+              }`}
+            >
+              📋 Outline Creator
+            </Link>
+            <Link
+              href="/outline-creator"
+              className={`px-4 py-2 rounded-lg ${
+                theme === 'dark'
+                  ? 'bg-purple-600 text-white hover:bg-purple-700'
+                  : 'bg-purple-500 text-white hover:bg-purple-600'
+              }`}
+            >
+              📋 Outline Creator
+            </Link>
+            <Link
+              href="/office"
+              className={`px-4 py-2 rounded-lg ${
+                theme === 'dark'
+                  ? 'bg-slate-700 text-white hover:bg-slate-600'
+                  : 'bg-gray-200 text-gray-900 hover:bg-gray-300'
+              }`}
+            >
               Office
             </Link>
-            <Link href="/" className="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600">
+            <Link
+              href="/"
+              className={`px-4 py-2 rounded-lg ${
+                theme === 'dark'
+                  ? 'bg-slate-700 text-white hover:bg-slate-600'
+                  : 'bg-gray-200 text-gray-900 hover:bg-gray-300'
+              }`}
+            >
               ← Chat
             </Link>
           </div>
@@ -126,42 +382,198 @@ export default function WritingAssistantPage() {
           {/* Input Section */}
           <div className="space-y-4">
             {/* Action Selection */}
-            <div className="bg-slate-800/50 backdrop-blur rounded-xl p-4">
-              <h2 className="text-lg font-semibold text-white mb-3">Select Action</h2>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {actions.map((a) => (
+            <div className={`${cardClasses} rounded-xl p-4`}>
+              <h2
+                className={`text-lg font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-3`}
+              >
+                Select Action
+              </h2>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-96 overflow-y-auto">
+                {[
+                  {
+                    id: 'expand',
+                    name: 'Expand',
+                    icon: '📄',
+                    desc: 'Add more detail, examples, depth',
+                  },
+                  {
+                    id: 'outline',
+                    name: 'Outline',
+                    icon: '📋',
+                    desc: 'Detailed hierarchical outline',
+                  },
+                  {
+                    id: 'continue',
+                    name: 'Continue',
+                    icon: '✍️',
+                    desc: 'Continue writing naturally',
+                  },
+                  {
+                    id: 'rewrite',
+                    name: 'Rewrite',
+                    icon: '🔄',
+                    desc: 'Rewrite in different style',
+                  },
+                  {
+                    id: 'simplify',
+                    name: 'Simplify',
+                    icon: '💡',
+                    desc: 'Make easier to understand',
+                  },
+                  {
+                    id: 'elaborate',
+                    name: 'Elaborate',
+                    icon: '📝',
+                    desc: 'Add examples and evidence',
+                  },
+                  { id: 'structure', name: 'Structure', icon: '📊', desc: 'Organize with headers' },
+                  {
+                    id: 'review',
+                    name: 'Review',
+                    icon: '👁️',
+                    desc: 'AI reviews and suggests improvements',
+                  },
+                  {
+                    id: 'track_changes',
+                    name: 'Track Changes',
+                    icon: '✏️',
+                    desc: 'AI edits with tracked changes',
+                  },
+                  { id: 'blog_post', name: 'Blog Post', icon: '📝', desc: 'Generate blog post' },
+                  { id: 'social_media', name: 'Social', icon: '🐦', desc: 'Social media content' },
+                  {
+                    id: 'email_template',
+                    name: 'Email',
+                    icon: '📧',
+                    desc: 'Professional email template',
+                  },
+                ].map(a => (
                   <button
                     key={a.id}
-                    onClick={() => setAction(a.id)}
+                    onClick={() => setAction(a.id as any)}
                     className={`p-3 rounded-lg text-left transition-colors ${
                       action === a.id
                         ? 'bg-purple-600 text-white'
-                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                        : theme === 'dark'
+                          ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
                     <span className="text-lg mr-2">{a.icon}</span>
-                    <span className="font-medium">{a.name}</span>
+                    <span className="font-medium text-sm">{a.name}</span>
                   </button>
                 ))}
               </div>
-              <p className="text-slate-400 text-sm mt-3">
-                {actions.find(a => a.id === action)?.desc}
+              <p
+                className={`${theme === 'dark' ? 'text-slate-400' : 'text-gray-600'} text-sm mt-3`}
+              >
+                {
+                  [
+                    {
+                      id: 'expand',
+                      name: 'Expand',
+                      icon: '📄',
+                      desc: 'Add more detail, examples, depth',
+                    },
+                    {
+                      id: 'outline',
+                      name: 'Outline',
+                      icon: '📋',
+                      desc: 'Detailed hierarchical outline',
+                    },
+                    {
+                      id: 'continue',
+                      name: 'Continue',
+                      icon: '✍️',
+                      desc: 'Continue writing naturally',
+                    },
+                    {
+                      id: 'rewrite',
+                      name: 'Rewrite',
+                      icon: '🔄',
+                      desc: 'Rewrite in different style',
+                    },
+                    {
+                      id: 'simplify',
+                      name: 'Simplify',
+                      icon: '💡',
+                      desc: 'Make easier to understand',
+                    },
+                    {
+                      id: 'elaborate',
+                      name: 'Elaborate',
+                      icon: '📝',
+                      desc: 'Add examples and evidence',
+                    },
+                    {
+                      id: 'structure',
+                      name: 'Structure',
+                      icon: '📊',
+                      desc: 'Organize with headers',
+                    },
+                    {
+                      id: 'review',
+                      name: 'Review',
+                      icon: '👁️',
+                      desc: 'AI reviews and suggests improvements',
+                    },
+                    {
+                      id: 'track_changes',
+                      name: 'Track Changes',
+                      icon: '✏️',
+                      desc: 'AI edits with tracked changes',
+                    },
+                    { id: 'blog_post', name: 'Blog Post', icon: '📝', desc: 'Generate blog post' },
+                    {
+                      id: 'social_media',
+                      name: 'Social Media',
+                      icon: '🐦',
+                      desc: 'Social media content',
+                    },
+                    { id: 'ad_copy', name: 'Ad Copy', icon: '📢', desc: 'Generate ad copy' },
+                    {
+                      id: 'product_description',
+                      name: 'Product Description',
+                      icon: '🏷️',
+                      desc: 'Product descriptions',
+                    },
+                    {
+                      id: 'email_template',
+                      name: 'Email Template',
+                      icon: '📧',
+                      desc: 'Professional email template',
+                    },
+                  ].find(x => x.id === action)?.desc
+                }
               </p>
             </div>
 
             {/* Style (for rewrite) */}
             {action === 'rewrite' && (
-              <div className="bg-slate-800/50 backdrop-blur rounded-xl p-4">
-                <h2 className="text-lg font-semibold text-white mb-3">Rewrite Style</h2>
+              <div className={`${cardClasses} rounded-xl p-4`}>
+                <h2
+                  className={`text-lg font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-3`}
+                >
+                  Rewrite Style
+                </h2>
                 <div className="flex flex-wrap gap-2">
-                  {['professional', 'casual', 'academic', 'creative', 'technical', 'persuasive'].map((s) => (
+                  {[
+                    'professional',
+                    'casual',
+                    'academic',
+                    'creative',
+                    'technical',
+                    'persuasive',
+                  ].map(s => (
                     <button
                       key={s}
                       onClick={() => setStyle(s)}
                       className={`px-3 py-1 rounded-full text-sm transition-colors ${
                         style === s
                           ? 'bg-purple-600 text-white'
-                          : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                          : theme === 'dark'
+                            ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                            : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                       }`}
                     >
                       {s}
@@ -172,75 +584,96 @@ export default function WritingAssistantPage() {
             )}
 
             {/* Model Selection */}
-            <div className="bg-slate-800/50 backdrop-blur rounded-xl p-4">
-              <h2 className="text-lg font-semibold text-white mb-3">Model</h2>
+            <div className={`${cardClasses} rounded-xl p-4`}>
+              <h2
+                className={`text-lg font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-3`}
+              >
+                AI Model
+              </h2>
               <ModelSelector
                 value={model}
                 onChange={handleModelChange}
                 label=""
                 showHealth={true}
                 className="w-full"
+                autoSelectBest={true}
               />
             </div>
 
             {/* Input Text */}
-            <div className="bg-slate-800/50 backdrop-blur rounded-xl p-4">
-              <h2 className="text-lg font-semibold text-white mb-3">Input Text</h2>
+            <div className={`${cardClasses} rounded-xl p-4`}>
+              <h2
+                className={`text-lg font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-3`}
+              >
+                Input Text
+              </h2>
               <textarea
                 value={input}
-                onChange={(e) => setInput(e.target.value)}
-                placeholder={
-                  action === 'outline'
-                    ? 'Enter a topic or content to create an outline from...'
-                    : action === 'expand'
-                    ? 'Enter text to expand with more detail...'
-                    : action === 'continue'
-                    ? 'Enter the beginning of text to continue...'
-                    : action === 'diagram'
-                    ? 'Describe the diagram you want to generate (e.g., "flowchart of user login process")...'
-                    : action === 'blog_post'
-                    ? 'Enter blog post topic or outline...'
-                    : action === 'social_media'
-                    ? 'Enter content or topic for social media posts...'
-                    : action === 'ad_copy'
-                    ? 'Describe product/service for ad copy...'
-                    : action === 'product_description'
-                    ? 'Enter product information or features...'
-                    : action === 'email_template'
-                    ? 'Describe email purpose or context...'
-                    : 'Enter your text here...'
-                }
-                className="w-full h-64 bg-slate-900 text-white p-4 rounded-lg border border-slate-700 focus:border-purple-500 focus:outline-none resize-none"
+                onChange={e => setInput(e.target.value)}
+                placeholder="Enter your text here..."
+                className={`w-full h-64 p-4 rounded-lg border focus:outline-none resize-none ${inputClasses}`}
               />
               <div className="flex justify-between items-center mt-3">
-                <span className="text-slate-500 text-sm">{input.length} characters</span>
+                <span
+                  className={`${theme === 'dark' ? 'text-slate-500' : 'text-gray-500'} text-sm`}
+                >
+                  {input.length} characters
+                </span>
                 <button
                   onClick={handleSubmit}
-                  disabled={loading || !input.trim()}
-                  className="px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  disabled={
+                    loading || (!input.trim() && !['review', 'track_changes'].includes(action))
+                  }
+                  className={`px-6 py-2 rounded-lg flex items-center gap-2 ${
+                    theme === 'dark'
+                      ? 'bg-purple-600 text-white hover:bg-purple-700'
+                      : 'bg-purple-500 text-white hover:bg-purple-600'
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
                 >
                   {loading && <span className="animate-spin">◐</span>}
-                  {loading ? 'Processing...' : actions.find(a => a.id === action)?.name || 'Process'}
+                  {loading ? 'Processing...' : 'Process'}
                 </button>
               </div>
             </div>
           </div>
 
           {/* Output Section */}
-          <div className="bg-slate-800/50 backdrop-blur rounded-xl p-4">
+          <div className={`${cardClasses} rounded-xl p-4`}>
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-semibold text-white">Result</h2>
+              <h2
+                className={`text-lg font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}
+              >
+                Result
+              </h2>
               {result && (
                 <div className="flex gap-2">
                   <button
+                    onClick={() => setShowChanges(!showChanges)}
+                    className={`px-3 py-1 rounded text-sm ${
+                      theme === 'dark'
+                        ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
+                  >
+                    {showChanges ? 'Hide' : 'Show'} Changes
+                  </button>
+                  <button
                     onClick={useAsInput}
-                    className="px-3 py-1 bg-slate-700 text-slate-300 rounded hover:bg-slate-600 text-sm"
+                    className={`px-3 py-1 rounded text-sm ${
+                      theme === 'dark'
+                        ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
                   >
                     Use as Input
                   </button>
                   <button
                     onClick={copyResult}
-                    className="px-3 py-1 bg-slate-700 text-slate-300 rounded hover:bg-slate-600 text-sm"
+                    className={`px-3 py-1 rounded text-sm ${
+                      theme === 'dark'
+                        ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                    }`}
                   >
                     Copy
                   </button>
@@ -255,10 +688,12 @@ export default function WritingAssistantPage() {
             )}
 
             {!result && !error && !loading && (
-              <div className="h-96 flex items-center justify-center text-slate-500">
+              <div className="h-96 flex items-center justify-center">
                 <div className="text-center">
                   <div className="text-4xl mb-3">✨</div>
-                  <p>Your result will appear here</p>
+                  <p className={theme === 'dark' ? 'text-slate-500' : 'text-gray-500'}>
+                    Your result will appear here
+                  </p>
                 </div>
               </div>
             )}
@@ -267,18 +702,138 @@ export default function WritingAssistantPage() {
               <div className="h-96 flex items-center justify-center">
                 <div className="text-center">
                   <div className="text-4xl animate-pulse mb-3">🤖</div>
-                  <p className="text-slate-400">Processing with {model}...</p>
+                  <p className={theme === 'dark' ? 'text-slate-400' : 'text-gray-500'}>
+                    Processing with {model}...
+                  </p>
                 </div>
               </div>
             )}
 
             {result && (
-              <div className="h-96 overflow-auto">
-                <pre className="text-slate-200 whitespace-pre-wrap text-sm p-4 bg-slate-900 rounded-lg">
-                  {result.result}
-                </pre>
-                <div className="mt-2 text-slate-500 text-xs">
+              <div>
+                <div
+                  className={`h-96 overflow-auto rounded-lg ${
+                    theme === 'dark' ? 'bg-slate-900' : 'bg-gray-50'
+                  }`}
+                >
+                  <div className="p-4">
+                    <MarkdownRenderer content={result.result} />
+                  </div>
+                </div>
+                <div
+                  className={`mt-2 text-xs ${theme === 'dark' ? 'text-slate-500' : 'text-gray-500'}`}
+                >
                   Generated with {result.model} • {result.result.length} characters
+                </div>
+              </div>
+            )}
+
+            {/* Track Changes Panel */}
+            {showChanges && changes.length > 0 && (
+              <div
+                className={`mt-4 rounded-lg p-4 ${
+                  theme === 'dark'
+                    ? 'bg-slate-900 border border-slate-700'
+                    : 'bg-gray-50 border border-gray-200'
+                }`}
+              >
+                <div className="flex justify-between items-center mb-3">
+                  <h3
+                    className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}
+                  >
+                    AI Track Changes ({changes.length} suggestions)
+                  </h3>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={acceptAllChanges}
+                      className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700"
+                    >
+                      Accept All
+                    </button>
+                    <button
+                      onClick={rejectAllChanges}
+                      className="px-3 py-1 bg-red-600 text-white rounded text-sm hover:bg-red-700"
+                    >
+                      Reject All
+                    </button>
+                  </div>
+                </div>
+                <div className="space-y-2 max-h-64 overflow-y-auto">
+                  {changes.map(change => (
+                    <div
+                      key={change.id}
+                      className={`p-3 rounded border ${
+                        change.accepted
+                          ? theme === 'dark'
+                            ? 'bg-green-900/30 border-green-700'
+                            : 'bg-green-50 border-green-300'
+                          : change.rejected
+                            ? theme === 'dark'
+                              ? 'bg-red-900/30 border-red-700'
+                              : 'bg-red-50 border-red-300'
+                            : theme === 'dark'
+                              ? 'bg-slate-800 border-slate-600'
+                              : 'bg-white border-gray-300'
+                      }`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <div
+                            className={`text-sm font-medium ${
+                              change.changeType === 'addition'
+                                ? 'text-green-400'
+                                : change.changeType === 'deletion'
+                                  ? 'text-red-400'
+                                  : 'text-blue-400'
+                            }`}
+                          >
+                            {change.changeType.toUpperCase()}
+                          </div>
+                          {change.original && change.original !== change.edited && (
+                            <div
+                              className={`text-xs mt-1 line-through ${
+                                theme === 'dark' ? 'text-slate-500' : 'text-gray-500'
+                              }`}
+                            >
+                              {change.original}
+                            </div>
+                          )}
+                          <div
+                            className={`text-sm mt-1 ${
+                              theme === 'dark' ? 'text-slate-200' : 'text-gray-800'
+                            }`}
+                          >
+                            {change.edited}
+                          </div>
+                          {change.reason && (
+                            <div
+                              className={`text-xs mt-2 italic ${
+                                theme === 'dark' ? 'text-slate-400' : 'text-gray-600'
+                              }`}
+                            >
+                              💡 {change.reason}
+                            </div>
+                          )}
+                        </div>
+                        {!change.accepted && !change.rejected && (
+                          <div className="flex gap-1 ml-3">
+                            <button
+                              onClick={() => acceptChange(change.id)}
+                              className="px-2 py-1 bg-green-600 text-white rounded text-xs hover:bg-green-700"
+                            >
+                              ✓
+                            </button>
+                            <button
+                              onClick={() => rejectChange(change.id)}
+                              className="px-2 py-1 bg-red-600 text-white rounded text-xs hover:bg-red-700"
+                            >
+                              ✗
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}
@@ -286,43 +841,47 @@ export default function WritingAssistantPage() {
         </div>
 
         {/* Tips Section */}
-        <div className="mt-6 bg-slate-800/30 rounded-xl p-6">
-          <h3 className="text-lg font-semibold text-white mb-4">Tips for Best Results</h3>
+        <div className={`mt-6 ${cardClasses} rounded-xl p-6`}>
+          <h3
+            className={`text-lg font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-4`}
+          >
+            Tips for Best Results
+          </h3>
           <div className="grid md:grid-cols-3 gap-4">
             <div>
-              <h4 className="text-purple-400 font-medium mb-1">Expand</h4>
-              <p className="text-slate-400 text-sm">
-                Provide a clear paragraph or concept. The AI will add examples, explanations, and depth.
+              <h4
+                className={`${theme === 'dark' ? 'text-purple-400' : 'text-purple-600'} font-medium mb-1`}
+              >
+                Review & Track Changes
+              </h4>
+              <p className={`${theme === 'dark' ? 'text-slate-400' : 'text-gray-600'} text-sm`}>
+                Use AI Review to get suggestions, or Track Changes to see AI edits with
+                accept/reject options - like Word's Review tab.
               </p>
             </div>
             <div>
-              <h4 className="text-purple-400 font-medium mb-1">Outline</h4>
-              <p className="text-slate-400 text-sm">
-                Enter a topic, thesis statement, or existing content to generate a detailed outline.
+              <h4
+                className={`${theme === 'dark' ? 'text-purple-400' : 'text-purple-600'} font-medium mb-1`}
+              >
+                Expand & Elaborate
+              </h4>
+              <p className={`${theme === 'dark' ? 'text-slate-400' : 'text-gray-600'} text-sm`}>
+                Provide clear paragraphs. AI adds examples, explanations, and depth while
+                maintaining your voice.
               </p>
             </div>
             <div>
-              <h4 className="text-purple-400 font-medium mb-1">Continue</h4>
-              <p className="text-slate-400 text-sm">
-                End your input mid-sentence or at a natural break point for best continuation.
+              <h4
+                className={`${theme === 'dark' ? 'text-purple-400' : 'text-purple-600'} font-medium mb-1`}
+              >
+                Save Options
+              </h4>
+              <p className={`${theme === 'dark' ? 'text-slate-400' : 'text-gray-600'} text-sm`}>
+                Save as TXT (plain text), DOCX (Word document), or PDF (formatted document) using
+                the Save button.
               </p>
             </div>
           </div>
-        </div>
-
-        {/* API Usage */}
-        <div className="mt-6 bg-slate-800/30 rounded-xl p-6">
-          <h3 className="text-lg font-semibold text-white mb-3">API Usage</h3>
-          <pre className="bg-slate-900 p-4 rounded-lg text-green-400 text-sm overflow-x-auto">
-{`// POST /api/writing
-{
-   "action": "expand",  // expand | outline | continue | rewrite | simplify | elaborate | structure | diagram | blog_post | social_media | ad_copy | product_description | email_template
-  "text": "Your text here...",
-  "style": "professional",  // only for rewrite
-  "model": "glm-4.7-flash",
-  "stream": false
-}`}
-          </pre>
         </div>
       </div>
     </div>

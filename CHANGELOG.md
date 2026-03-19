@@ -1,5 +1,200 @@
 # Change Log - AI Dashboard
 
+## Version 2.6.3 (March 18, 2026) - LLM Research & Free Stack
+
+---
+
+### This is a Gift to the World
+
+This project runs entirely on **free LLMs**:
+- **Qwen 3.5** (0.5B-72B) — Many sizes, all free
+- **GLM-5** (9B) — Bilingual, free via Ollama  
+- **Kimi K2.5** (9B) — Excellent for writing, free
+- **GPT-OSS 20B** — Large context, free
+- **DeepSeek V3** — Frontier-level, free tier available
+
+**No paid APIs required. Build and run for free.**
+
+---
+
+### New: Model Leaderboard & Research
+
+Navigate to `/model-leaderboard` to see:
+- **Free Token Sources** — OpenRouter, Together AI, Groq, Google AI Studio
+- **Model Benchmarks** — MMLU, HumanEval, GSM8K scores
+- **Open Source vs Frontier** — Compare free vs paid models
+- **Export Workflow** — Copy markdown, paste into ChatGPT/Gemini/Grok/Z.ai
+
+---
+
+### New: Chapter 8.5 - Prompt Engineering
+
+Added critical chapter on:
+- **Prompt Expansion** — Use free frontier AI to improve prompts for small models
+- **Markdown for LLMs** — Why markdown reduces hallucinations
+- **Document Conversion** — Converting complex docs to markdown before LLM processing
+- **MCP (Model Context Protocol)** — Future standard for context sharing
+- **Command Line Basics** — Essential for AI automation
+- **Two-Model Workflow** — Large AI improves prompts, small AI executes
+
+---
+
+### Updated: OpenCode as Default Tool
+
+- **Chapter 5** — Added "Working with AI Tools" section
+- OpenCode is the **free, recommended** AI assistant
+- Comparison table: OpenCode vs Claude Code vs Cline vs Aider
+- Users can choose their own tool, but OpenCode is default
+
+---
+
+### Updated: Book Formatting
+
+- All bullet points use `•` symbol (not `-`)
+- Tables formatted for Word compatibility
+- Clean markdown structure throughout
+
+---
+
+### Key Workflow: Expand → Execute
+
+```
+User writes rough prompt
+         ↓
+Paste into ChatGPT Free / Gemini Free / Grok Free / Z.ai
+         ↓
+Ask: "Expand this prompt for a smaller AI model"
+         ↓
+Get structured prompt with sections, examples, formats
+         ↓
+Use expanded prompt on local Qwen/GLM/Kimi
+         ↓
+Better results from smaller model
+```
+
+---
+
+### Updated Chapters
+
+- **Chapter 5** — OpenCode section added
+- **Chapter 8.5** — NEW: Prompt Engineering for Small Models
+- **Chapter 23** — Creating YOUR workflow (not just bid workflow)
+- **Chapter 25** — GGUF models, AngelSlim (1.8B tiny model)
+- **Chapter 27** — Mixing LLMs, task-based routing
+- **Chapter 28** — LLM research, free tokens, export workflow
+
+---
+
+## Version 2.6.2 (March 18, 2026) - PDF Processing Fix
+
+---
+
+### PDF Document Upload Fix
+
+**Bug Fix:**
+- Fixed PDF document upload on home page - pdf-parse v2 API compatibility
+- Updated pdf-parse import from `require('pdf-parse')` to `{ PDFParse }` class API
+- Added `await parser.destroy()` calls to properly release resources
+- Updated TypeScript type definitions for pdf-parse v2
+
+**Files Updated:**
+- `src/app/api/documents/import/route.ts` - Document import API
+- `src/lib/services/document-processor.ts` - Document processing service
+- `src/app/api/test-pdf/route.ts` - PDF testing endpoint
+- `src/types/pdf-parse.d.ts` - New TypeScript declarations for pdf-parse v2
+- `book/chapter-10-documents.md` - Updated documentation
+
+**pdf-parse v2 API Changes:**
+- Old: `await pdfParse(buffer)` returns `{ text, numpages, ... }`
+- New: `new PDFParse({ data: buffer }).getText()` returns `{ text, total, info, ... }`
+- Always call `await parser.destroy()` to free memory
+
+---
+
+## Version 2.6.1 (March 17, 2026) - Production Ready
+
+---
+
+### Home Page Formatting Improvements
+
+**Enhanced Input Area:**
+- Modern gradient backgrounds with backdrop blur
+- Better spacing and padding (p-6 instead of p-4)
+- Rounded corners upgraded to xl
+- Border accents for depth
+- Shadow effects for elevation
+
+**Quick Actions Bar:**
+- New horizontal bar with History & Documents buttons
+- Active state highlighting with purple glow
+- Better visual feedback with shadow effects
+- Mode indicator (Web Search ON / Standard Mode)
+
+**Documents Panel:**
+- Gradient button styling for documents
+- Paperclip icons (📎) for visual clarity
+- Hover effects with shadow transitions
+- Better color contrast
+
+**History Panel:**
+- Improved card styling with borders
+- Better button gradients (Save/Clear)
+- Enhanced message previews with icons (👤/🤖)
+- Better truncation and spacing
+
+**Input Field:**
+- Larger rounded corners (xl instead of lg)
+- Better placeholder text with emojis
+- Improved focus states
+- Border transitions on focus
+
+**Loading Indicator:**
+- Wrapped in styled container
+- Better background (slate-700/30)
+- Font-medium text for clarity
+- Emoji indicators (🔍/🤖)
+
+---
+
+### Security Hardening (Critical)
+
+✅ Fixed eval() vulnerability - Added regex validation  
+✅ Fixed empty catch blocks - Added error logging  
+✅ Wrapped console.log in NODE_ENV checks  
+
+### Memory Leak Prevention (Critical)
+
+✅ Plugged 5 major memory leaks  
+✅ Task scheduler pruning (limits to 100 tasks)  
+✅ Bounded data structures (arrays limited)  
+✅ Proper cleanup on stop  
+
+### PDF Document Processing (Fixed)
+
+✅ Installed pdf-parse library  
+✅ Created /api/documents/upload endpoint  
+✅ Proper text extraction working  
+
+### Writing Studio Enhancements
+
+✅ Streaming AI responses  
+✅ Chapter navigation panel  
+✅ Version history (auto-save every 5 min)  
+✅ 6 document templates  
+✅ Multi-page editor  
+✅ Save As file picker  
+✅ Settings panel  
+✅ Tab persistence  
+✅ gpt-oss:20b support  
+
+### Performance Optimizations
+
+✅ 70% token reduction (memory injection)  
+✅ Duplicate task prevention  
+✅ Silent failure handling  
+
+---
+
 ## Version 2.5.0 (March 12, 2026)
 
 ---

@@ -1,9 +1,9 @@
 /**
  * Ollama Web Search Tool
- * 
+ *
  * Uses Ollama's official web search API for real-time information.
  * Requires OLLAMA_API_KEY from https://ollama.com/settings/keys
- * 
+ *
  * Docs: https://docs.ollama.com/capabilities/web-search
  */
 
@@ -37,7 +37,7 @@ const fetchTimeout = 10000;
 const withTimeout = (ms: number, promise: Promise<any>) => {
   return Promise.race([
     promise,
-    new Promise((_, reject) => 
+    new Promise((_, reject) =>
       setTimeout(() => reject(new Error(`Request timed out after ${ms}ms`)), ms)
     ),
   ]);
@@ -51,16 +51,25 @@ export async function ollamaWebSearch(
     freshness?: 'day' | 'week' | 'month' | 'year';
   }
 ): Promise<WebSearchResponse> {
-  const apiKey = process.env.OLLAMA_API_KEY;
-  
+  // Try to get API key from settings (database) first, then fallback to env
+  let dbApiKey: string | null = null;
+  try {
+    const { sqlDatabase } = await import('@/lib/database/sqlite');
+    dbApiKey = sqlDatabase.getApiKey('ollama');
+  } catch (e) {
+    console.log('[OllamaWebSearch] Database not available:', e);
+  }
+  const apiKey = dbApiKey || process.env.OLLAMA_API_KEY;
+
   // Sanitize query to prevent injection
   const safeQuery = sanitizePrompt(query, 500);
-  
+
   if (!apiKey) {
     console.log('[OllamaWebSearch] No OLLAMA_API_KEY found');
     console.log('[OllamaWebSearch] To enable web search:');
-    console.log('[OllamaWebSearch] 1. Get a free API key at https://ollama.com/settings/keys');
-    console.log('[OllamaWebSearch] 2. Add OLLAMA_API_KEY=your-key to .env.local');
+    console.log('[OllamaWebSearch] 1. Go to /settings page');
+    console.log('[OllamaWebSearch] 2. Enter your Ollama API key (get at ollama.com/settings/keys)');
+    console.log('[OllamaWebSearch] 3. Click Save');
     console.log('[OllamaWebSearch] Falling back to SearXNG...');
     return searXNGSearch(safeQuery, 'http://localhost:8888', options?.maxResults || 5);
   }
@@ -69,7 +78,7 @@ export async function ollamaWebSearch(
 
   try {
     console.log(`[OllamaWebSearch] Searching for: ${safeQuery}`);
-    
+
     const searchBody = {
       query: safeQuery,
       max_results: maxResults,
@@ -80,7 +89,7 @@ export async function ollamaWebSearch(
     const options1 = {
       method: 'POST' as const,
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(searchBody),
@@ -89,7 +98,7 @@ export async function ollamaWebSearch(
     const options2 = {
       method: 'POST' as const,
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
+        Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(searchBody),
@@ -105,17 +114,31 @@ export async function ollamaWebSearch(
         const data = await result.value.json();
         const endpoint = result.value.url.includes('ollama.com') ? 'ollama.com' : 'api.ollama.com';
         console.log(`[OllamaWebSearch] Found ${data.results?.length || 0} results via ${endpoint}`);
-        
+
         const rawResults = data.results || [];
         const processedResults = rawResults
           .slice(0, maxResults)
-          .map((r: { title?: string; url?: string; snippet?: string; content?: string; source?: string; link?: string; published_date?: string; date?: string; engine?: string; name?: string; description?: string }) => ({
-            title: r.title || r.name || '',
-            url: r.url || r.link || '',
-            snippet: r.snippet || r.content || r.description || '',
-            source: r.source || r.engine || 'ollama',
-            published_date: r.published_date || r.date,
-          }));
+          .map(
+            (r: {
+              title?: string;
+              url?: string;
+              snippet?: string;
+              content?: string;
+              source?: string;
+              link?: string;
+              published_date?: string;
+              date?: string;
+              engine?: string;
+              name?: string;
+              description?: string;
+            }) => ({
+              title: r.title || r.name || '',
+              url: r.url || r.link || '',
+              snippet: r.snippet || r.content || r.description || '',
+              source: r.source || r.engine || 'ollama',
+              published_date: r.published_date || r.date,
+            })
+          );
 
         return {
           results: processedResults,
@@ -127,7 +150,6 @@ export async function ollamaWebSearch(
 
     console.log('[OllamaWebSearch] All endpoints failed, falling back to SearXNG');
     return searXNGSearch(query, 'http://localhost:8888', maxResults);
-
   } catch (error) {
     console.error('[OllamaWebSearch] Error:', error);
     return searXNGSearch(query, 'http://localhost:8888', maxResults);
@@ -158,24 +180,25 @@ export async function searXNGSearch(
   maxResults: number = 5
 ): Promise<WebSearchResponse> {
   try {
-    const response = await withTimeout(fetchTimeout, fetch(
-      `${searxngUrl}/search?q=${encodeURIComponent(query)}&format=json&engines=google,bing,duckduckgo`
-    ));
+    const response = await withTimeout(
+      fetchTimeout,
+      fetch(
+        `${searxngUrl}/search?q=${encodeURIComponent(query)}&format=json&engines=google,bing,duckduckgo`
+      )
+    );
 
     if (!response.ok) {
       throw new Error(`SearXNG error: ${response.status}`);
     }
 
     const data = await response.json();
-    
-    const results: WebSearchResult[] = (data.results || [])
-      .slice(0, maxResults)
-      .map((r: any) => ({
-        title: r.title || '',
-        url: r.url || r.pretty_url || '',
-        snippet: r.content || r.snippet || '',
-        source: r.engine || 'searxng',
-      }));
+
+    const results: WebSearchResult[] = (data.results || []).slice(0, maxResults).map((r: any) => ({
+      title: r.title || '',
+      url: r.url || r.pretty_url || '',
+      snippet: r.content || r.snippet || '',
+      source: r.engine || 'searxng',
+    }));
 
     return { results, query };
   } catch (error) {
@@ -192,7 +215,8 @@ export const webSearchToolDefinition = {
   type: 'function',
   function: {
     name: 'web_search',
-    description: 'Search the web for real-time information. Use this when you need current information, news, facts, or anything that might have changed recently. Returns relevant search results with titles, URLs, and snippets.',
+    description:
+      'Search the web for real-time information. Use this when you need current information, news, facts, or anything that might have changed recently. Returns relevant search results with titles, URLs, and snippets.',
     parameters: {
       type: 'object',
       properties: {
@@ -226,7 +250,7 @@ export async function executeWebSearchTool(args: {
 }): Promise<string> {
   // Get API key from env or database
   let apiKey = process.env.OLLAMA_API_KEY;
-  
+
   try {
     const { sqlDatabase } = await import('../database/sqlite');
     sqlDatabase.initialize();
@@ -237,7 +261,7 @@ export async function executeWebSearchTool(args: {
   } catch {
     // Continue with env var
   }
-  
+
   // Check if API key is configured
   if (!apiKey || apiKey === 'your-ollama-api-key-here' || apiKey === '') {
     return `## Web Search Not Configured
@@ -300,7 +324,7 @@ Try:
     return `## Web Search Results for "${args.query}"\n\n${formatted}`;
   } catch (error) {
     const errorMsg = error instanceof Error ? error.message : 'Unknown error';
-    
+
     // Provide helpful error messages
     if (errorMsg.includes('401') || errorMsg.includes('Unauthorized')) {
       return `## Web Search Error: Invalid API Key
@@ -311,7 +335,7 @@ Your OLLAMA_API_KEY appears to be invalid or expired.
 2. Update it in .env.local or Settings
 3. Restart the server`;
     }
-    
+
     if (errorMsg.includes('429') || errorMsg.includes('rate') || errorMsg.includes('limit')) {
       return `## Web Search Error: Rate Limited
 
@@ -321,7 +345,7 @@ You've hit the rate limit for Ollama web search.
 - Consider upgrading your Ollama plan
 - Use alternative: /search command with TAVILY_API_KEY`;
     }
-    
+
     return `## Web Search Error
 
 Failed to search for "${args.query}":
@@ -347,14 +371,17 @@ export async function checkOllamaSearchAvailable(): Promise<{
 
   if (apiKey) {
     try {
-      const response = await withTimeout(fetchTimeout, fetch(OLLAMA_CLOUD_URL, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ query: 'test', max_results: 1 }),
-      }));
+      const response = await withTimeout(
+        fetchTimeout,
+        fetch(OLLAMA_CLOUD_URL, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ query: 'test', max_results: 1 }),
+        })
+      );
 
       if (response.ok || response.status === 429) {
         return {
@@ -372,7 +399,7 @@ export async function checkOllamaSearchAvailable(): Promise<{
   try {
     const { BrowserService } = await import('./search');
     const isAvailable = await BrowserService.isPlaywrightAvailable();
-    
+
     if (isAvailable) {
       return {
         available: true,

@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Simple Editor</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        overflow: hidden;
+        font-family: Arial, sans-serif;
+      }
+      #toolbar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 50px;
+        background: #f5f5f5;
+        border-bottom: 1px solid #ccc;
+        display: flex;
+        align-items: center;
+        padding: 0 10px;
+        z-index: 100;
+      }
+      #toolbar button,
+      #toolbar select {
+        padding: 6px 10px;
+        margin: 0 4px;
+        border: 1px solid #ccc;
+        background: white;
+        cursor: pointer;
+        font-size: 14px;
+      }
+      #toolbar button#saveBtn {
+        background: #4caf50;
+        color: white;
+        padding: 6px 12px;
+        border-radius: 4px;
+      }
+      #editor {
+        height: calc(100vh - 50px);
+        margin-top: 50px;
+        padding: 40px;
+        background: white;
+        color: black;
+        font-family: Arial, sans-serif;
+        font-size: 16px;
+        line-height: 1.6;
+        overflow-y: auto;
+        outline: none;
+        min-height: calc(100vh - 130px);
+      }
+      #editor:focus {
+        outline: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="toolbar">
+      <button onclick="document.execCommand('bold')"><b>B</b></button>
+      <button onclick="document.execCommand('italic')"><i>I</i></button>
+      <button onclick="document.execCommand('underline')"><u>U</u></button>
+      <select onchange="document.execCommand('fontName', false, this.value)">
+        <option value="Arial">Arial</option>
+        <option value="Times New Roman">Times New Roman</option>
+        <option value="Courier New">Courier New</option>
+        <option value="Verdana">Verdana</option>
+        <option value="Georgia">Georgia</option>
+        <option value="Helvetica">Helvetica</option>
+      </select>
+      <select onchange="document.execCommand('formatBlock', false, this.value)">
+        <option value="p">Normal</option>
+        <option value="h1">Heading 1</option>
+        <option value="h2">Heading 2</option>
+        <option value="h3">Heading 3</option>
+        <option value="h4">Heading 4</option>
+        <option value="h5">Heading 5</option>
+        <option value="h6">Heading 6</option>
+      </select>
+      <button onclick="document.execCommand('justifyLeft')">↤ Left</button>
+      <button onclick="document.execCommand('justifyCenter')">Center</button>
+      <button onclick="document.execCommand('justifyRight')">↦ Right</button>
+      <button onclick="document.execCommand('justifyFull')">Justify</button>
+      <button onclick="document.execCommand('undo')">Undo</button>
+      <button onclick="document.execCommand('redo')">Redo</button>
+      <button id="saveBtn" onclick="saveDocument()">Save</button>
+    </div>
+    <div id="editor" contenteditable="true"><p>Type here...</p></div>
+    <script>
+      function saveDocument() {
+        const content = document.getElementById('editor').innerHTML;
+        const filename = prompt('Enter filename', 'document.html') || 'document.html';
+        const html =
+          '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' +
+          filename +
+          '</title><style>body{margin:40px;font-family:Arial,Helvetica,sans-serif;}</style></head><body>' +
+          content +
+          '</body></html>';
+        const blob = new Blob([html], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    </script>
+  </body>
+</html>

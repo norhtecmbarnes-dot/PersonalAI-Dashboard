@@ -2,7 +2,13 @@ export const runtime = 'nodejs';
 
 import { NextRequest } from 'next/server';
 import { streamChatCompletion } from '@/lib/models/sdk.server';
-import { validateString, sanitizeString, sanitizePrompt, validateArray, sanitizeObject } from '@/lib/utils/validation';
+import {
+  validateString,
+  sanitizeString,
+  sanitizePrompt,
+  validateArray,
+  sanitizeObject,
+} from '@/lib/utils/validation';
 import { ollamaWebSearch } from '@/lib/browser/web-search-tool';
 import { memoryFileService } from '@/lib/services/memory-file';
 import { sqlDatabase } from '@/lib/database/sqlite';
@@ -19,26 +25,28 @@ async function getDocumentContext(): Promise<string> {
   if (cachedDocumentContext && Date.now() - cachedDocumentContext.timestamp < DOC_CACHE_TTL) {
     return cachedDocumentContext.data;
   }
-  
+
   try {
     sqlDatabase.initialize();
-    const docs = sqlDatabase.getDocuments();
-    
+    const docs = sqlDatabase.getNotes('document');
+
     if (!docs || docs.length === 0) {
       cachedDocumentContext = { data: '', timestamp: Date.now() };
       return '';
     }
-    
-    const recentDocs = docs.slice(0, 3);
-    const docContext = recentDocs.map((doc: any) => {
-      const content = doc.content?.slice(0, 300) || '';
-      return `- **${doc.title}**: ${content}`;
-    }).join('\n');
-    
-    const result = `\n\n### Available Documents\n${docContext}\n\n`;
+
+    const docContext = docs
+      .map((doc: any) => {
+        const content = doc.content || '';
+        return `## Document: ${doc.title}\nContent: ${content}\n`;
+      })
+      .join('\n\n');
+
+    const result = `\n\n=== USER UPLOADED DOCUMENTS ===\n${docContext}\n=== END OF DOCUMENTS ===\n\n`;
     cachedDocumentContext = { data: result, timestamp: Date.now() };
     return result;
   } catch (error) {
+    console.error('Error loading document context:', error);
     return '';
   }
 }
@@ -54,6 +62,7 @@ async function getMemoryPrompt(): Promise<string> {
     cachedMemoryPrompt = { data: result, timestamp: Date.now() };
     return result;
   } catch (error) {
+    console.error('Error loading memory prompt:', error);
     return '';
   }
 }
@@ -62,9 +71,9 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    const messageValidation = validateString(body.message, 'message', { 
+    const messageValidation = validateString(body.message, 'message', {
       maxLength: MAX_MESSAGE_LENGTH,
-      required: true 
+      required: true,
     });
     if (!messageValidation.valid) {
       return new Response(JSON.stringify({ error: messageValidation.error }), {
@@ -81,8 +90,8 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const historyValidation = validateArray(body.conversationHistory, 'conversationHistory', { 
-      maxLength: MAX_HISTORY_LENGTH 
+    const historyValidation = validateArray(body.conversationHistory, 'conversationHistory', {
+      maxLength: MAX_HISTORY_LENGTH,
     });
     if (!historyValidation.valid) {
       return new Response(JSON.stringify({ error: historyValidation.error }), {
@@ -97,13 +106,13 @@ export async function POST(request: NextRequest) {
     const isSearchMode = body.searchMode === true;
 
     const memoryContext = await getMemoryPrompt();
-    
+
     const documentContext = await getDocumentContext();
 
-    const messages: Array<{role: 'system' | 'user' | 'assistant'; content: string}> = [];
-    
+    const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [];
+
     let systemPrompt = memoryContext;
-    
+
     if (isSearchMode) {
       systemPrompt += `You are a helpful AI assistant with web search capabilities. 
 
@@ -114,37 +123,61 @@ CRITICAL INSTRUCTIONS:
 - If results don't contain the answer, say "Based on the search results, I don't have specific information about that" and acknowledge the limitation
 - Be factual and precise`;
     } else {
-      systemPrompt += `You are a helpful AI assistant. Be concise and helpful.`;
+      systemPrompt += `You are an expert document analyst with deep reading comprehension skills.
+
+CRITICAL INSTRUCTIONS FOR DOCUMENT ANALYSIS:
+- You have FULL ACCESS to uploaded documents in the context below
+- READ documents carefully and thoroughly before answering
+- Provide DETAILED insights, not just summaries
+- Cite specific sections when answering questions
+- If asked about a document, reference it by title
+- Extract key findings, methodology, conclusions, and implications
+- Be precise and accurate - DO NOT hallucinate information
+- When users ask questions, search the document content first
+- Provide context-aware answers based on document content
+- Highlight important passages and explain their significance
+
+DOCUMENT READING MODE: ACTIVE
+You are ready to analyze and discuss uploaded documents in detail.`;
     }
-    
+
     if (documentContext) {
       systemPrompt += documentContext;
     }
-    
+
     messages.push({ role: 'system', content: systemPrompt });
-    
+
     const historyLimit = Math.min(conversationHistory.length, 10);
-    for (let i = Math.max(0, conversationHistory.length - historyLimit); i < conversationHistory.length; i++) {
+    for (
+      let i = Math.max(0, conversationHistory.length - historyLimit);
+      i < conversationHistory.length;
+      i++
+    ) {
       const msg = conversationHistory[i] as any;
       messages.push({ role: msg.role, content: msg.content });
     }
-    
+
     let userMessage = message;
-    
+
     if (isSearchMode) {
       try {
         console.log('[Chat] Performing web search for:', message);
         const searchResponse = await ollamaWebSearch(message, { maxResults: 5 });
-        
+
         if (searchResponse.results && searchResponse.results.length > 0) {
           console.log('[Chat] Found', searchResponse.results.length, 'search results');
-          
-          const searchContext = `\n\n=== WEB SEARCH RESULTS ===\n\n` +
-            searchResponse.results.slice(0, 5).map((r: any, i: number) => 
-              `**Source ${i + 1}: ${r.title}**\nURL: ${r.url}\n${r.snippet || ''}\n`
-            ).join('\n---\n') +
+
+          const searchContext =
+            `\n\n=== WEB SEARCH RESULTS ===\n\n` +
+            searchResponse.results
+              .slice(0, 5)
+              .map(
+                (r: any, i: number) =>
+                  `**Source ${i + 1}: ${r.title}**\nURL: ${r.url}\n${r.snippet || ''}\n`
+              )
+              .join('\n---\n') +
             `\n\n=== END OF SEARCH RESULTS ===\n\nUsing ONLY the information above, answer: "${message}"`;
-          
+
           userMessage = searchContext;
         } else {
           userMessage = `${message}\n\n(Note: Web search returned no results. Answer with what you know and acknowledge this limitation.)`;
@@ -154,7 +187,7 @@ CRITICAL INSTRUCTIONS:
         userMessage = `${message}\n\n(Note: Web search failed. Answer with what you know and acknowledge this limitation.)`;
       }
     }
-    
+
     messages.push({ role: 'user', content: userMessage });
 
     // Create a TransformStream for streaming
@@ -177,19 +210,23 @@ CRITICAL INSTRUCTIONS:
           // Handle Ollama streaming response
           const reader = (result as any).stream.getReader();
           const decoder = new TextDecoder();
-          
+
           while (true) {
             const { done, value } = await reader.read();
             if (done) break;
-            
+
             const chunk = decoder.decode(value, { stream: true });
             const lines = chunk.split('\n').filter(line => line.trim());
-            
+
             for (const line of lines) {
               try {
                 const parsed = JSON.parse(line);
                 if (parsed.message?.content) {
-                  await writer.write(encoder.encode(`data: ${JSON.stringify({ chunk: parsed.message.content, done: false })}\n\n`));
+                  await writer.write(
+                    encoder.encode(
+                      `data: ${JSON.stringify({ chunk: parsed.message.content, done: false })}\n\n`
+                    )
+                  );
                 }
                 if (parsed.done) {
                   await writer.write(encoder.encode(`data: ${JSON.stringify({ done: true })}\n\n`));
@@ -203,12 +240,14 @@ CRITICAL INSTRUCTIONS:
           // Handle complete response (non-streaming APIs like OpenRouter, GLM, DeepSeek)
           const msg = result.message as unknown as { content?: string };
           const content = msg?.content || String(result.message) || '';
-          
+
           // Stream the content in chunks for a simulated streaming effect
           const chunkSize = 20;
           for (let i = 0; i < content.length; i += chunkSize) {
             const chunk = content.slice(i, i + chunkSize);
-            await writer.write(encoder.encode(`data: ${JSON.stringify({ chunk, done: false })}\n\n`));
+            await writer.write(
+              encoder.encode(`data: ${JSON.stringify({ chunk, done: false })}\n\n`)
+            );
           }
 
           // Send completion signal
@@ -216,7 +255,9 @@ CRITICAL INSTRUCTIONS:
         }
       } catch (error) {
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        await writer.write(encoder.encode(`data: ${JSON.stringify({ error: errorMessage, done: true })}\n\n`));
+        await writer.write(
+          encoder.encode(`data: ${JSON.stringify({ error: errorMessage, done: true })}\n\n`)
+        );
       } finally {
         await writer.close();
       }
@@ -226,17 +267,20 @@ CRITICAL INSTRUCTIONS:
       headers: {
         'Content-Type': 'text/event-stream',
         'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
+        Connection: 'keep-alive',
       },
     });
   } catch (error) {
     console.error('Stream error:', error);
-    return new Response(JSON.stringify({ 
-      error: 'Failed to process request',
-      details: error instanceof Error ? error.message : 'Unknown error'
-    }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({
+        error: 'Failed to process request',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      }),
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      }
+    );
   }
 }

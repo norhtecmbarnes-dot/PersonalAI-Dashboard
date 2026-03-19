@@ -11,7 +11,7 @@ async function initDatabase() {
   }
 
   const SQL = await initSqlJs();
-  
+
   let db;
   if (fs.existsSync(dbPath)) {
     const fileBuffer = fs.readFileSync(dbPath);
@@ -81,6 +81,11 @@ async function initDatabase() {
       linked_contacts TEXT,
       linked_events TEXT,
       linked_tasks TEXT,
+      position_x INTEGER DEFAULT 0,
+      position_y INTEGER DEFAULT 0,
+      width INTEGER DEFAULT 300,
+      height INTEGER DEFAULT 200,
+      color TEXT DEFAULT 'yellow',
       created_at INTEGER NOT NULL,
       updated_at INTEGER NOT NULL
     )

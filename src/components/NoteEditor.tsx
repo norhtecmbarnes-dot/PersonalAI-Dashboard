@@ -12,6 +12,11 @@ interface NoteEditorProps {
     category: string;
     tags: string[];
     color?: string;
+    positionX?: number;
+    positionY?: number;
+    width?: number;
+    height?: number;
+    createdAt?: number;
   };
 }
 
@@ -42,14 +47,70 @@ interface ExtractedData {
 }
 
 const NOTE_COLORS = [
-  { value: 'yellow', label: 'Yellow', bg: 'bg-yellow-100', border: 'border-yellow-400', text: 'text-yellow-800', preview: 'bg-yellow-200' },
-  { value: 'blue', label: 'Blue', bg: 'bg-blue-100', border: 'border-blue-400', text: 'text-blue-800', preview: 'bg-blue-200' },
-  { value: 'green', label: 'Green', bg: 'bg-green-100', border: 'border-green-400', text: 'text-green-800', preview: 'bg-green-200' },
-  { value: 'pink', label: 'Pink', bg: 'bg-pink-100', border: 'border-pink-400', text: 'text-pink-800', preview: 'bg-pink-200' },
-  { value: 'purple', label: 'Purple', bg: 'bg-purple-100', border: 'border-purple-400', text: 'text-purple-800', preview: 'bg-purple-200' },
-  { value: 'orange', label: 'Orange', bg: 'bg-orange-100', border: 'border-orange-400', text: 'text-orange-800', preview: 'bg-orange-200' },
-  { value: 'red', label: 'Red', bg: 'bg-red-100', border: 'border-red-400', text: 'text-red-800', preview: 'bg-red-200' },
-  { value: 'teal', label: 'Teal', bg: 'bg-teal-100', border: 'border-teal-400', text: 'text-teal-800', preview: 'bg-teal-200' },
+  {
+    value: 'yellow',
+    label: 'Yellow',
+    bg: 'bg-yellow-100',
+    border: 'border-yellow-400',
+    text: 'text-yellow-800',
+    preview: 'bg-yellow-200',
+  },
+  {
+    value: 'blue',
+    label: 'Blue',
+    bg: 'bg-blue-100',
+    border: 'border-blue-400',
+    text: 'text-blue-800',
+    preview: 'bg-blue-200',
+  },
+  {
+    value: 'green',
+    label: 'Green',
+    bg: 'bg-green-100',
+    border: 'border-green-400',
+    text: 'text-green-800',
+    preview: 'bg-green-200',
+  },
+  {
+    value: 'pink',
+    label: 'Pink',
+    bg: 'bg-pink-100',
+    border: 'border-pink-400',
+    text: 'text-pink-800',
+    preview: 'bg-pink-200',
+  },
+  {
+    value: 'purple',
+    label: 'Purple',
+    bg: 'bg-purple-100',
+    border: 'border-purple-400',
+    text: 'text-purple-800',
+    preview: 'bg-purple-200',
+  },
+  {
+    value: 'orange',
+    label: 'Orange',
+    bg: 'bg-orange-100',
+    border: 'border-orange-400',
+    text: 'text-orange-800',
+    preview: 'bg-orange-200',
+  },
+  {
+    value: 'red',
+    label: 'Red',
+    bg: 'bg-red-100',
+    border: 'border-red-400',
+    text: 'text-red-800',
+    preview: 'bg-red-200',
+  },
+  {
+    value: 'teal',
+    label: 'Teal',
+    bg: 'bg-teal-100',
+    border: 'border-teal-400',
+    text: 'text-teal-800',
+    preview: 'bg-teal-200',
+  },
 ];
 
 export function NoteEditor({ isOpen, onClose, initialNote }: NoteEditorProps) {
@@ -62,6 +123,11 @@ export function NoteEditor({ isOpen, onClose, initialNote }: NoteEditorProps) {
   const [isSaving, setIsSaving] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [contextualizing, setContextualizing] = useState(false);
+  const [bold, setBold] = useState(false);
+  const [italic, setItalic] = useState(false);
+  const [underline, setUnderline] = useState(false);
+  const [fontSize, setFontSize] = useState(14);
+  const [autoSaveTimer, setAutoSaveTimer] = useState<NodeJS.Timeout | null>(null);
 
   useEffect(() => {
     if (initialNote) {
@@ -94,7 +160,7 @@ export function NoteEditor({ isOpen, onClose, initialNote }: NoteEditorProps) {
     const now = new Date();
     const timestamp = now.getTime();
     const uid = `${timestamp}-${Math.random().toString(36).substr(2, 9)}`;
-    
+
     const icsContent = `BEGIN:VCALENDAR
 VERSION:2.0
 PRODID:-//AI Research Assistant//Note//EN
@@ -113,6 +179,55 @@ END:VCALENDAR`;
     a.download = `${title.replace(/[^a-z0-9]/gi, '_')}.ics`;
     a.click();
     URL.revokeObjectURL(url);
+  };
+
+  // Auto-save effect
+  useEffect(() => {
+    if (isOpen && title.trim() && content.trim()) {
+      const timer = setTimeout(() => {
+        quickSave();
+      }, 5000); // Auto-save every 5 seconds
+      setAutoSaveTimer(timer);
+      return () => clearTimeout(timer);
+    }
+  }, [title, content, color, isOpen]);
+
+  const quickSave = async () => {
+    if (!title.trim() || !content.trim()) return;
+
+    setIsSaving(true);
+    try {
+      const noteData: any = {
+        title,
+        content,
+        category,
+        tags,
+        color,
+        positionX: (initialNote as any)?.positionX || Math.floor(Math.random() * 400) + 50,
+        positionY: (initialNote as any)?.positionY || Math.floor(Math.random() * 300) + 50,
+        width: (initialNote as any)?.width || 300,
+        height: (initialNote as any)?.height || 200,
+        createdAt: (initialNote as any)?.createdAt || Date.now(),
+        updatedAt: Date.now(),
+      };
+
+      const saveResponse = await fetch('/api/database', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: initialNote ? 'updateNote' : 'addNote',
+          data: initialNote ? { id: initialNote.id, updates: noteData } : noteData,
+        }),
+      });
+
+      if (saveResponse.ok) {
+        // Note saved - it will appear on board automatically
+      }
+    } catch (error) {
+      console.error('Error saving note:', error);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const contextualizeAndSave = async () => {
@@ -164,7 +279,9 @@ END:VCALENDAR`;
 
       // Merge extracted keywords into tags
       if (extractedData?.keywords?.length) {
-        contextualizedNote.tags = [...new Set([...contextualizedNote.tags, ...extractedData.keywords.slice(0, 5)])];
+        contextualizedNote.tags = [
+          ...new Set([...contextualizedNote.tags, ...extractedData.keywords.slice(0, 5)]),
+        ];
       }
 
       // Include color
@@ -215,15 +332,19 @@ END:VCALENDAR`;
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
       {/* Sticky note style editor */}
-      <div className="bg-yellow-100 rounded-sm shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col relative"
-           style={{
-             backgroundImage: 'linear-gradient(to bottom, rgba(255,255,0,0.1) 0%, transparent 5%)',
-             boxShadow: '0 10px 30px rgba(0,0,0,0.3), 0 0 0 1px rgba(0,0,0,0.05)'
-           }}>
+      <div
+        className="bg-yellow-100 rounded-sm shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col relative"
+        style={{
+          backgroundImage: 'linear-gradient(to bottom, rgba(255,255,0,0.1) 0%, transparent 5%)',
+          boxShadow: '0 10px 30px rgba(0,0,0,0.3), 0 0 0 1px rgba(0,0,0,0.05)',
+        }}
+      >
         {/* Pin effect */}
-        <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-6 h-6 rounded-full bg-red-500 shadow-md z-10"
-             style={{ boxShadow: '0 2px 4px rgba(0,0,0,0.3), inset 0 -2px 4px rgba(0,0,0,0.2)' }} />
-        
+        <div
+          className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-6 h-6 rounded-full bg-red-500 shadow-md z-10"
+          style={{ boxShadow: '0 2px 4px rgba(0,0,0,0.3), inset 0 -2px 4px rgba(0,0,0,0.2)' }}
+        />
+
         <div className="flex items-center justify-between p-4 border-b border-yellow-300">
           <h2 className="text-xl font-semibold text-yellow-900">
             {initialNote ? 'Edit Note' : 'New Note'}
@@ -249,63 +370,125 @@ END:VCALENDAR`;
             type="text"
             placeholder="Note title..."
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={e => setTitle(e.target.value)}
             className="w-full text-lg font-medium bg-transparent border-none text-yellow-900 placeholder-yellow-600/50 focus:outline-none"
           />
-          
+
           <div className="flex gap-4 mt-3 items-center">
             <select
               value={category}
-              onChange={(e) => setCategory(e.target.value)}
+              onChange={e => setCategory(e.target.value)}
               className="px-3 py-1 bg-yellow-200 border border-yellow-400 rounded text-yellow-900 text-sm"
             >
-              {categories.map((cat) => (
-                <option key={cat.value} value={cat.value}>{cat.label}</option>
+              {categories.map(cat => (
+                <option key={cat.value} value={cat.value}>
+                  {cat.label}
+                </option>
               ))}
             </select>
-            
+
             {/* Color selector */}
             <div className="flex items-center gap-1">
               <span className="text-xs text-yellow-700 mr-1">Color:</span>
-              {NOTE_COLORS.map((c) => (
+              {NOTE_COLORS.map(c => (
                 <button
                   key={c.value}
                   onClick={() => setColor(c.value)}
                   className={`w-6 h-6 rounded-full ${c.preview} border-2 transition-transform ${
-                    color === c.value ? 'border-gray-800 scale-110' : 'border-transparent hover:scale-105'
+                    color === c.value
+                      ? 'border-gray-800 scale-110'
+                      : 'border-transparent hover:scale-105'
                   }`}
                   title={c.label}
                 />
               ))}
             </div>
-            
+
             <div className="flex-1 flex flex-wrap gap-2">
-              {tags.map((tag) => (
+              {tags.map(tag => (
                 <span
                   key={tag}
                   className="px-2 py-1 bg-yellow-300/70 text-yellow-900 text-xs rounded-full flex items-center gap-1"
                 >
                   {tag}
-                  <button onClick={() => removeTag(tag)} className="hover:text-red-600">×</button>
+                  <button onClick={() => removeTag(tag)} className="hover:text-red-600">
+                    ×
+                  </button>
                 </span>
               ))}
               <input
                 type="text"
                 placeholder="Add tag..."
                 value={newTag}
-                onChange={(e) => setNewTag(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && addTag()}
+                onChange={e => setNewTag(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && addTag()}
                 className="px-2 py-1 bg-yellow-200 border border-yellow-400 rounded text-yellow-900 text-xs w-24 focus:outline-none focus:border-yellow-500"
               />
             </div>
           </div>
         </div>
 
+        {/* Formatting Toolbar */}
+        <div className="flex items-center gap-2 px-4 py-2 border-b border-yellow-300 bg-yellow-200/50">
+          <button
+            onClick={() => {
+              setBold(!bold);
+              setContent(content + (bold ? '\n**bold**' : ''));
+            }}
+            className={`px-3 py-1 rounded font-bold ${bold ? 'bg-yellow-400' : 'bg-yellow-300 hover:bg-yellow-400'}`}
+            title="Bold"
+          >
+            B
+          </button>
+          <button
+            onClick={() => {
+              setItalic(!italic);
+              setContent(content + (italic ? '\n*italic*' : ''));
+            }}
+            className={`px-3 py-1 rounded italic ${italic ? 'bg-yellow-400' : 'bg-yellow-300 hover:bg-yellow-400'}`}
+            title="Italic"
+          >
+            I
+          </button>
+          <button
+            onClick={() => {
+              setUnderline(!underline);
+              setContent(content + '\n---');
+            }}
+            className={`px-3 py-1 rounded underline ${underline ? 'bg-yellow-400' : 'bg-yellow-300 hover:bg-yellow-400'}`}
+            title="Underline"
+          >
+            U
+          </button>
+          <div className="w-px h-6 bg-yellow-400" />
+          <select
+            value={fontSize}
+            onChange={e => setFontSize(Number(e.target.value))}
+            className="px-2 py-1 bg-yellow-300 rounded text-yellow-900 text-sm"
+          >
+            <option value={12}>12px</option>
+            <option value={14}>14px</option>
+            <option value={16}>16px</option>
+            <option value={18}>18px</option>
+            <option value={20}>20px</option>
+          </select>
+          <div className="flex-1" />
+          <button
+            onClick={quickSave}
+            disabled={isSaving || !title.trim() || !content.trim()}
+            className={`px-3 py-1 rounded text-sm ${isSaving ? 'bg-yellow-400' : 'bg-yellow-500 hover:bg-yellow-600'} text-yellow-900`}
+          >
+            {isSaving ? 'Saving...' : 'Quick Save'}
+          </button>
+        </div>
+
         <div className="flex-1 overflow-hidden bg-yellow-50" style={{ minHeight: '300px' }}>
           {showPreview ? (
             <div className="h-full p-4 overflow-y-auto text-yellow-900 prose max-w-none">
               <h3>{title || 'Untitled'}</h3>
-              <p className="text-yellow-700 text-sm">{category} • {tags.join(', ')}</p>
+              <p className="text-yellow-700 text-sm">
+                {category} • {tags.join(', ')}
+              </p>
               <div className="mt-4 whitespace-pre-wrap">{content}</div>
             </div>
           ) : (
@@ -320,7 +503,8 @@ Use Markdown for formatting:
 - 1. numbered lists
 - `code` for inline code"
               value={content}
-              onChange={(e) => setContent(e.target.value)}
+              onChange={e => setContent(e.target.value)}
+              style={{ fontSize: `${fontSize}px` }}
               className="w-full h-64 p-4 bg-yellow-50 text-yellow-900 placeholder-yellow-600/50 resize-none focus:outline-none font-mono text-sm"
             />
           )}
@@ -390,7 +574,7 @@ export function NotesList({ onEdit }: NotesListProps) {
 
   const deleteNote = async (id: string) => {
     if (!confirm('Are you sure you want to delete this note?')) return;
-    
+
     try {
       await fetch('/api/database', {
         method: 'POST',
@@ -403,11 +587,21 @@ export function NotesList({ onEdit }: NotesListProps) {
     }
   };
 
-  const categories = ['all', 'general', 'meeting', 'research', 'idea', 'project', 'personal', 'work'];
+  const categories = [
+    'all',
+    'general',
+    'meeting',
+    'research',
+    'idea',
+    'project',
+    'personal',
+    'work',
+  ];
 
   const filteredNotes = notes.filter(note => {
-    const matchesSearch = note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          note.content.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesSearch =
+      note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      note.content.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = selectedCategory === 'all' || note.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
@@ -419,15 +613,15 @@ export function NotesList({ onEdit }: NotesListProps) {
           type="text"
           placeholder="Search notes..."
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={e => setSearchQuery(e.target.value)}
           className="flex-1 px-4 py-2 bg-gray-800 border border-gray-700 rounded text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
         />
         <select
           value={selectedCategory}
-          onChange={(e) => setSelectedCategory(e.target.value)}
+          onChange={e => setSelectedCategory(e.target.value)}
           className="px-4 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none"
         >
-          {categories.map((cat) => (
+          {categories.map(cat => (
             <option key={cat} value={cat}>
               {cat === 'all' ? 'All Categories' : cat.charAt(0).toUpperCase() + cat.slice(1)}
             </option>
@@ -439,39 +633,59 @@ export function NotesList({ onEdit }: NotesListProps) {
         <div className="text-gray-400">Loading notes...</div>
       ) : filteredNotes.length === 0 ? (
         <div className="text-gray-400 text-center py-8">
-          {searchQuery || selectedCategory !== 'all' 
-            ? 'No notes match your search' 
+          {searchQuery || selectedCategory !== 'all'
+            ? 'No notes match your search'
             : 'No notes yet. Click "New Note" to create one!'}
         </div>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {filteredNotes.map((note, index) => {
             // Rotate notes slightly for organic feel
-            const rotations = ['-1deg', '0.5deg', '1deg', '-0.5deg', '0deg', '1.5deg', '-1.5deg', '0.25deg'];
+            const rotations = [
+              '-1deg',
+              '0.5deg',
+              '1deg',
+              '-0.5deg',
+              '0deg',
+              '1.5deg',
+              '-1.5deg',
+              '0.25deg',
+            ];
             const rotation = rotations[index % rotations.length];
-            
+
             return (
               <div
                 key={note.id}
                 className="p-4 bg-yellow-100 rounded-sm shadow-lg hover:shadow-xl transition-all cursor-pointer group relative"
                 style={{
                   transform: `rotate(${rotation})`,
-                  backgroundImage: 'linear-gradient(to bottom, rgba(255,255,0,0.05) 0%, transparent 3%)',
+                  backgroundImage:
+                    'linear-gradient(to bottom, rgba(255,255,0,0.05) 0%, transparent 3%)',
                 }}
                 onClick={() => onEdit(note)}
               >
                 {/* Pin */}
-                <div className="absolute -top-1.5 left-1/2 transform -translate-x-1/2 w-4 h-4 rounded-full bg-red-500 opacity-80"
-                     style={{ boxShadow: '0 1px 2px rgba(0,0,0,0.3)' }} />
-                
+                <div
+                  className="absolute -top-1.5 left-1/2 transform -translate-x-1/2 w-4 h-4 rounded-full bg-red-500 opacity-80"
+                  style={{ boxShadow: '0 1px 2px rgba(0,0,0,0.3)' }}
+                />
+
                 <div className="flex justify-between items-start mb-2">
                   <h3 className="font-medium text-yellow-900 truncate flex-1">{note.title}</h3>
                   <button
-                    onClick={(e) => { e.stopPropagation(); deleteNote(note.id); }}
+                    onClick={e => {
+                      e.stopPropagation();
+                      deleteNote(note.id);
+                    }}
                     className="p-1 text-yellow-700 opacity-0 group-hover:opacity-100 hover:text-red-600 transition-opacity"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                      />
                     </svg>
                   </button>
                 </div>
@@ -480,8 +694,11 @@ export function NotesList({ onEdit }: NotesListProps) {
                   <span className="text-xs px-2 py-0.5 bg-yellow-200 text-yellow-800 rounded">
                     {note.category}
                   </span>
-                  {note.tags.slice(0, 2).map((tag) => (
-                    <span key={tag} className="text-xs px-2 py-0.5 bg-yellow-300/50 text-yellow-700 rounded">
+                  {note.tags.slice(0, 2).map(tag => (
+                    <span
+                      key={tag}
+                      className="text-xs px-2 py-0.5 bg-yellow-300/50 text-yellow-700 rounded"
+                    >
                       {tag}
                     </span>
                   ))}

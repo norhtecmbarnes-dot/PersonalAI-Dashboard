@@ -4,25 +4,25 @@ Your AI Dashboard can run completely offline on machines without dedicated graph
 
 ## What You'll Learn
 
-- Running AI models on CPU-only machines
-- BitNet: 1.58-bit models for efficient CPU inference
-- Offline model management
-- Performance optimization for low-resource environments
+• Running AI models on CPU-only machines
+• BitNet: 1.58-bit models for efficient CPU inference
+• Offline model management
+• Performance optimization for low-resource environments
 
 ---
 
 ## The Challenge
 
 Not every machine has:
-- A dedicated GPU (NVIDIA/AMD)
-- Constant internet access
-- Unlimited RAM
+• A dedicated GPU (NVIDIA/AMD)
+• Constant internet access
+• Unlimited RAM
 
 Yet you still want AI capabilities for:
-- Development laptops without discrete graphics
-- Office workstations with integrated graphics
-- Air-gapped secure environments
-- Remote locations with unreliable connectivity
+• Development laptops without discrete graphics
+• Office workstations with integrated graphics
+• Air-gapped secure environments
+• Remote locations with unreliable connectivity
 
 ---
 
@@ -42,9 +42,9 @@ BitNet is Microsoft's official inference framework for 1-bit LLMs. It uses 1.58-
 ### Installation
 
 **Prerequisites:**
-- Python 3.9+
-- CMake 3.22+
-- Clang 18+ (or Visual Studio 2022 on Windows)
+• Python 3.9+
+• CMake 3.22+
+• Clang 18+ (or Visual Studio 2022 on Windows)
 
 **Step 1: Clone BitNet**
 
@@ -94,20 +94,73 @@ python setup_env.py -md models/BitNet-b1.58-2B-4T -q i2_s
 ### When to Use BitNet
 
 ✅ **Perfect for:**
-- Laptops without discrete GPUs
-- Office workstations
-- Development machines
-- Quick simple tasks
-- Backup when GPU unavailable
+• Laptops without discrete GPUs
+• Office workstations
+• Development machines
+• Quick simple tasks
+• Backup when GPU unavailable
 
 ⚠️ **Not ideal for:**
-- Complex code generation
-- Large context windows (>4K tokens)
-- Tasks requiring nuanced understanding
+• Complex code generation
+• Large context windows (>4K tokens)
+• Tasks requiring nuanced understanding
 
 ---
 
-## Solution 2: Ollama CPU-Optimized Models
+## Solution 2: GGUF Models for Minimal Hardware
+
+GGUF (GGML Universal Format) lets you run large models on small hardware through quantization.
+
+### What is GGUF?
+
+GGUF compresses models to run on modest hardware:
+
+| Quantization | Size | Quality | Speed | Use Case |
+|--------------|------|---------|-------|----------|
+| Q4_0 | 50% smaller | Acceptable | Fast | Production |
+| Q4_K_M | 50% smaller | Good | Fast | Recommended |
+| Q5_K_M | 35% smaller | Very Good | Moderate | Quality |
+| Q2_K | 75% smaller | Poor | Very Fast | Testing only |
+
+### AngelSlim - Tested Tiny Model
+
+The AngelSlim model runs on minimal hardware:
+
+```bash
+# Pull AngelSlim (1.8B parameters, Q4_0)
+ollama pull angelslim
+
+# Specs:
+# - 1.8 billion parameters
+# - ~1.5 GB RAM
+# - Runs on any modern CPU
+# - Instant response speed
+```
+
+**Use AngelSlim for:**
+• Heartbeat checks ✓
+• Simple classification ✓
+• Quick formatting ✓
+• Development/testing ✓
+
+**Don't use for:**
+• Complex reasoning ✗
+• Code generation ✗
+• Long context ✗
+
+### Other GGUF Models in Ollama
+
+```bash
+# Small models that run on CPU
+ollama pull qwen2.5:0.5b    # Fastest
+ollama pull qwen2.5:1.5b    # Very fast
+ollama pull phi3:mini       # Small but capable
+ollama pull gemma2:2b       # Google's small model
+```
+
+---
+
+## Solution 3: Ollama CPU-Optimized Models
 
 ### Small Models for CPU
 
@@ -420,9 +473,9 @@ Create a configuration for my AI Dashboard that:
 4. Should be as fast as possible
 
 Include:
-- Model recommendations
-- Memory settings
-- Configuration file contents
+• Model recommendations
+• Memory settings
+• Configuration file contents
 ```
 
 ---

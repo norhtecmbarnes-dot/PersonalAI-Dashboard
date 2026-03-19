@@ -83,20 +83,25 @@ ${content}
 Extract everything useful. Return ONLY valid JSON, no explanations.`;
 
     try {
-      const response = await fetch('/api/chat', {
+      const baseUrl =
+        typeof window !== 'undefined'
+          ? window.location.origin
+          : process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+
+      const response = await fetch(`${baseUrl}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           messages: [{ role: 'user', content: prompt }],
           model: selectedModel || undefined,
+          skipTools: true,
           temperature: 0.3,
-          max_tokens: 4000,
         }),
       });
 
       const data = await response.json();
       let content_text = data.content || data.result || data.message || '';
-      
+
       if (typeof content_text !== 'string') {
         content_text = JSON.stringify(content_text);
       }
@@ -131,7 +136,9 @@ Extract everything useful. Return ONLY valid JSON, no explanations.`;
         tone: data.brandVoice?.tone || '',
         style: data.brandVoice?.style || '',
         keyMessages: Array.isArray(data.brandVoice?.keyMessages) ? data.brandVoice.keyMessages : [],
-        avoidPhrases: Array.isArray(data.brandVoice?.avoidPhrases) ? data.brandVoice.avoidPhrases : [],
+        avoidPhrases: Array.isArray(data.brandVoice?.avoidPhrases)
+          ? data.brandVoice.avoidPhrases
+          : [],
       },
     };
   }
@@ -158,16 +165,27 @@ Extract everything useful. Return ONLY valid JSON, no explanations.`;
     };
   }
 
-  async saveKnowledge(brandId: string, documentId: string, knowledge: ExtractedKnowledge): Promise<void> {
+  async saveKnowledge(
+    brandId: string,
+    documentId: string,
+    knowledge: ExtractedKnowledge
+  ): Promise<void> {
     sqlDatabase.initialize();
 
     const entries: Array<Omit<KnowledgeEntry, 'id' | 'createdAt'>> = [];
 
     knowledge.keyFacts.forEach((fact, idx) => {
-      entries.push({ documentId, brandId, category: 'fact', key: `fact_${idx}`, value: fact, metadata: {} });
+      entries.push({
+        documentId,
+        brandId,
+        category: 'fact',
+        key: `fact_${idx}`,
+        value: fact,
+        metadata: {},
+      });
     });
 
-    knowledge.entities.forEach((entity) => {
+    knowledge.entities.forEach(entity => {
       entries.push({
         documentId,
         brandId,
@@ -178,7 +196,7 @@ Extract everything useful. Return ONLY valid JSON, no explanations.`;
       });
     });
 
-    knowledge.products.forEach((product) => {
+    knowledge.products.forEach(product => {
       entries.push({
         documentId,
         brandId,
@@ -189,7 +207,7 @@ Extract everything useful. Return ONLY valid JSON, no explanations.`;
       });
     });
 
-    knowledge.services.forEach((service) => {
+    knowledge.services.forEach(service => {
       entries.push({
         documentId,
         brandId,
@@ -201,22 +219,50 @@ Extract everything useful. Return ONLY valid JSON, no explanations.`;
     });
 
     knowledge.values.forEach((value, idx) => {
-      entries.push({ documentId, brandId, category: 'value', key: `value_${idx}`, value, metadata: {} });
+      entries.push({
+        documentId,
+        brandId,
+        category: 'value',
+        key: `value_${idx}`,
+        value,
+        metadata: {},
+      });
     });
 
     knowledge.tone.forEach((tone, idx) => {
-      entries.push({ documentId, brandId, category: 'tone', key: `tone_${idx}`, value: tone, metadata: {} });
+      entries.push({
+        documentId,
+        brandId,
+        category: 'tone',
+        key: `tone_${idx}`,
+        value: tone,
+        metadata: {},
+      });
     });
 
     knowledge.audience.forEach((aud, idx) => {
-      entries.push({ documentId, brandId, category: 'audience', key: `audience_${idx}`, value: aud, metadata: {} });
+      entries.push({
+        documentId,
+        brandId,
+        category: 'audience',
+        key: `audience_${idx}`,
+        value: aud,
+        metadata: {},
+      });
     });
 
     knowledge.differentiators.forEach((diff, idx) => {
-      entries.push({ documentId, brandId, category: 'differentiator', key: `diff_${idx}`, value: diff, metadata: {} });
+      entries.push({
+        documentId,
+        brandId,
+        category: 'differentiator',
+        key: `diff_${idx}`,
+        value: diff,
+        metadata: {},
+      });
     });
 
-    knowledge.contactInfo.forEach((contact) => {
+    knowledge.contactInfo.forEach(contact => {
       entries.push({
         documentId,
         brandId,
@@ -227,7 +273,7 @@ Extract everything useful. Return ONLY valid JSON, no explanations.`;
       });
     });
 
-    knowledge.timeline.forEach((event) => {
+    knowledge.timeline.forEach(event => {
       entries.push({
         documentId,
         brandId,
@@ -239,25 +285,60 @@ Extract everything useful. Return ONLY valid JSON, no explanations.`;
     });
 
     if (knowledge.summary) {
-      entries.push({ documentId, brandId, category: 'summary', key: 'summary', value: knowledge.summary, metadata: {} });
+      entries.push({
+        documentId,
+        brandId,
+        category: 'summary',
+        key: 'summary',
+        value: knowledge.summary,
+        metadata: {},
+      });
     }
 
     if (knowledge.brandVoice.tone) {
-      entries.push({ documentId, brandId, category: 'brand_voice', key: 'tone', value: knowledge.brandVoice.tone, metadata: {} });
+      entries.push({
+        documentId,
+        brandId,
+        category: 'brand_voice',
+        key: 'tone',
+        value: knowledge.brandVoice.tone,
+        metadata: {},
+      });
     }
     if (knowledge.brandVoice.style) {
-      entries.push({ documentId, brandId, category: 'brand_voice', key: 'style', value: knowledge.brandVoice.style, metadata: {} });
+      entries.push({
+        documentId,
+        brandId,
+        category: 'brand_voice',
+        key: 'style',
+        value: knowledge.brandVoice.style,
+        metadata: {},
+      });
     }
     const keyMessages = knowledge.brandVoice.keyMessages;
     if (keyMessages && keyMessages.length > 0) {
       keyMessages.forEach((msg, idx) => {
-        entries.push({ documentId, brandId, category: 'brand_voice', key: `key_message_${idx}`, value: msg, metadata: {} });
+        entries.push({
+          documentId,
+          brandId,
+          category: 'brand_voice',
+          key: `key_message_${idx}`,
+          value: msg,
+          metadata: {},
+        });
       });
     }
     const avoidPhrases = knowledge.brandVoice.avoidPhrases;
     if (avoidPhrases && avoidPhrases.length > 0) {
       avoidPhrases.forEach((phrase, idx) => {
-        entries.push({ documentId, brandId, category: 'brand_voice', key: `avoid_${idx}`, value: phrase, metadata: {} });
+        entries.push({
+          documentId,
+          brandId,
+          category: 'brand_voice',
+          key: `avoid_${idx}`,
+          value: phrase,
+          metadata: {},
+        });
       });
     }
 
@@ -267,21 +348,39 @@ Extract everything useful. Return ONLY valid JSON, no explanations.`;
       await sqlDatabase.run(
         `INSERT INTO brand_knowledge (id, document_id, brand_id, category, key, value, metadata, created_at)
          VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-        [id, entry.documentId, entry.brandId, entry.category, entry.key, entry.value, JSON.stringify(entry.metadata), now]
+        [
+          id,
+          entry.documentId,
+          entry.brandId,
+          entry.category,
+          entry.key,
+          entry.value,
+          JSON.stringify(entry.metadata),
+          now,
+        ]
       );
     }
   }
 
-  async searchKnowledge(brandId: string, query: string, categories?: string[]): Promise<KnowledgeEntry[]> {
+  async searchKnowledge(
+    brandId: string,
+    query: string,
+    categories?: string[]
+  ): Promise<KnowledgeEntry[]> {
     sqlDatabase.initialize();
 
     let sql = `SELECT * FROM brand_knowledge WHERE brand_id = ?`;
     const params: any[] = [brandId];
 
-    const searchTerms = query.toLowerCase().split(/\s+/).filter(t => t.length > 2);
-    
+    const searchTerms = query
+      .toLowerCase()
+      .split(/\s+/)
+      .filter(t => t.length > 2);
+
     if (searchTerms.length > 0) {
-      const searchConditions = searchTerms.map(() => `(lower(key) LIKE ? OR lower(value) LIKE ?)`).join(' OR ');
+      const searchConditions = searchTerms
+        .map(() => `(lower(key) LIKE ? OR lower(value) LIKE ?)`)
+        .join(' OR ');
       sql += ` AND (${searchConditions})`;
       searchTerms.forEach(term => {
         params.push(`%${term}%`, `%${term}%`);
@@ -301,7 +400,7 @@ Extract everything useful. Return ONLY valid JSON, no explanations.`;
 
   async getBrandKnowledge(brandId: string, category?: string): Promise<KnowledgeEntry[]> {
     sqlDatabase.initialize();
-    
+
     let sql = `SELECT * FROM brand_knowledge WHERE brand_id = ?`;
     const params: any[] = [brandId];
 
@@ -327,12 +426,12 @@ Extract everything useful. Return ONLY valid JSON, no explanations.`;
       `SELECT category, COUNT(*) as count FROM brand_knowledge WHERE brand_id = ? GROUP BY category`,
       [brandId]
     );
-    
+
     const stats: Record<string, number> = {};
-    rows.forEach((row) => {
+    rows.forEach(row => {
       stats[row.category] = row.count;
     });
-    
+
     return stats;
   }
 
@@ -361,11 +460,15 @@ Extract everything useful. Return ONLY valid JSON, no explanations.`;
     }
 
     if (knowledge.products.length > 0) {
-      parts.push(`## Products\n${knowledge.products.map(p => `- **${p.name}**: ${p.description}`).join('\n')}\n`);
+      parts.push(
+        `## Products\n${knowledge.products.map(p => `- **${p.name}**: ${p.description}`).join('\n')}\n`
+      );
     }
 
     if (knowledge.services.length > 0) {
-      parts.push(`## Services\n${knowledge.services.map(s => `- **${s.name}**: ${s.description}`).join('\n')}\n`);
+      parts.push(
+        `## Services\n${knowledge.services.map(s => `- **${s.name}**: ${s.description}`).join('\n')}\n`
+      );
     }
 
     if (knowledge.values.length > 0) {
@@ -377,26 +480,40 @@ Extract everything useful. Return ONLY valid JSON, no explanations.`;
     }
 
     if (knowledge.differentiators.length > 0) {
-      parts.push(`## Differentiators\n${knowledge.differentiators.map(d => `- ${d}`).join('\n')}\n`);
+      parts.push(
+        `## Differentiators\n${knowledge.differentiators.map(d => `- ${d}`).join('\n')}\n`
+      );
     }
 
     if (knowledge.contactInfo.length > 0) {
-      parts.push(`## Contact Information\n${knowledge.contactInfo.map(c => `- **${c.type}**: ${c.value}`).join('\n')}\n`);
+      parts.push(
+        `## Contact Information\n${knowledge.contactInfo.map(c => `- **${c.type}**: ${c.value}`).join('\n')}\n`
+      );
     }
 
     if (knowledge.timeline.length > 0) {
-      parts.push(`## Timeline\n${knowledge.timeline.map(t => `- **${t.event}**: ${t.date || 'Date unknown'}`).join('\n')}\n`);
+      parts.push(
+        `## Timeline\n${knowledge.timeline.map(t => `- **${t.event}**: ${t.date || 'Date unknown'}`).join('\n')}\n`
+      );
     }
 
-    if (knowledge.brandVoice.tone || knowledge.brandVoice.style || (knowledge.brandVoice.keyMessages && knowledge.brandVoice.keyMessages.length > 0)) {
+    if (
+      knowledge.brandVoice.tone ||
+      knowledge.brandVoice.style ||
+      (knowledge.brandVoice.keyMessages && knowledge.brandVoice.keyMessages.length > 0)
+    ) {
       parts.push(`## Brand Voice`);
       if (knowledge.brandVoice.tone) parts.push(`- **Tone**: ${knowledge.brandVoice.tone}`);
       if (knowledge.brandVoice.style) parts.push(`- **Style**: ${knowledge.brandVoice.style}`);
       if (knowledge.brandVoice.keyMessages && knowledge.brandVoice.keyMessages.length > 0) {
-        parts.push(`- **Key Messages**:\n${knowledge.brandVoice.keyMessages.map(m => `  - ${m}`).join('\n')}`);
+        parts.push(
+          `- **Key Messages**:\n${knowledge.brandVoice.keyMessages.map(m => `  - ${m}`).join('\n')}`
+        );
       }
       if (knowledge.brandVoice.avoidPhrases && knowledge.brandVoice.avoidPhrases.length > 0) {
-        parts.push(`- **Avoid**:\n${knowledge.brandVoice.avoidPhrases.map(p => `  - ${p}`).join('\n')}`);
+        parts.push(
+          `- **Avoid**:\n${knowledge.brandVoice.avoidPhrases.map(p => `  - ${p}`).join('\n')}`
+        );
       }
       parts.push('');
     }

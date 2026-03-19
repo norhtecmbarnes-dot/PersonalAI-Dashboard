@@ -12,22 +12,62 @@ interface Command {
 const COMMANDS: Command[] = [
   { name: '/search', description: 'Toggle web search mode', action: 'web_search', icon: '🔍' },
   { name: '/brand', description: 'Open Brand Workspace', action: 'brand_workspace', icon: '🏢' },
-  { name: '/brand-chat', description: 'Chat with Brand Voice & Project docs', action: 'brand_chat', icon: '💬' },
-  { name: '/editor', description: 'Collaborative editor with AI track changes', action: 'collab_editor', icon: '✍️' },
+  {
+    name: '/brand-chat',
+    description: 'Chat with Brand Voice & Project docs',
+    action: 'brand_chat',
+    icon: '💬',
+  },
+  {
+    name: '/editor',
+    description: 'Collaborative editor with AI track changes',
+    action: 'collab_editor',
+    icon: '✍️',
+  },
   { name: '/math', description: 'Calculate a math expression', action: 'math', icon: '🔢' },
   { name: '/visualize', description: 'Create a chart or graph', action: 'visualize', icon: '📈' },
-  { name: '/expert', description: 'Switch to an expert agent', action: 'switch_expert', icon: '👤' },
-  { name: '/memory', description: 'Search your knowledge base', action: 'search_memory', icon: '🧠' },
-  { name: '/documents', description: 'Search uploaded documents', action: 'search_docs', icon: '📄' },
-  { name: '/briefing', description: 'Generate weekly briefing', action: 'weekly_briefing', icon: '📊' },
+  {
+    name: '/expert',
+    description: 'Switch to an expert agent',
+    action: 'switch_expert',
+    icon: '👤',
+  },
+  {
+    name: '/memory',
+    description: 'Search your knowledge base',
+    action: 'search_memory',
+    icon: '🧠',
+  },
+  {
+    name: '/documents',
+    description: 'Search uploaded documents',
+    action: 'search_docs',
+    icon: '📄',
+  },
+  {
+    name: '/briefing',
+    description: 'Generate weekly briefing',
+    action: 'weekly_briefing',
+    icon: '📊',
+  },
   { name: '/sam', description: 'Search SAM.gov opportunities', action: 'sam_search', icon: '🏛️' },
-  { name: '/intelligence', description: 'Intelligence report & bid opportunities', action: 'intelligence', icon: '🎯' },
-  { name: '/reflect', description: 'Run self-reflection analysis', action: 'self_reflect', icon: '🪞' },
+  {
+    name: '/intelligence',
+    description: 'Intelligence report & bid opportunities',
+    action: 'intelligence',
+    icon: '🎯',
+  },
+  {
+    name: '/reflect',
+    description: 'Run self-reflection analysis',
+    action: 'self_reflect',
+    icon: '🪞',
+  },
   { name: '/research', description: 'Run external research', action: 'research', icon: '🔬' },
   { name: '/document', description: 'Start new document', action: 'book', icon: '📝' },
   { name: '/security', description: 'Run security scan', action: 'security', icon: '🔒' },
   { name: '/calendar', description: 'Show upcoming events', action: 'show_calendar', icon: '📅' },
-  { name: '/tasks', description: 'Show pending tasks', action: 'show_tasks', icon: '✅' },
+  { name: '/tasks', description: 'Open Tasks page', action: 'navigate_tasks', icon: '✅' },
   { name: '/contacts', description: 'Show saved contacts', action: 'show_contacts', icon: '👥' },
   { name: '/notes', description: 'Open smart notes system', action: 'show_notes', icon: '📝' },
   { name: '/clear', description: 'Clear chat history', action: 'clear_chat', icon: '🗑️' },
@@ -44,9 +84,10 @@ export function CommandMenu({ onSelectCommand }: CommandMenuProps) {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const menuRef = useRef<HTMLDivElement>(null);
 
-  const filteredCommands = COMMANDS.filter(cmd =>
-    cmd.name.toLowerCase().includes(search.toLowerCase()) ||
-    cmd.description.toLowerCase().includes(search.toLowerCase())
+  const filteredCommands = COMMANDS.filter(
+    cmd =>
+      cmd.name.toLowerCase().includes(search.toLowerCase()) ||
+      cmd.description.toLowerCase().includes(search.toLowerCase())
   );
 
   useEffect(() => {
@@ -88,7 +129,7 @@ export function CommandMenu({ onSelectCommand }: CommandMenuProps) {
   if (!isOpen) return null;
 
   return (
-    <div 
+    <div
       ref={menuRef}
       className="absolute bottom-full left-0 right-0 mb-2 bg-gray-800 border border-gray-700 rounded-lg shadow-xl max-h-80 overflow-hidden"
     >
@@ -96,14 +137,14 @@ export function CommandMenu({ onSelectCommand }: CommandMenuProps) {
         <input
           type="text"
           value={search}
-          onChange={(e) => setSearch(e.target.value)}
+          onChange={e => setSearch(e.target.value)}
           onKeyDown={handleKeyDown}
           placeholder="Type a command..."
           className="w-full px-3 py-2 bg-gray-900 border border-gray-700 rounded text-white placeholder-gray-500 focus:outline-none"
           autoFocus
         />
       </div>
-      
+
       <div className="overflow-y-auto max-h-60">
         {filteredCommands.length === 0 ? (
           <div className="p-4 text-gray-500 text-center">No commands found</div>
@@ -129,7 +170,7 @@ export function CommandMenu({ onSelectCommand }: CommandMenuProps) {
           ))
         )}
       </div>
-      
+
       <div className="p-2 border-t border-gray-700 text-xs text-gray-500 flex justify-between">
         <span>↑↓ Navigate</span>
         <span>↵ Select</span>
