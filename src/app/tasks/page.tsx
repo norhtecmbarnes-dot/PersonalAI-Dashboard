@@ -11,6 +11,8 @@ interface ScheduledTask {
   prompt?: string;
   taskType: string;
   schedule: string;
+  brandId?: string;
+  projectId?: string;
   enabled: boolean;
   permanent: boolean;
   expiresAt?: number;
@@ -20,6 +22,8 @@ interface ScheduledTask {
   runCount: number;
   successCount: number;
   failCount: number;
+  createdAt: number;
+  updatedAt: number;
 }
 
 interface TaskResult {
@@ -31,6 +35,16 @@ interface TaskResult {
   created_at: number;
 }
 
+interface TaskStats {
+  total: number;
+  enabled: number;
+  disabled: number;
+  duplicates: number;
+  expired: number;
+  neverRun: number;
+  inactive: number;
+}
+
 export default function TasksPage() {
   const [tasks, setTasks] = useState<ScheduledTask[]>([]);
   const [schedulerStatus, setSchedulerStatus] = useState<{ isRunning: boolean } | null>(null);
@@ -39,6 +53,18 @@ export default function TasksPage() {
   const [taskResults, setTaskResults] = useState<TaskResult[]>([]);
   const [resultsLoading, setResultsLoading] = useState(false);
   const [selectedModel, setSelectedModel] = useState('');
+  const [stats, setStats] = useState<TaskStats>({
+    total: 0,
+    enabled: 0,
+    disabled: 0,
+    duplicates: 0,
+    expired: 0,
+    neverRun: 0,
+    inactive: 0,
+  });
+  const [filter, setFilter] = useState<'all' | 'duplicates' | 'expired' | 'inactive' | 'neverRun'>(
+    'all'
+  );
 
   useEffect(() => {
     loadData();
@@ -73,11 +99,42 @@ export default function TasksPage() {
 
       setTasks(tasksData.tasks || []);
       setSchedulerStatus(statusData);
+      calculateStats(tasksData.tasks || []);
     } catch (error) {
       console.error('Error loading tasks:', error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const calculateStats = (taskList: ScheduledTask[]) => {
+    const now = Date.now();
+    const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1000;
+    const sixtyDaysAgo = now - 60 * 24 * 60 * 60 * 1000;
+
+    // Find duplicates by type and schedule
+    const typeScheduleMap = new Map<string, number>();
+    taskList.forEach(t => {
+      const key = `${t.taskType}:${t.schedule}`;
+      typeScheduleMap.set(key, (typeScheduleMap.get(key) || 0) + 1);
+    });
+    const duplicateKeys = new Set(
+      Array.from(typeScheduleMap.entries())
+        .filter(([, count]) => count > 1)
+        .map(([key]) => key)
+    );
+
+    const stats: TaskStats = {
+      total: taskList.length,
+      enabled: taskList.filter(t => t.enabled).length,
+      disabled: taskList.filter(t => !t.enabled).length,
+      duplicates: taskList.filter(t => duplicateKeys.has(`${t.taskType}:${t.schedule}`)).length,
+      expired: taskList.filter(t => t.expiresAt && t.expiresAt < now).length,
+      neverRun: taskList.filter(t => t.runCount === 0).length,
+      inactive: taskList.filter(t => t.enabled && t.lastRun && t.lastRun < sixtyDaysAgo).length,
+    };
+
+    setStats(stats);
   };
 
   const loadTaskResults = async (taskId: string) => {
@@ -115,7 +172,11 @@ export default function TasksPage() {
         body: JSON.stringify({ action: 'run', id }),
       });
       const data = await response.json();
-      alert(data.success ? `Task completed: ${data.result?.result || 'OK'}` : `Task failed: ${data.result?.error}`);
+      alert(
+        data.success
+          ? `Task completed: ${data.result?.result || 'OK'}`
+          : `Task failed: ${data.result?.error}`
+      );
       loadData();
       if (selectedTask?.id === id) {
         loadTaskResults(id);
@@ -186,7 +247,7 @@ export default function TasksPage() {
 
   const getTaskResultLink = (task: ScheduledTask): { label: string; href: string } | null => {
     if (!task.lastResult && !task.lastError && !task.lastRun) return null;
-    
+
     switch (task.taskType) {
       case 'intelligence':
         return { label: 'View Intelligence Report', href: '/intelligence' };
@@ -220,8 +281,60 @@ export default function TasksPage() {
     return types[type] || { label: type, color: 'bg-gray-700 text-gray-300' };
   };
 
-  const permanentTasks = tasks.filter(t => t.permanent);
-  const temporaryTasks = tasks.filter(t => !t.permanent);
+  const isPotentialDuplicate = (task: ScheduledTask) => {
+    const sameTypeAndSchedule = tasks.filter(
+      t => t.taskType === task.taskType && t.schedule === task.schedule
+    );
+    return sameTypeAndSchedule.length > 1;
+  };
+
+  const isTaskExpired = (task: ScheduledTask) => {
+    return task.expiresAt && task.expiresAt < Date.now();
+  };
+
+  const isTaskInactive = (task: ScheduledTask) => {
+    const sixtyDaysAgo = Date.now() - 60 * 24 * 60 * 60 * 1000;
+    return task.enabled && task.lastRun && task.lastRun < sixtyDaysAgo;
+  };
+
+  const isNeverRun = (task: ScheduledTask) => {
+    return task.runCount === 0;
+  };
+
+  const getFilteredTasks = (taskList: ScheduledTask[]) => {
+    switch (filter) {
+      case 'duplicates':
+        return taskList.filter(t => isPotentialDuplicate(t));
+      case 'expired':
+        return taskList.filter(t => isTaskExpired(t));
+      case 'inactive':
+        return taskList.filter(t => isTaskInactive(t));
+      case 'neverRun':
+        return taskList.filter(t => isNeverRun(t));
+      default:
+        return taskList;
+    }
+  };
+
+  const getTaskWarnings = (task: ScheduledTask): string[] => {
+    const warnings: string[] = [];
+    if (isPotentialDuplicate(task)) {
+      warnings.push('⚠️ Duplicate: Another task has same type and schedule');
+    }
+    if (isTaskExpired(task)) {
+      warnings.push('⚠️ Expired: This task has passed its expiration date');
+    }
+    if (isTaskInactive(task)) {
+      warnings.push("⚠️ Inactive: Hasn't run in 60+ days");
+    }
+    if (isNeverRun(task) && task.enabled) {
+      warnings.push('ℹ️ Never run: Enabled but never executed');
+    }
+    return warnings;
+  };
+
+  const permanentTasks = getFilteredTasks(tasks.filter(t => t.permanent));
+  const temporaryTasks = getFilteredTasks(tasks.filter(t => !t.permanent));
 
   return (
     <div className="min-h-screen bg-gray-900 p-6">
@@ -239,7 +352,9 @@ export default function TasksPage() {
               showHealth={true}
               className="w-64"
             />
-            <div className={`px-4 py-2 rounded ${schedulerStatus?.isRunning ? 'bg-green-900/50 text-green-300' : 'bg-red-900/50 text-red-300'}`}>
+            <div
+              className={`px-4 py-2 rounded ${schedulerStatus?.isRunning ? 'bg-green-900/50 text-green-300' : 'bg-red-900/50 text-red-300'}`}
+            >
               {schedulerStatus?.isRunning ? '● Scheduler Running' : '○ Scheduler Stopped'}
             </div>
           </div>
@@ -247,6 +362,62 @@ export default function TasksPage() {
 
         {/* Natural Language Task Creation */}
         <TaskInstruction onTaskCreated={loadData} />
+
+        {/* Task Statistics */}
+        <div className="grid grid-cols-2 md:grid-cols-7 gap-4 mt-6 mb-6">
+          <div className="bg-gray-800 rounded-lg p-4">
+            <div className="text-2xl font-bold text-white">{stats.total}</div>
+            <div className="text-sm text-gray-400">Total</div>
+          </div>
+          <div className="bg-gray-800 rounded-lg p-4">
+            <div className="text-2xl font-bold text-green-400">{stats.enabled}</div>
+            <div className="text-sm text-gray-400">Enabled</div>
+          </div>
+          <div className="bg-gray-800 rounded-lg p-4">
+            <div className="text-2xl font-bold text-gray-400">{stats.disabled}</div>
+            <div className="text-sm text-gray-400">Disabled</div>
+          </div>
+          <div
+            className={`bg-gray-800 rounded-lg p-4 cursor-pointer hover:bg-gray-700 transition-colors ${filter === 'duplicates' ? 'ring-2 ring-yellow-500' : ''}`}
+            onClick={() => setFilter(filter === 'duplicates' ? 'all' : 'duplicates')}
+          >
+            <div className="text-2xl font-bold text-yellow-400">{stats.duplicates}</div>
+            <div className="text-sm text-gray-400">Duplicates</div>
+          </div>
+          <div
+            className={`bg-gray-800 rounded-lg p-4 cursor-pointer hover:bg-gray-700 transition-colors ${filter === 'expired' ? 'ring-2 ring-red-500' : ''}`}
+            onClick={() => setFilter(filter === 'expired' ? 'all' : 'expired')}
+          >
+            <div className="text-2xl font-bold text-red-400">{stats.expired}</div>
+            <div className="text-sm text-gray-400">Expired</div>
+          </div>
+          <div
+            className={`bg-gray-800 rounded-lg p-4 cursor-pointer hover:bg-gray-700 transition-colors ${filter === 'neverRun' ? 'ring-2 ring-blue-500' : ''}`}
+            onClick={() => setFilter(filter === 'neverRun' ? 'all' : 'neverRun')}
+          >
+            <div className="text-2xl font-bold text-blue-400">{stats.neverRun}</div>
+            <div className="text-sm text-gray-400">Never Run</div>
+          </div>
+          <div
+            className={`bg-gray-800 rounded-lg p-4 cursor-pointer hover:bg-gray-700 transition-colors ${filter === 'inactive' ? 'ring-2 ring-orange-500' : ''}`}
+            onClick={() => setFilter(filter === 'inactive' ? 'all' : 'inactive')}
+          >
+            <div className="text-2xl font-bold text-orange-400">{stats.inactive}</div>
+            <div className="text-sm text-gray-400">Inactive (60d+)</div>
+          </div>
+        </div>
+
+        {/* Filter Reset */}
+        {filter !== 'all' && (
+          <div className="mb-4">
+            <button
+              onClick={() => setFilter('all')}
+              className="px-3 py-1 text-sm bg-gray-700 hover:bg-gray-600 text-white rounded"
+            >
+              Clear Filter (showing {filter})
+            </button>
+          </div>
+        )}
 
         {loading ? (
           <div className="text-center py-12 text-gray-400">Loading...</div>
@@ -258,27 +429,47 @@ export default function TasksPage() {
                 <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
                   <span className="text-blue-400">⏻</span>
                   System Tasks
-                  <span className="text-xs text-gray-500 font-normal">(Permanent - cannot delete)</span>
+                  <span className="text-xs text-gray-500 font-normal">
+                    (Permanent - cannot delete)
+                  </span>
                 </h2>
                 <div className="space-y-4">
                   {permanentTasks.map(task => (
-                    <div key={task.id} className={`bg-gray-800 rounded-lg p-4 border ${task.enabled ? 'border-gray-700' : 'border-gray-800 opacity-60'}`}>
+                    <div
+                      key={task.id}
+                      className={`bg-gray-800 rounded-lg p-4 border ${task.enabled ? 'border-gray-700' : 'border-gray-800 opacity-60'}`}
+                    >
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
                             <h3 className="font-semibold text-white">{task.name}</h3>
-                            <span className={`text-xs px-2 py-0.5 rounded ${taskTypeLabel(task.taskType).color}`}>
+                            <span
+                              className={`text-xs px-2 py-0.5 rounded ${taskTypeLabel(task.taskType).color}`}
+                            >
                               {taskTypeLabel(task.taskType).label}
                             </span>
-                            <span className="text-xs px-2 py-0.5 bg-purple-900/50 text-purple-300 rounded">{formatSchedule(task.schedule)}</span>
+                            <span className="text-xs px-2 py-0.5 bg-purple-900/50 text-purple-300 rounded">
+                              {formatSchedule(task.schedule)}
+                            </span>
                           </div>
-                          {task.description && <p className="text-gray-400 text-sm mt-1">{task.description}</p>}
+                          {task.description && (
+                            <p className="text-gray-400 text-sm mt-1">{task.description}</p>
+                          )}
                           <div className="flex gap-6 mt-3 text-sm text-gray-400">
                             <span>Last run: {formatDate(task.lastRun)}</span>
                             <span>Runs: {task.runCount}</span>
                             <span className="text-green-400">✓ {task.successCount}</span>
                             <span className="text-red-400">✗ {task.failCount}</span>
                           </div>
+                          {getTaskWarnings(task).length > 0 && (
+                            <div className="mt-2 space-y-1">
+                              {getTaskWarnings(task).map((warning, i) => (
+                                <div key={i} className="text-xs text-yellow-400">
+                                  {warning}
+                                </div>
+                              ))}
+                            </div>
+                          )}
                           {task.lastResult && (
                             <button
                               onClick={() => viewTaskResults(task)}
@@ -315,26 +506,37 @@ export default function TasksPage() {
                 <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
                   <span className="text-yellow-400">⏱</span>
                   User Tasks
-                  <span className="text-xs text-gray-500 font-normal">(Temporary - can be deleted)</span>
+                  <span className="text-xs text-gray-500 font-normal">
+                    (Temporary - can be deleted)
+                  </span>
                 </h2>
                 <div className="space-y-4">
                   {temporaryTasks.map(task => (
-                    <div key={task.id} className={`bg-gray-800 rounded-lg p-4 border ${task.enabled ? 'border-gray-700' : 'border-gray-800 opacity-60'}`}>
+                    <div
+                      key={task.id}
+                      className={`bg-gray-800 rounded-lg p-4 border ${task.enabled ? 'border-gray-700' : 'border-gray-800 opacity-60'}`}
+                    >
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
                           <div className="flex items-center gap-2 flex-wrap">
                             <h3 className="font-semibold text-white">{task.name}</h3>
-                            <span className={`text-xs px-2 py-0.5 rounded ${taskTypeLabel(task.taskType).color}`}>
+                            <span
+                              className={`text-xs px-2 py-0.5 rounded ${taskTypeLabel(task.taskType).color}`}
+                            >
                               {taskTypeLabel(task.taskType).label}
                             </span>
-                            <span className="text-xs px-2 py-0.5 bg-purple-900/50 text-purple-300 rounded">{formatSchedule(task.schedule)}</span>
+                            <span className="text-xs px-2 py-0.5 bg-purple-900/50 text-purple-300 rounded">
+                              {formatSchedule(task.schedule)}
+                            </span>
                             {task.expiresAt && (
                               <span className="text-xs px-2 py-0.5 bg-orange-900/50 text-orange-300 rounded">
                                 {formatExpires(task.expiresAt)}
                               </span>
                             )}
                           </div>
-                          {task.description && <p className="text-gray-400 text-sm mt-1">{task.description}</p>}
+                          {task.description && (
+                            <p className="text-gray-400 text-sm mt-1">{task.description}</p>
+                          )}
                           {task.prompt && (
                             <p className="text-gray-500 text-xs mt-2 font-mono truncate max-w-xl">
                               {task.prompt}
@@ -385,7 +587,9 @@ export default function TasksPage() {
             {tasks.length === 0 && (
               <div className="bg-gray-800 rounded-lg p-8 text-center">
                 <p className="text-gray-400">No scheduled tasks yet.</p>
-                <p className="text-gray-500 text-sm mt-2">Create a task above using natural language.</p>
+                <p className="text-gray-500 text-sm mt-2">
+                  Create a task above using natural language.
+                </p>
               </div>
             )}
           </div>
@@ -393,12 +597,16 @@ export default function TasksPage() {
 
         {/* Task Results Panel */}
         {selectedTask && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50" onClick={() => setSelectedTask(null)}>
-            <div className="bg-gray-800 rounded-lg max-w-4xl w-full max-h-[80vh] overflow-hidden" onClick={e => e.stopPropagation()}>
+          <div
+            className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+            onClick={() => setSelectedTask(null)}
+          >
+            <div
+              className="bg-gray-800 rounded-lg max-w-4xl w-full max-h-[80vh] overflow-hidden"
+              onClick={e => e.stopPropagation()}
+            >
               <div className="p-4 border-b border-gray-700 flex justify-between items-center">
-                <h3 className="text-lg font-semibold text-white">
-                  Results: {selectedTask.name}
-                </h3>
+                <h3 className="text-lg font-semibold text-white">Results: {selectedTask.name}</h3>
                 <button
                   onClick={() => setSelectedTask(null)}
                   className="text-gray-400 hover:text-white text-2xl"
@@ -414,7 +622,10 @@ export default function TasksPage() {
                 ) : (
                   <div className="space-y-4">
                     {taskResults.map((result, i) => (
-                      <div key={result.id} className={`p-4 rounded ${result.success ? 'bg-green-900/20 border border-green-800' : 'bg-red-900/20 border border-red-800'}`}>
+                      <div
+                        key={result.id}
+                        className={`p-4 rounded ${result.success ? 'bg-green-900/20 border border-green-800' : 'bg-red-900/20 border border-red-800'}`}
+                      >
                         <div className="flex justify-between text-sm text-gray-400 mb-2">
                           <span>{formatDate(result.created_at)}</span>
                           <span className={result.success ? 'text-green-400' : 'text-red-400'}>
@@ -428,7 +639,9 @@ export default function TasksPage() {
                         )}
                         {result.data && (
                           <details className="mt-2">
-                            <summary className="text-sm text-gray-400 cursor-pointer">View data</summary>
+                            <summary className="text-sm text-gray-400 cursor-pointer">
+                              View data
+                            </summary>
                             <pre className="text-xs text-gray-400 mt-2 overflow-auto max-h-40">
                               {JSON.stringify(result.data, null, 2)}
                             </pre>
