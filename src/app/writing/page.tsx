@@ -4,6 +4,12 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { ModelSelector } from '@/components/ModelSelector';
 import { MarkdownRenderer } from '@/components/MarkdownRenderer';
+import {
+  MermaidDiagram,
+  tableToMermaid,
+  parseCSV,
+  MERMAID_PROMPTS,
+} from '@/components/MermaidDiagram';
 import { saveAs } from 'file-saver';
 
 interface ActionResult {
@@ -48,6 +54,17 @@ export default function WritingAssistantPage() {
   const [result, setResult] = useState<ActionResult | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Mode toggle: 'templates' or 'chat'
+  const [mode, setMode] = useState<'templates' | 'chat'>('templates');
+
+  // Chat mode state
+  const [chatMessages, setChatMessages] = useState<
+    Array<{ role: 'user' | 'assistant'; content: string }>
+  >([]);
+  const [chatInput, setChatInput] = useState('');
+  const [chatLoading, setChatLoading] = useState(false);
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
   // Theme state
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
 
@@ -61,7 +78,11 @@ export default function WritingAssistantPage() {
   const [saveMenuOpen, setSaveMenuOpen] = useState(false);
   const saveMenuRef = useRef<HTMLDivElement>(null);
 
-  // Load saved model and theme on mount
+  // Mermaid diagram state
+  const [mermaidCode, setMermaidCode] = useState('');
+  const [showMermaidPreview, setShowMermaidPreview] = useState(false);
+
+  // Load saved model, theme, and outline content on mount
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const savedModel = localStorage.getItem('selectedModel');
@@ -69,6 +90,13 @@ export default function WritingAssistantPage() {
 
       const savedTheme = localStorage.getItem('writing-theme');
       if (savedTheme) setTheme(savedTheme as 'dark' | 'light');
+
+      // Check for outline content from outline-creator
+      const outlineContent = localStorage.getItem('outline-content');
+      if (outlineContent) {
+        setInput(outlineContent);
+        localStorage.removeItem('outline-content');
+      }
     }
   }, []);
 
@@ -112,7 +140,7 @@ export default function WritingAssistantPage() {
     setResult(null);
     setChanges([]);
 
-    const modelToUse = model || 'kimi-k2.5';
+    const modelToUse = model || 'ollama/qwen3.5:2b';
 
     try {
       const response = await fetch('/api/writing', {
@@ -147,6 +175,73 @@ export default function WritingAssistantPage() {
     }
 
     setLoading(false);
+  };
+
+  // Convert table data to Mermaid diagram
+  const handleCreateDiagram = async (type: 'flowchart' | 'sequence' | 'state') => {
+    if (!input.trim()) {
+      setError('Please enter data to convert to diagram');
+      return;
+    }
+
+    // Try to parse as CSV or table
+    let tableData: string[][] = [];
+
+    // Check if input looks like CSV
+    if (input.includes(',') || input.includes('\t')) {
+      tableData = parseCSV(input);
+    } else {
+      // Try to parse as markdown table
+      const lines = input.trim().split('\n');
+      tableData = lines.map(line =>
+        line
+          .split('|')
+          .map(cell => cell.trim())
+          .filter(cell => cell)
+      );
+    }
+
+    if (tableData.length < 2) {
+      // If no table data, use AI to generate Mermaid from text
+      setLoading(true);
+      try {
+        const response = await fetch('/api/writing', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'diagram',
+            text: input,
+            style: type,
+            model: model || 'ollama/qwen3.5:2b',
+          }),
+        });
+        const data = await response.json();
+        if (data.success) {
+          setMermaidCode(data.result);
+          setShowMermaidPreview(true);
+        } else {
+          setError(data.error || 'Failed to generate diagram');
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to generate diagram');
+      }
+      setLoading(false);
+      return;
+    }
+
+    // Convert table to Mermaid
+    const mermaidCode = tableToMermaid(tableData, { tableType: type });
+    setMermaidCode(mermaidCode);
+    setShowMermaidPreview(true);
+  };
+
+  // Insert Mermaid code into result
+  const insertMermaidToResult = () => {
+    if (mermaidCode) {
+      const mermaidBlock = `\`\`\`mermaid\n${mermaidCode}\n\`\`\``;
+      setInput(prev => prev + (prev ? '\n\n' : '') + mermaidBlock);
+      setShowMermaidPreview(false);
+    }
   };
 
   const copyResult = () => {
@@ -543,6 +638,12 @@ export default function WritingAssistantPage() {
                       icon: '📧',
                       desc: 'Professional email template',
                     },
+                    {
+                      id: 'diagram',
+                      name: 'Diagram',
+                      icon: '🔀',
+                      desc: 'Create Mermaid diagram from data',
+                    },
                   ].find(x => x.id === action)?.desc
                 }
               </p>
@@ -580,6 +681,46 @@ export default function WritingAssistantPage() {
                     </button>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Diagram Type Selection (for diagram action) */}
+            {action === 'diagram' && (
+              <div className={`${cardClasses} rounded-xl p-4`}>
+                <h2
+                  className={`text-lg font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'} mb-3`}
+                >
+                  Diagram Type
+                </h2>
+                <div className="flex flex-wrap gap-3">
+                  {[
+                    { id: 'flowchart', name: 'Flowchart', icon: '📊' },
+                    { id: 'sequence', name: 'Sequence', icon: '📱' },
+                    { id: 'state', name: 'State', icon: '🔄' },
+                  ].map(d => (
+                    <button
+                      key={d.id}
+                      onClick={() =>
+                        handleCreateDiagram(d.id as 'flowchart' | 'sequence' | 'state')
+                      }
+                      disabled={loading}
+                      className={`px-4 py-2 rounded-lg flex items-center gap-2 transition-colors ${
+                        theme === 'dark'
+                          ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                          : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      } disabled:opacity-50`}
+                    >
+                      <span>{d.icon}</span>
+                      <span>{d.name}</span>
+                    </button>
+                  ))}
+                </div>
+                <p
+                  className={`${theme === 'dark' ? 'text-slate-400' : 'text-gray-600'} text-sm mt-2`}
+                >
+                  Enter CSV or tabular data in the input, or just describe what you want to
+                  visualize.
+                </p>
               </div>
             )}
 
@@ -725,6 +866,65 @@ export default function WritingAssistantPage() {
                 >
                   Generated with {result.model} • {result.result.length} characters
                 </div>
+              </div>
+            )}
+
+            {/* Mermaid Diagram Preview */}
+            {showMermaidPreview && mermaidCode && (
+              <div
+                className={`mt-4 rounded-lg p-4 ${
+                  theme === 'dark'
+                    ? 'bg-slate-900 border border-slate-700'
+                    : 'bg-gray-50 border border-gray-200'
+                }`}
+              >
+                <div className="flex justify-between items-center mb-3">
+                  <h3
+                    className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}
+                  >
+                    Mermaid Diagram Preview
+                  </h3>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={insertMermaidToResult}
+                      className="px-3 py-1 bg-purple-600 text-white rounded text-sm hover:bg-purple-700"
+                    >
+                      Insert to Input
+                    </button>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText('```mermaid\n' + mermaidCode + '\n```');
+                      }}
+                      className={`px-3 py-1 rounded text-sm ${
+                        theme === 'dark'
+                          ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      }`}
+                    >
+                      Copy Code
+                    </button>
+                    <button
+                      onClick={() => setShowMermaidPreview(false)}
+                      className={`px-3 py-1 rounded text-sm ${
+                        theme === 'dark'
+                          ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      }`}
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+                <div className="bg-white rounded p-4 overflow-auto">
+                  <MermaidDiagram code={mermaidCode} />
+                </div>
+                <pre
+                  className={`mt-2 p-2 rounded text-xs overflow-auto ${
+                    theme === 'dark' ? 'bg-slate-800 text-slate-300' : 'bg-gray-100 text-gray-700'
+                  }`}
+                >
+                  {mermaidCode}
+                </pre>
               </div>
             )}
 

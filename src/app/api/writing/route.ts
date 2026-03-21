@@ -5,6 +5,7 @@ import { chatCompletion } from '@/lib/models/sdk.server';
 import { memoryFileService } from '@/lib/services/memory-file';
 import { brandWorkspace } from '@/lib/services/brand-workspace';
 import { sanitizePrompt } from '@/lib/utils/validation';
+import { getModelBus } from '@/lib/services/model-bus';
 
 const EXPAND_PROMPT = `You are an expert writer. Expand on the following text, adding more detail, examples, and depth while maintaining the original voice and style. Make it approximately 2-3x longer while keeping it natural and engaging.
 
@@ -22,31 +23,31 @@ Topic/Content:
 {text}
 """
 
-Create a hierarchical outline with the following structure:
+Create a hierarchical outline using ONLY markdown heading syntax:
 
-# {Title}
+# Title (Main Topic)
 
-## I. {Main Section}
-### A. {Subsection}
-#### 1. {Detail/Point}
-   - Supporting evidence or example
-   - Additional context
-#### 2. {Detail/Point}
-   - Supporting evidence or example
-### B. {Subsection}
-   (Continue pattern...)
+## Section Name
 
-## II. {Next Main Section}
-   (Continue pattern...)
+### Subsection Name
+
+#### Specific Point
+- Supporting detail
+- Additional context
+
+### Another Subsection
+
+#### Another Point
+- More details
 
 Requirements:
-- Use Markdown formatting with # for main title, ## for sections, ### for subsections
-- Include at least 3-5 main sections
-- Each section should have 2-4 subsections
-- Each subsection should have 2-3 detailed points
-- Add bullet points for supporting details
+- Use # for main title, ## for sections, ### for subsections, #### for specific points
+- Include at least 5-7 main sections (##)
+- Each section should have 2-3 subsections (###)
+- Each subsection should have 2-3 specific points (####) with bullet details
 - Ensure logical flow and progression
 - Make it comprehensive enough to guide full content creation
+- DO NOT use Roman numerals (I, II, III) or letters (A, B, C) - only markdown headings
 
 Provide ONLY the outline, no explanations or meta-commentary.`;
 
@@ -135,56 +136,103 @@ Provide ONLY the humanized text, no explanations or meta-commentary.`;
 
 const SBIR_PROMPT = `You are an expert grant writer specializing in SBIR (Small Business Innovation Research) and other government funding proposals. Generate a comprehensive SBIR/grant proposal based on the following information, using the brand voice and style provided in the context.
 
-Information:
+**Information:**
 """
 {text}
 """
 
-Generate a professional SBIR/grant proposal that includes:
+Generate a professional SBIR/grant proposal with proper Markdown formatting:
 
-I. Executive Summary
-* Provide a concise overview of the proposed project, including the problem or opportunity, objectives, scope, and expected outcomes
+# I. Executive Summary
 
-II. Problem Statement
-* Clearly articulate the problem or opportunity that the proposed project aims to address
-* Provide evidence to support the problem or opportunity, including data, statistics, or other relevant information
+Write a concise overview of the proposed project, including:
 
-III. Objectives
-* List the specific, measurable, achievable, relevant, and time-bound (SMART) objectives of the proposed project
-* Provide evidence to support the objectives, including research, analysis, or other relevant information
+- The problem or opportunity
+- Objectives
+- Scope
+- Expected outcomes
 
-IV. Scope
-* Define the scope of the proposed project, including the activities, tasks, and deliverables that will be undertaken
-* Provide evidence to support the scope, including project plans, timelines, or other relevant documents
+# II. Problem Statement
 
-V. Methodology
-* Describe the methodology that will be used to achieve the proposed project's objectives, including the research design, data collection methods, and analysis techniques
-* Provide evidence to support the methodology, including research protocols, data management plans, or other relevant documents
+Clearly articulate the problem or opportunity that the proposed project aims to address:
 
-VI. Expected Outcomes
-* Describe the expected outcomes of the proposed project, including the benefits, impacts, and deliverables that will be produced
-* Provide evidence to support the expected outcomes, including case studies, pilot projects, or other relevant information
+- Provide evidence to support the problem or opportunity
+- Include data, statistics, or other relevant information
 
-VII. Budget and Cost Estimate
-* Provide a detailed budget and cost estimate for the proposed project, including all expenses, revenues, and funding sources
-* Provide evidence to support the budget and cost estimate, including financial statements, invoices, or other relevant documents
+# III. Objectives
 
-VIII. Timeline
-* Provide a detailed timeline for the proposed project, including all activities, tasks, and milestones that will be undertaken
-* Provide evidence to support the timeline, including Gantt charts, project plans, or other scheduling documents
+List the specific, measurable, achievable, relevant, and time-bound (SMART) objectives:
 
-IX. Team and Qualifications
-* Provide a detailed description of the team that will be responsible for executing the proposed project, including their qualifications, experience, and expertise
-* Provide evidence to support the team's qualifications, including resumes, CVs, or other professional documents
+- Provide evidence to support the objectives
+- Include research, analysis, or other relevant information
 
-X. Conclusion
-* Summarize the main points of the proposal, including the problem or opportunity, objectives, scope, methodology, expected outcomes, benefits, budget, cost estimate, timeline, and team
-* Provide a clear call to action, including the next steps that the applicant plans to take to advance the proposed project
+# IV. Scope
 
-XI. Appendices
-* Provide any additional supporting materials or documents that may be relevant to the proposal, such as letters of support, case studies, or other evidence that supports the proposal's objectives, scope, and expected outcomes.
+Define the scope of the proposed project:
 
-Provide ONLY the proposal content, no explanations or meta-commentary.`;
+- List the activities, tasks, and deliverables
+- Include project plans, timelines, or other relevant documents
+
+# V. Methodology
+
+Describe the methodology for achieving objectives:
+
+- Research design
+- Data collection methods
+- Analysis techniques
+- Include research protocols, data management plans, or other relevant documents
+
+# VI. Expected Outcomes
+
+Describe the expected outcomes:
+
+- Benefits and impacts
+- Deliverables to be produced
+- Include case studies, pilot projects, or other relevant information
+
+# VII. Budget and Cost Estimate
+
+Provide a detailed budget and cost estimate:
+
+- All expenses
+- Revenues
+- Funding sources
+- Include financial statements, invoices, or other relevant documents
+
+# VIII. Timeline
+
+Provide a detailed timeline:
+
+- All activities and tasks
+- Milestones
+- Include Gantt charts, project plans, or other scheduling documents
+
+# IX. Team and Qualifications
+
+Describe the team:
+
+- Responsibilities
+- Qualifications
+- Experience and expertise
+- Include resumes, CVs, or other professional documents
+
+# X. Conclusion
+
+Summarize the main points:
+
+- Problem or opportunity
+- Objectives
+- Scope
+- Methodology
+- Expected outcomes
+- Benefits
+- Budget
+- Timeline
+- Team
+
+Include a clear call to action with next steps.
+
+Provide ONLY the proposal content with proper Markdown formatting, no explanations or meta-commentary.`;
 
 const CAPTURE_PLAN_PROMPT = `Act as a senior government capture manager. Read the attached Request for Proposal and provide a one-page executive summary that includes:
 1. Agency and customer
@@ -550,6 +598,10 @@ Make 5-15 meaningful improvements focusing on:
 
 Return ONLY the JSON array, no other text.`;
         break;
+      case 'delegate':
+        // Use the message bus to delegate to appropriate model
+        prompt = text; // The prompt IS the text to process
+        break;
       default:
         return NextResponse.json(
           {
@@ -568,7 +620,7 @@ Return ONLY the JSON array, no other text.`;
         '\n\nYou are a skilled writing assistant. Follow instructions precisely and provide only the requested output.',
     };
 
-    const useModel = model || 'kimi-k2.5';
+    const useModel = model || 'ollama/qwen3.5:2b';
 
     // Handle track_changes action separately - it returns JSON
     if (action === 'track_changes') {
@@ -639,6 +691,37 @@ Return ONLY the JSON array, no other text.`;
         });
       } catch (error) {
         return NextResponse.json({ error: 'Failed to process review' }, { status: 500 });
+      }
+    }
+
+    // Handle delegate action - use message bus for hierarchical processing
+    if (action === 'delegate') {
+      try {
+        const bus = getModelBus();
+        const result = await bus.process({
+          originalQuery: text,
+          context: combinedContext,
+          sourceModel: 'writing-studio',
+          preferredTier: 'cloud-smart', // Writing tasks benefit from quality models
+        });
+
+        return NextResponse.json({
+          success: true,
+          action: 'delegate',
+          result: result.finalResponse,
+          delegationPath: result.delegationPath,
+          costSavings: result.costSavings,
+          model: result.delegationPath[result.delegationPath.length - 1] || 'unknown',
+        });
+      } catch (error) {
+        console.error('Delegate error:', error);
+        return NextResponse.json(
+          {
+            error: 'Failed to delegate writing task',
+            details: error instanceof Error ? error.message : 'Unknown error',
+          },
+          { status: 500 }
+        );
       }
     }
 
@@ -835,6 +918,13 @@ export async function GET(request: NextRequest) {
         name: 'email_template',
         description: 'Generate professional email templates for marketing',
         parameters: ['text'],
+      },
+      {
+        name: 'delegate',
+        description:
+          'Use hierarchical model delegation for complex writing (auto-selects best model)',
+        parameters: ['text'],
+        note: 'Uses message bus to escalate to cloud models when needed',
       },
     ],
     usage:

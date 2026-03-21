@@ -86,9 +86,10 @@ const NOTE_COLORS = [
 
 interface NotesBoardProps {
   onEditNote?: (note: Note) => void;
+  refreshKey?: number;
 }
 
-export function NotesBoard({ onEditNote }: NotesBoardProps) {
+export function NotesBoard({ onEditNote, refreshKey }: NotesBoardProps) {
   const [notes, setNotes] = useState<Note[]>([]);
   const [loading, setLoading] = useState(true);
   const [dragState, setDragState] = useState<DragState>({
@@ -123,7 +124,7 @@ export function NotesBoard({ onEditNote }: NotesBoardProps) {
 
   useEffect(() => {
     loadNotes();
-  }, [loadNotes]);
+  }, [loadNotes, refreshKey]);
 
   const saveNotePosition = useCallback(
     async (id: string, positionX: number, positionY: number, width?: number, height?: number) => {
@@ -347,6 +348,8 @@ export function NotesBoard({ onEditNote }: NotesBoardProps) {
                 className={`${colorStyle.border} border-b px-3 py-2 flex items-center justify-between`}
               >
                 <input
+                  id={`note-title-${note.id}`}
+                  name="title"
                   type="text"
                   value={note.title || 'Untitled'}
                   onChange={e => {

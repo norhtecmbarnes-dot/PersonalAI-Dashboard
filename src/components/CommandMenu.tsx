@@ -66,6 +66,7 @@ const COMMANDS: Command[] = [
   { name: '/research', description: 'Run external research', action: 'research', icon: '🔬' },
   { name: '/document', description: 'Start new document', action: 'book', icon: '📝' },
   { name: '/security', description: 'Run security scan', action: 'security', icon: '🔒' },
+  { name: '/ram', description: 'Show system memory usage', action: 'show_ram', icon: '💾' },
   { name: '/calendar', description: 'Show upcoming events', action: 'show_calendar', icon: '📅' },
   { name: '/tasks', description: 'Open Tasks page', action: 'navigate_tasks', icon: '✅' },
   { name: '/contacts', description: 'Show saved contacts', action: 'show_contacts', icon: '👥' },

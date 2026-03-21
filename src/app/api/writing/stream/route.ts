@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Model from request or fallback
-    const selectedModel = model || 'gpt-oss:20b';
+    const selectedModel = model || 'ollama/qwen3.5:2b';
 
     let prompt = '';
     switch (action) {
@@ -202,30 +202,60 @@ export async function POST(request: NextRequest) {
         messages: [{ role: 'user', content: prompt }],
       });
 
-      // Extract content from result
-      const content = (result as any).message?.content || String(result.message) || '';
-
       // Create streaming response
       const encoder = new TextEncoder();
-      const customStream = new ReadableStream({
+      const stream = new ReadableStream({
         async start(controller) {
           try {
-            // Stream the content in chunks
-            const chunkSize = 20;
-            for (let i = 0; i < content.length; i += chunkSize) {
-              const chunk = content.slice(i, i + chunkSize);
-              const data = JSON.stringify({ content: chunk });
-              controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+            // Check if we got a stream (Ollama) or a complete response (external APIs)
+            if ((result as any).stream) {
+              // Handle Ollama streaming response
+              const reader = (result as any).stream.getReader();
+              const decoder = new TextDecoder();
+
+              while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                const chunk = decoder.decode(value, { stream: true });
+                const lines = chunk.split('\n').filter(line => line.trim());
+
+                for (const line of lines) {
+                  try {
+                    const parsed = JSON.parse(line);
+                    if (parsed.message?.content) {
+                      const data = JSON.stringify({ content: parsed.message.content });
+                      controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+                    }
+                  } catch {
+                    // Skip invalid JSON
+                  }
+                }
+              }
+            } else {
+              // Handle complete response (non-streaming APIs like OpenRouter, GLM, DeepSeek)
+              const msg = result.message as unknown as { content?: string };
+              const content = msg?.content || String(result.message) || '';
+
+              // Stream the content in chunks for a simulated streaming effect
+              const chunkSize = 20;
+              for (let i = 0; i < content.length; i += chunkSize) {
+                const chunk = content.slice(i, i + chunkSize);
+                const data = JSON.stringify({ content: chunk });
+                controller.enqueue(encoder.encode(`data: ${data}\n\n`));
+              }
             }
+
             controller.enqueue(encoder.encode(`data: [DONE]\n\n`));
             controller.close();
           } catch (error) {
+            console.error('[Writing Stream] Stream error:', error);
             controller.error(error);
           }
         },
       });
 
-      return new NextResponse(customStream, {
+      return new NextResponse(stream, {
         headers: {
           'Content-Type': 'text/event-stream',
           'Cache-Control': 'no-cache',

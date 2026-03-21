@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { brandWorkspace } from '@/lib/services/brand-workspace';
 import { documentProcessor } from '@/lib/services/document-processor';
+import { knowledgeExtractor } from '@/lib/services/knowledge-extractor';
 
 export async function GET(request: NextRequest) {
   try {
@@ -75,7 +76,7 @@ export async function POST(request: NextRequest) {
       }
 
       case 'addDocumentFromUrl': {
-        const { brandId, projectId, url } = data;
+        const { brandId, projectId, url, extractKnowledge = true } = data;
         const processed = await documentProcessor.processURL(url);
         const document = await brandWorkspace.addDocument(brandId, {
           title: processed.title,
@@ -88,11 +89,22 @@ export async function POST(request: NextRequest) {
             importedAt: Date.now(),
           },
         });
-        return NextResponse.json({ success: true, document });
+
+        // Extract knowledge for better context
+        let knowledge = null;
+        if (extractKnowledge) {
+          try {
+            knowledge = await knowledgeExtractor.extractKnowledge(processed.content);
+          } catch (keError) {
+            console.error('[Brand] Knowledge extraction failed:', keError);
+          }
+        }
+
+        return NextResponse.json({ success: true, document, knowledge });
       }
 
       case 'addDocumentFromText': {
-        const { brandId, projectId, title, content } = data;
+        const { brandId, projectId, title, content, extractKnowledge = true } = data;
         const processed = await documentProcessor.processTextContent(content, title);
         const document = await brandWorkspace.addDocument(brandId, {
           title: processed.title,
@@ -104,7 +116,18 @@ export async function POST(request: NextRequest) {
             importedAt: Date.now(),
           },
         });
-        return NextResponse.json({ success: true, document });
+
+        // Extract knowledge for better context
+        let knowledge = null;
+        if (extractKnowledge && content.length > 500) {
+          try {
+            knowledge = await knowledgeExtractor.extractKnowledge(content);
+          } catch (keError) {
+            console.error('[Brand] Knowledge extraction failed:', keError);
+          }
+        }
+
+        return NextResponse.json({ success: true, document, knowledge });
       }
 
       default:

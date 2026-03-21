@@ -472,9 +472,9 @@ export default function ModelLeaderboardPage() {
             releases and benchmark changes.
           </p>
           <div className="bg-slate-700/50 rounded-lg p-4 font-mono text-sm text-slate-300">
-            <p className="text-purple-400 mb-2">// PROMPT: Create Model Research Task</p>
+            <p className="text-purple-400 mb-2">{'/* PROMPT: Create Model Research Task */'}</p>
             <p className="whitespace-pre-wrap">
-              {`Create a scheduled task that:
+              {`\nCreate a scheduled task that:
 1. Checks for new model releases weekly
 2. Updates benchmark scores from:
    - Hugging Face Open LLM Leaderboard

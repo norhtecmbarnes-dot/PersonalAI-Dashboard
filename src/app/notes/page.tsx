@@ -25,6 +25,7 @@ export default function NotesPage() {
   const [editingNote, setEditingNote] = useState<Note | undefined>();
   const [viewMode, setViewMode] = useState<'board' | 'list'>('board');
   const [selectedModel, setSelectedModel] = useState('');
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const handleModelChange = (modelId: string) => {
     setSelectedModel(modelId);
@@ -55,6 +56,7 @@ export default function NotesPage() {
   const handleCloseEditor = () => {
     setIsEditorOpen(false);
     setEditingNote(undefined);
+    setRefreshKey(k => k + 1);
   };
 
   return (
@@ -73,7 +75,9 @@ export default function NotesPage() {
               <button
                 onClick={() => setViewMode('board')}
                 className={`px-3 py-1 rounded text-sm ${
-                  viewMode === 'board' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white'
+                  viewMode === 'board'
+                    ? 'bg-purple-600 text-white'
+                    : 'text-gray-400 hover:text-white'
                 }`}
               >
                 Board
@@ -81,7 +85,9 @@ export default function NotesPage() {
               <button
                 onClick={() => setViewMode('list')}
                 className={`px-3 py-1 rounded text-sm ${
-                  viewMode === 'list' ? 'bg-purple-600 text-white' : 'text-gray-400 hover:text-white'
+                  viewMode === 'list'
+                    ? 'bg-purple-600 text-white'
+                    : 'text-gray-400 hover:text-white'
                 }`}
               >
                 List
@@ -92,7 +98,12 @@ export default function NotesPage() {
               className="px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg font-medium flex items-center gap-2"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 4v16m8-8H4"
+                />
               </svg>
               New Note
             </button>
@@ -101,17 +112,13 @@ export default function NotesPage() {
 
         {viewMode === 'board' ? (
           <div className="h-[calc(100vh-180px)]">
-            <NotesBoard onEditNote={handleEditNote} />
+            <NotesBoard onEditNote={handleEditNote} refreshKey={refreshKey} />
           </div>
         ) : (
           <NotesList onEdit={handleEditNote} />
         )}
 
-        <NoteEditor
-          isOpen={isEditorOpen}
-          onClose={handleCloseEditor}
-          initialNote={editingNote}
-        />
+        <NoteEditor isOpen={isEditorOpen} onClose={handleCloseEditor} initialNote={editingNote} />
       </div>
     </div>
   );

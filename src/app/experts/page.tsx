@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 
 interface Expert {
   id: string;
@@ -18,14 +18,36 @@ interface Expert {
 export default function ExpertsPage() {
   const [experts, setExperts] = useState<Expert[]>([]);
   const [selectedExpert, setSelectedExpert] = useState<Expert | null>(null);
-  const [messages, setMessages] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>([]);
+  const [messages, setMessages] = useState<Array<{ role: 'user' | 'assistant'; content: string }>>(
+    []
+  );
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showEditor, setShowEditor] = useState(false);
   const [editingExpert, setEditingExpert] = useState<Partial<Expert> | null>(null);
+  const [showScrollButton, setShowScrollButton] = useState(false);
+
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     loadExperts();
+  }, []);
+
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
+
+  const handleChatScroll = useCallback(() => {
+    if (chatContainerRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = chatContainerRef.current;
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+      setShowScrollButton(!isNearBottom);
+    }
+  }, []);
+
+  const scrollToBottom = useCallback(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, []);
 
   const loadExperts = async () => {
@@ -40,25 +62,33 @@ export default function ExpertsPage() {
 
   const startChat = (expert: Expert) => {
     setSelectedExpert(expert);
-    setMessages([{
-      role: 'assistant',
-      content: `Hello! I'm ${expert.name}, ${expert.role}. ${expert.description}\n\nHow can I help you today?`
-    }]);
+    setMessages([
+      {
+        role: 'assistant',
+        content: `Hello! I'm ${expert.name}, ${expert.role}. ${expert.description}\n\nHow can I help you today?`,
+      },
+    ]);
     setShowEditor(false);
   };
 
   const sendMessage = async () => {
     if (!input.trim() || isLoading || !selectedExpert) return;
-    
-    const userMessage: { role: 'user' | 'assistant'; content: string } = { role: 'user', content: input };
+
+    const userMessage: { role: 'user' | 'assistant'; content: string } = {
+      role: 'user',
+      content: input,
+    };
     setMessages(prev => [...prev, userMessage]);
     setInput('');
     setIsLoading(true);
 
     try {
-      const systemPrompt = selectedExpert.systemPrompt + 
+      const systemPrompt =
+        selectedExpert.systemPrompt +
         (selectedExpert.personality ? `\n\nPersonality: ${selectedExpert.personality}` : '') +
-        (selectedExpert.capabilities.length > 0 ? `\n\nCapabilities: ${selectedExpert.capabilities.join(', ')}` : '');
+        (selectedExpert.capabilities.length > 0
+          ? `\n\nCapabilities: ${selectedExpert.capabilities.join(', ')}`
+          : '');
 
       const response = await fetch('/api/chat', {
         method: 'POST',
@@ -88,10 +118,10 @@ export default function ExpertsPage() {
 
     try {
       const isEditing = editingExpert.id && experts.find(e => e.id === editingExpert.id);
-      
+
       const url = '/api/experts';
       const method = isEditing ? 'PUT' : 'POST';
-      
+
       const response = await fetch(url, {
         method,
         headers: { 'Content-Type': 'application/json' },
@@ -156,9 +186,7 @@ export default function ExpertsPage() {
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-3xl font-bold text-white">Expert Agents</h1>
-            <p className="text-gray-400 mt-1">
-              Specialized AI experts for different domains
-            </p>
+            <p className="text-gray-400 mt-1">Specialized AI experts for different domains</p>
           </div>
           <button
             onClick={() => openEditor()}
@@ -186,33 +214,44 @@ export default function ExpertsPage() {
                     <div onClick={() => startChat(expert)}>
                       <div className="flex items-center justify-between">
                         <h3 className="font-semibold text-white">{expert.name}</h3>
-                        {expert.editable && (
-                          <span className="text-xs text-gray-400">Custom</span>
-                        )}
+                        {expert.editable && <span className="text-xs text-gray-400">Custom</span>}
                       </div>
                       <p className="text-sm text-purple-300">{expert.role}</p>
-                      <p className="text-xs text-gray-400 mt-1 line-clamp-2">{expert.description}</p>
+                      <p className="text-xs text-gray-400 mt-1 line-clamp-2">
+                        {expert.description}
+                      </p>
                       <div className="flex flex-wrap gap-1 mt-2">
                         {expert.capabilities.slice(0, 3).map((cap, i) => (
-                          <span key={i} className="text-xs px-2 py-0.5 bg-gray-600 rounded text-gray-300">
+                          <span
+                            key={i}
+                            className="text-xs px-2 py-0.5 bg-gray-600 rounded text-gray-300"
+                          >
                             {cap}
                           </span>
                         ))}
                         {expert.capabilities.length > 3 && (
-                          <span className="text-xs text-gray-500">+{expert.capabilities.length - 3}</span>
+                          <span className="text-xs text-gray-500">
+                            +{expert.capabilities.length - 3}
+                          </span>
                         )}
                       </div>
                     </div>
                     {expert.editable && (
                       <div className="flex gap-2 mt-2 border-t border-gray-600 pt-2">
                         <button
-                          onClick={(e) => { e.stopPropagation(); openEditor(expert); }}
+                          onClick={e => {
+                            e.stopPropagation();
+                            openEditor(expert);
+                          }}
                           className="text-xs px-2 py-1 bg-gray-600 rounded hover:bg-gray-500"
                         >
                           Edit
                         </button>
                         <button
-                          onClick={(e) => { e.stopPropagation(); handleDeleteExpert(expert.id); }}
+                          onClick={e => {
+                            e.stopPropagation();
+                            handleDeleteExpert(expert.id);
+                          }}
                           className="text-xs px-2 py-1 bg-red-600/50 rounded hover:bg-red-600"
                         >
                           Delete
@@ -242,29 +281,54 @@ export default function ExpertsPage() {
                   </button>
                 </div>
 
-                <div className="flex-1 overflow-y-auto space-y-4 mb-4">
+                <div
+                  className="flex-1 overflow-y-auto space-y-4 mb-4"
+                  ref={chatContainerRef}
+                  onScroll={handleChatScroll}
+                >
                   {messages.map((msg, i) => (
-                    <div key={i} className={`${msg.role === 'user' ? 'ml-auto text-right' : 'mr-auto'}`}>
-                      <div className={`inline-block max-w-[80%] p-3 rounded-lg ${
-                        msg.role === 'user' 
-                          ? 'bg-purple-600 text-white' 
-                          : 'bg-gray-700 text-gray-200'
-                      }`}>
+                    <div
+                      key={i}
+                      className={`${msg.role === 'user' ? 'ml-auto text-right' : 'mr-auto'}`}
+                    >
+                      <div
+                        className={`inline-block max-w-[80%] p-3 rounded-lg ${
+                          msg.role === 'user'
+                            ? 'bg-purple-600 text-white'
+                            : 'bg-gray-700 text-gray-200'
+                        }`}
+                      >
                         <div className="whitespace-pre-wrap">{msg.content}</div>
                       </div>
                     </div>
                   ))}
-                  {isLoading && (
-                    <div className="text-gray-400">Thinking...</div>
-                  )}
+                  {isLoading && <div className="text-gray-400">Thinking...</div>}
+                  <div ref={messagesEndRef} />
                 </div>
+
+                {showScrollButton && (
+                  <button
+                    onClick={scrollToBottom}
+                    className="absolute bottom-20 right-4 z-10 p-3 bg-purple-600 hover:bg-purple-500 text-white rounded-full shadow-lg transition-all duration-200 hover:scale-110"
+                    title="Scroll to bottom"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M19 14l-7 7m0 0l-7-7m7 7V3"
+                      />
+                    </svg>
+                  </button>
+                )}
 
                 <div className="flex gap-2">
                   <input
                     type="text"
                     value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && sendMessage()}
+                    onChange={e => setInput(e.target.value)}
+                    onKeyDown={e => e.key === 'Enter' && sendMessage()}
                     placeholder={`Ask ${selectedExpert.name}...`}
                     className="flex-1 px-4 py-2 bg-gray-900 border border-gray-700 rounded text-white"
                     disabled={isLoading}
@@ -283,14 +347,14 @@ export default function ExpertsPage() {
                 <h2 className="text-xl font-semibold text-white mb-4">
                   {editingExpert?.id ? 'Edit Expert' : 'Create New Expert'}
                 </h2>
-                
+
                 <div className="space-y-4">
                   <div>
                     <label className="block text-gray-400 mb-1">Name *</label>
                     <input
                       type="text"
                       value={editingExpert?.name || ''}
-                      onChange={(e) => setEditingExpert(prev => ({ ...prev, name: e.target.value }))}
+                      onChange={e => setEditingExpert(prev => ({ ...prev, name: e.target.value }))}
                       className="w-full px-4 py-2 bg-gray-900 border border-gray-700 rounded text-white"
                       placeholder="e.g., Financial Advisor"
                     />
@@ -301,7 +365,7 @@ export default function ExpertsPage() {
                     <input
                       type="text"
                       value={editingExpert?.role || ''}
-                      onChange={(e) => setEditingExpert(prev => ({ ...prev, role: e.target.value }))}
+                      onChange={e => setEditingExpert(prev => ({ ...prev, role: e.target.value }))}
                       className="w-full px-4 py-2 bg-gray-900 border border-gray-700 rounded text-white"
                       placeholder="e.g., Financial Specialist"
                     />
@@ -311,7 +375,9 @@ export default function ExpertsPage() {
                     <label className="block text-gray-400 mb-1">Description</label>
                     <textarea
                       value={editingExpert?.description || ''}
-                      onChange={(e) => setEditingExpert(prev => ({ ...prev, description: e.target.value }))}
+                      onChange={e =>
+                        setEditingExpert(prev => ({ ...prev, description: e.target.value }))
+                      }
                       className="w-full px-4 py-2 bg-gray-900 border border-gray-700 rounded text-white h-20"
                       placeholder="Brief description of what this expert does"
                     />
@@ -321,7 +387,9 @@ export default function ExpertsPage() {
                     <label className="block text-gray-400 mb-1">System Prompt *</label>
                     <textarea
                       value={editingExpert?.systemPrompt || ''}
-                      onChange={(e) => setEditingExpert(prev => ({ ...prev, systemPrompt: e.target.value }))}
+                      onChange={e =>
+                        setEditingExpert(prev => ({ ...prev, systemPrompt: e.target.value }))
+                      }
                       className="w-full px-4 py-2 bg-gray-900 border border-gray-700 rounded text-white h-40"
                       placeholder="Instructions that define the expert's behavior..."
                     />
@@ -331,21 +399,30 @@ export default function ExpertsPage() {
                     <label className="block text-gray-400 mb-1">Personality</label>
                     <textarea
                       value={editingExpert?.personality || ''}
-                      onChange={(e) => setEditingExpert(prev => ({ ...prev, personality: e.target.value }))}
+                      onChange={e =>
+                        setEditingExpert(prev => ({ ...prev, personality: e.target.value }))
+                      }
                       className="w-full px-4 py-2 bg-gray-900 border border-gray-700 rounded text-white h-20"
                       placeholder="How the expert should communicate"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-gray-400 mb-1">Capabilities (comma-separated)</label>
+                    <label className="block text-gray-400 mb-1">
+                      Capabilities (comma-separated)
+                    </label>
                     <input
                       type="text"
                       value={editingExpert?.capabilities?.join(', ') || ''}
-                      onChange={(e) => setEditingExpert(prev => ({ 
-                        ...prev, 
-                        capabilities: e.target.value.split(',').map(c => c.trim()).filter(Boolean)
-                      }))}
+                      onChange={e =>
+                        setEditingExpert(prev => ({
+                          ...prev,
+                          capabilities: e.target.value
+                            .split(',')
+                            .map(c => c.trim())
+                            .filter(Boolean),
+                        }))
+                      }
                       className="w-full px-4 py-2 bg-gray-900 border border-gray-700 rounded text-white"
                       placeholder="Research, Analysis, Writing, etc."
                     />
@@ -353,7 +430,10 @@ export default function ExpertsPage() {
 
                   <div className="flex gap-3 justify-end">
                     <button
-                      onClick={() => { setShowEditor(false); setEditingExpert(null); }}
+                      onClick={() => {
+                        setShowEditor(false);
+                        setEditingExpert(null);
+                      }}
                       className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded"
                     >
                       Cancel

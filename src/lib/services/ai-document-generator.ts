@@ -65,7 +65,7 @@ Make sure:
 - Headers are descriptive and concise
 - Data is accurate and properly formatted
 - Numbers use appropriate precision
-- Categories are consistent`
+- Categories are consistent`,
 };
 
 export interface GenerateFromPromptParams {
@@ -74,15 +74,71 @@ export interface GenerateFromPromptParams {
   title?: string;
   rawContent?: string;
   model?: string;
+  theme?: 'default' | 'dark' | 'blue' | 'green' | 'red' | 'purple' | 'orange';
 }
 
-export async function generateDocumentFromPrompt(params: GenerateFromPromptParams): Promise<GeneratedDocument> {
+export const PRESENTATION_THEMES: Record<
+  string,
+  {
+    background: string;
+    titleColor: string;
+    textColor: string;
+    accentColor: string;
+  }
+> = {
+  default: {
+    background: 'FFFFFF',
+    titleColor: '363636',
+    textColor: '363636',
+    accentColor: '4A90D9',
+  },
+  dark: {
+    background: '1F1F1F',
+    titleColor: 'FFFFFF',
+    textColor: 'E0E0E0',
+    accentColor: 'BB86FC',
+  },
+  blue: {
+    background: '1E3A5F',
+    titleColor: 'FFFFFF',
+    textColor: 'E8F4FF',
+    accentColor: '64B5F6',
+  },
+  green: {
+    background: '1B4332',
+    titleColor: 'FFFFFF',
+    textColor: 'D8F3DC',
+    accentColor: '52B788',
+  },
+  red: {
+    background: '9B1B30',
+    titleColor: 'FFFFFF',
+    textColor: 'FFEBEE',
+    accentColor: 'EF5350',
+  },
+  purple: {
+    background: '4A148C',
+    titleColor: 'FFFFFF',
+    textColor: 'F3E5F5',
+    accentColor: 'AB47BC',
+  },
+  orange: {
+    background: 'BF360C',
+    titleColor: 'FFFFFF',
+    textColor: 'FFF3E0',
+    accentColor: 'FF7043',
+  },
+};
+
+export async function generateDocumentFromPrompt(
+  params: GenerateFromPromptParams
+): Promise<GeneratedDocument> {
   const { prompt, type, title = 'Untitled', rawContent, model } = params;
 
   const systemPrompt = DOCUMENT_PROMPTS[type];
-  
+
   // Combine prompt with raw content if provided
-  const userPrompt = rawContent 
+  const userPrompt = rawContent
     ? `Here is the raw content to transform into a ${type === 'word' ? 'document' : type === 'slide' ? 'presentation' : 'spreadsheet'}:
 
 ${rawContent}
@@ -98,7 +154,7 @@ ${prompt}`
       model: model || 'glm-4.7-flash',
       messages: [
         { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt }
+        { role: 'user', content: userPrompt },
       ],
     });
   } catch (error) {
@@ -109,14 +165,14 @@ ${prompt}`
   if (!result) {
     throw new Error('AI model returned no response');
   }
-  
+
   let content = result.message?.content || '';
-  
+
   // Handle different content formats
   if (typeof content === 'object') {
     content = JSON.stringify(content);
   }
-  
+
   content = String(content).trim();
 
   // Only log errors, not successful generation
@@ -175,33 +231,47 @@ async function generateWordFromContent(title: string, content: string): Promise<
   return documentGenerator.createWordDocumentFromSections(title, sections);
 }
 
-async function generateSlidesFromContent(title: string, content: string): Promise<GeneratedDocument> {
+async function generateSlidesFromContent(
+  title: string,
+  content: string
+): Promise<GeneratedDocument> {
   // Clean up content - remove markdown code blocks
-  let cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
-  
+  let cleanContent = content
+    .replace(/```json\n?/g, '')
+    .replace(/```\n?/g, '')
+    .trim();
+
   // Try to parse as JSON first
   try {
     const slides = JSON.parse(cleanContent);
-    
+
     if (Array.isArray(slides) && slides[0]?.title && Array.isArray(slides[0]?.bulletPoints)) {
       const pptx = new PptxGenJS();
       pptx.title = title;
       pptx.author = 'AI Dashboard';
-      
+
       for (const slideData of slides) {
         const slide = pptx.addSlide();
         slide.addText(slideData.title, {
-          x: 0.5, y: 0.5, w: '90%', h: 1,
-          fontSize: 32, bold: true, color: '363636',
+          x: 0.5,
+          y: 0.5,
+          w: '90%',
+          h: 1,
+          fontSize: 32,
+          bold: true,
+          color: '363636',
         });
         if (slideData.bulletPoints?.length > 0) {
           slide.addText(
-            slideData.bulletPoints.map((point: string) => ({ text: point, options: { bullet: true } })),
+            slideData.bulletPoints.map((point: string) => ({
+              text: point,
+              options: { bullet: true },
+            })),
             { x: 0.5, y: 1.5, w: '90%', h: 4, fontSize: 18, color: '363636', valign: 'top' }
           );
         }
       }
-      
+
       const buf = await pptx.write({ outputType: 'nodebuffer' });
       return {
         buffer: Buffer.from(buf as ArrayBuffer),
@@ -221,15 +291,16 @@ async function generateSlidesFromContent(title: string, content: string): Promis
   for (const line of lines) {
     const trimmed = line.trim();
     if (!trimmed) continue;
-    
+
     // Look for numbered titles or heading markers
     if (/^(Slide\s*\d*[:.]?\s*|\d+[.)]\s+)/i.test(trimmed) || trimmed.startsWith('# ')) {
       if (currentSlide && currentSlide.bulletPoints.length > 0) {
         slides.push(currentSlide);
       }
       currentSlide = {
-        title: trimmed.replace(/^(Slide\s*\d*[:.]?\s*|\d+[.)]\s*|#\s*)/i, '').trim() || 'Untitled Slide',
-        bulletPoints: []
+        title:
+          trimmed.replace(/^(Slide\s*\d*[:.]?\s*|\d+[.)]\s*|#\s*)/i, '').trim() || 'Untitled Slide',
+        bulletPoints: [],
       };
     } else if (trimmed.startsWith('- ') || trimmed.startsWith('• ') || trimmed.startsWith('* ')) {
       if (currentSlide) {
@@ -252,26 +323,37 @@ async function generateSlidesFromContent(title: string, content: string): Promis
     const paragraphs = cleanContent.split(/\n\n+/).filter(p => p.trim());
     slides.push({
       title: title,
-      bulletPoints: paragraphs.slice(0, 6).map(p => p.substring(0, 200))
+      bulletPoints: paragraphs.slice(0, 6).map(p => p.substring(0, 200)),
     });
   }
 
   const pptx = new PptxGenJS();
   pptx.title = title;
   pptx.author = 'AI Dashboard';
-  
+
   // Add title slide
   const titleSlide = pptx.addSlide();
   titleSlide.addText(title, {
-    x: 0.5, y: 2, w: '90%', h: 1.5,
-    fontSize: 44, bold: true, color: '363636', align: 'center' as const,
+    x: 0.5,
+    y: 2,
+    w: '90%',
+    h: 1.5,
+    fontSize: 44,
+    bold: true,
+    color: '363636',
+    align: 'center' as const,
   });
-  
+
   for (const slideData of slides) {
     const slide = pptx.addSlide();
     slide.addText(slideData.title, {
-      x: 0.5, y: 0.5, w: '90%', h: 1,
-      fontSize: 32, bold: true, color: '363636',
+      x: 0.5,
+      y: 0.5,
+      w: '90%',
+      h: 1,
+      fontSize: 32,
+      bold: true,
+      color: '363636',
     });
     if (slideData.bulletPoints?.length > 0) {
       slide.addText(
@@ -289,19 +371,22 @@ async function generateSlidesFromContent(title: string, content: string): Promis
   };
 }
 
-async function generateSpreadsheetFromContent(title: string, content: string): Promise<GeneratedDocument> {
+async function generateSpreadsheetFromContent(
+  title: string,
+  content: string
+): Promise<GeneratedDocument> {
   // Try to parse as JSON first
   try {
     const jsonContent = content.replace(/```json\n?|\n?```/g, '').trim();
     const data = JSON.parse(jsonContent);
-    
+
     if (data.headers && Array.isArray(data.rows)) {
       return documentGenerator.createSpreadsheet(title, {
         headers: data.headers,
-        rows: data.rows
+        rows: data.rows,
       });
     }
-    
+
     if (Array.isArray(data)) {
       // Array of objects - convert to headers and rows
       const headers = Object.keys(data[0] || {});
@@ -314,36 +399,43 @@ async function generateSpreadsheetFromContent(title: string, content: string): P
 
   // Parse as CSV-like content
   const lines = content.split('\n').filter(l => l.trim());
-  
+
   if (lines.length < 2) {
     // Create a simple table from the content
     return documentGenerator.createSpreadsheet(title, {
       headers: ['Content'],
-      rows: lines.map(l => [l.trim()])
+      rows: lines.map(l => [l.trim()]),
     });
   }
 
   // Try to detect delimiter
   const firstLine = lines[0];
   const delimiter = firstLine.includes('\t') ? '\t' : ',';
-  
+
   const headers = firstLine.split(delimiter).map(h => h.trim());
-  const rows = lines.slice(1).map(line => 
-    line.split(delimiter).map(cell => cell.trim())
-  );
+  const rows = lines.slice(1).map(line => line.split(delimiter).map(cell => cell.trim()));
 
   return documentGenerator.createSpreadsheet(title, { headers, rows });
 }
 
 // Quick generation functions
-export async function quickGenerateWord(prompt: string, title?: string): Promise<GeneratedDocument> {
+export async function quickGenerateWord(
+  prompt: string,
+  title?: string
+): Promise<GeneratedDocument> {
   return generateDocumentFromPrompt({ prompt, type: 'word', title });
 }
 
-export async function quickGenerateSlides(prompt: string, title?: string): Promise<GeneratedDocument> {
+export async function quickGenerateSlides(
+  prompt: string,
+  title?: string
+): Promise<GeneratedDocument> {
   return generateDocumentFromPrompt({ prompt, type: 'slide', title });
 }
 
-export async function quickGenerateSpreadsheet(prompt: string, title?: string): Promise<GeneratedDocument> {
+export async function quickGenerateSpreadsheet(
+  prompt: string,
+  title?: string
+): Promise<GeneratedDocument> {
   return generateDocumentFromPrompt({ prompt, type: 'cell', title });
 }

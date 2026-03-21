@@ -440,6 +440,247 @@ const times = {
 
 ---
 
+## The Model Message Bus - Hierarchical LLM Communication
+
+Beyond simple routing, you can build a **message bus** where models communicate with each other, delegating tasks up the chain when needed.
+
+### The Concept
+
+Small local models can **delegate to cloud models** when they feel overwhelmed. This saves tokens and lets small models access smarter systems:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    MODEL MESSAGE BUS                         │
+│                                                             │
+│  ┌──────────────┐                                          │
+│  │ Local Small  │ ←── Triage/Preprocess (qwen3.5:2b)       │
+│  │   Model      │                                          │
+│  └──────┬───────┘                                          │
+│         │                                                   │
+│         │ "This is complex, need help"                     │
+│         ▼                                                   │
+│  ┌────────────────────────────────────────────┐            │
+│  │           TASK ROUTER/DISPATCHER            │            │
+│  │  • Analyze complexity                      │            │
+│  │  • Check token budget                      │            │
+│  │  • Route to appropriate model             │            │
+│  └──────────────────┬───────────────────────┘            │
+│                      │                                      │
+│         ┌────────────┼────────────┐                        │
+│         ▼            ▼            ▼                        │
+│  ┌──────────┐  ┌──────────┐  ┌──────────┐                 │
+│  │  Local   │  │  Cloud   │  │  Cloud    │                 │
+│  │  Large   │  │  Fast    │  │  Smart    │                 │
+│  │  Model   │  │  (Groq)  │  │  (GPT-4)  │                 │
+│  └──────────┘  └──────────┘  └──────────┘                 │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### Why Build a Message Bus?
+
+**Benefits:**
+• **Save tokens** - Small model does triage, only expensive models when needed
+• **Overwhelm detection** - Model decides when it needs help
+• **Hierarchical processing** - Results flow back up the chain
+• **Cost savings** - Local processing for simple tasks
+• **Access to smarter models** - Small models can use cloud models as "consultants"
+
+### How It Works
+
+**Step 1: Triage (Local Small Model)**
+
+The small model acts as a preprocessor:
+
+```
+SYSTEM: You are a triage assistant. Determine if the user's question
+requires escalation to a more capable model.
+
+RULES:
+• If question is simple (what, who, when, list): NO escalation
+• If question requires analysis, research, or multi-step: ESCALATE
+• If context is long (>2000 chars): ESCALATE
+
+Respond with:
+1. COMPLEXITY: low/medium/high
+2. ESCALATE: yes/no
+3. REASON: brief explanation
+```
+
+**Step 2: Complexity Assessment**
+
+The small model analyzes:
+• Number of complexity indicators (analyze, research, compare)
+• Context length
+• Current token budget remaining
+
+**Step 3: Delegation Decision**
+
+Based on complexity:
+
+| Complexity | Action | Model Used |
+|------------|--------|------------|
+| Low | Process locally | `qwen3.5:2b` |
+| Medium | Process locally | `qwen3.5:9b` |
+| High | Escalate to cloud | `gpt-4o` or `groq/llama` |
+| Budget Low | Force local | Any available |
+
+**Step 4: Response Aggregation**
+
+Results flow back:
+1. Cloud model processes complex task
+2. Response returns to small model
+3. Small model formats/validates result
+4. User receives unified response
+
+### Implementation
+
+```typescript
+// src/lib/services/model-bus.ts
+
+interface DelegationRequest {
+  originalQuery: string;
+  context: string;
+  sourceModel: string;
+}
+
+interface DelegationResponse {
+  success: boolean;
+  messageId: string;
+  finalResponse: string;
+  delegationPath: string[];  // Track what models handled it
+  totalTokens: number;
+  costSavings?: {
+    localTokens: number;
+    cloudTokens: number;
+  };
+}
+
+class ModelMessageBus {
+  private messageLog: ModelMessage[] = [];
+
+  async process(request: DelegationRequest): Promise<DelegationResponse> {
+    // Step 1: Triage with small model
+    const triage = await this.triage(request.originalQuery);
+    
+    // Step 2: Decide escalation
+    if (triage.requiresEscalation) {
+      // Step 3: Delegate to cloud
+      const cloudResponse = await this.delegateToCloud(
+        request.originalQuery,
+        triage.complexity
+      );
+      return {
+        ...cloudResponse,
+        delegationPath: ['local-small', 'cloud-smart']
+      };
+    }
+    
+    // Step 4: Process locally
+    return await this.processLocally(request.originalQuery);
+  }
+}
+```
+
+### PROMPT: Implement Model Message Bus
+
+```
+Create a model message bus that allows hierarchical LLM communication:
+
+1. Small model (qwen3.5:2b) does initial triage
+2. Assesses complexity (low/medium/high)
+3. If high complexity OR budget allows:
+   - Delegate to cloud model (groq, openai, or anthropic)
+   - Include full context
+   - Receive response
+4. Log the delegation path (which models handled)
+5. Track token usage (local vs cloud)
+6. Return aggregated response
+
+Create at: src/lib/services/model-bus.ts
+
+Include:
+- Token budget tracking per day
+- Fallback if cloud fails
+- Cost estimation
+- Message history for debugging
+```
+
+### Practical Use Cases
+
+**1. Research Assistant**
+```
+User: "Compare REST vs GraphQL for e-commerce, include pros/cons"
+  ↓
+Small model triage: COMPLEX, ESCALATE
+  ↓
+Cloud model (GPT-4): Detailed analysis
+  ↓
+User receives comprehensive response
+```
+
+**2. Quick Question**
+```
+User: "What is my dog's name?" (from context)
+  ↓
+Small model triage: LOW, process locally
+  ↓
+Small model answers from memory
+  ↓
+No cloud cost, instant response
+```
+
+**3. Document Analysis**
+```
+User: [Uploaded 50-page contract]
+  ↓
+Small model triage: HIGH complexity (long context)
+  ↓
+Cloud model: Full analysis
+  ↓
+Small model: Format summary
+  ↓
+User receives structured summary
+```
+
+### Cost Savings Example
+
+| Without Message Bus | With Message Bus |
+|---------------------|-----------------|
+| Every query → GPT-4 | Simple → Local (free) |
+| 100 queries/day | Complex → Cloud |
+| Cost: ~$0.50/day | Cost: ~$0.10/day |
+| Monthly: $15 | Monthly: $3 |
+
+### Setting Up Cloud Delegation
+
+```bash
+# Configure cloud models in .env.local
+OLLAMA_BASE_URL=http://localhost:11434
+OPENAI_API_KEY=sk-...           # For GPT-4 escalation
+GROQ_API_KEY=gsk_...            # For fast cloud fallback
+ANTHROPIC_API_KEY=sk-ant...     # For Claude escalation
+
+# Enable cloud fallback (optional)
+ENABLE_CLOUD_ESCALATION=true
+```
+
+### Testing the Message Bus
+
+```bash
+# Test triage
+curl -X POST http://localhost:3000/api/message-bus/triage \
+  -d '{"query": "What is 2+2?"}'
+
+# Test escalation
+curl -X POST http://localhost:3000/api/message-bus/process \
+  -d '{"query": "Analyze this code for security issues...", "context": "..."}'
+
+# Check token budget
+curl http://localhost:3000/api/message-bus/budget
+```
+
+---
+
 ## Key Takeaways
 
 ✅ **Match model to task** - Small for simple, large for complex

@@ -231,6 +231,9 @@ export default function SecureStoragePage() {
       credential: '🔐',
       secret: '🙈',
       token: '🎫',
+      pdf: '📄',
+      docx: '📝',
+      txt: '📃',
     };
     return icons[type] || '📄';
   };

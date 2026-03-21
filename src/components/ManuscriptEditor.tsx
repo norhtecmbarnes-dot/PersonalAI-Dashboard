@@ -31,11 +31,14 @@ export function ManuscriptEditor({
   const [totalPages, setTotalPages] = useState(1);
   const PAGE_HEIGHT = 1056; // Letter size height at 96 DPI (11 inches)
 
+  const [internalUpdate, setInternalUpdate] = useState(false);
+
   useEffect(() => {
-    if (editorRef.current && content) {
+    if (editorRef.current && content && !internalUpdate) {
       editorRef.current.innerHTML = content;
     }
-  }, []);
+    setInternalUpdate(false);
+  }, [content]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -53,11 +56,20 @@ export function ManuscriptEditor({
     setWordCount(words);
     setCharCount(text.length);
 
-    // Calculate pages based on content height
-    const contentHeight = editorRef.current?.scrollHeight || 0;
-    const estimatedPages = Math.ceil(contentHeight / PAGE_HEIGHT);
-    setTotalPages(Math.max(1, estimatedPages));
-  }, [content]);
+    // Calculate pages based on visible content height, accounting for zoom
+    const editor = editorRef.current;
+    if (editor) {
+      const visibleHeight = editor.clientHeight;
+      const contentHeight = editor.scrollHeight;
+      const lineHeight = 21.6; // 12pt * 1.8 line-height at 96 DPI
+      const padding = 192; // 96px top + 96px bottom padding
+      const usableHeight = visibleHeight - padding;
+      const estimatedLines = Math.max(1, Math.ceil(contentHeight / lineHeight));
+      const linesPerPage = Math.max(1, Math.floor(usableHeight / lineHeight));
+      const estimatedPages = Math.max(1, Math.ceil(estimatedLines / linesPerPage));
+      setTotalPages(estimatedPages);
+    }
+  }, [content, zoom]);
 
   const execCmd = (command: string, value?: string) => {
     document.execCommand(command, false, value);
@@ -68,12 +80,38 @@ export function ManuscriptEditor({
 
   const handleInput = () => {
     const html = editorRef.current?.innerHTML || '';
+    setInternalUpdate(true);
     onChange(html);
   };
 
-  const insertLink = () => {
-    const url = prompt('Enter URL:');
-    if (url) execCmd('createLink', url);
+  const insertTable = () => {
+    const rows = prompt('Number of rows:', '3');
+    const cols = prompt('Number of columns:', '3');
+    if (rows && cols) {
+      const r = parseInt(rows) || 3;
+      const c = parseInt(cols) || 3;
+      let tableHtml = '<table style="width: 100%; border-collapse: collapse; margin: 16px 0;">';
+
+      // Header row
+      tableHtml += '<thead><tr>';
+      for (let j = 0; j < c; j++) {
+        tableHtml += `<th style="border: 1px solid #ddd; padding: 8px; background: #f5f5f5;">Header ${j + 1}</th>`;
+      }
+      tableHtml += '</tr></thead>';
+
+      // Body rows
+      tableHtml += '<tbody>';
+      for (let i = 0; i < r; i++) {
+        tableHtml += '<tr>';
+        for (let j = 0; j < c; j++) {
+          tableHtml += `<td style="border: 1px solid #ddd; padding: 8px;">Cell ${i + 1}-${j + 1}</td>`;
+        }
+        tableHtml += '</tr>';
+      }
+      tableHtml += '</tbody></table>';
+
+      execCmd('insertHTML', tableHtml);
+    }
   };
 
   const insertImage = () => {
@@ -231,11 +269,14 @@ export function ManuscriptEditor({
             <line x1="16" y1="17" x2="8" y2="17" />
           </svg>
           <input
+            id="document-title"
+            name="title"
             type="text"
             value={title}
             onChange={e => onTitleChange(e.target.value)}
             className={`px-3 py-1 rounded text-sm font-semibold ${isDarkTheme ? 'bg-slate-700 text-white' : 'bg-white text-gray-900'}`}
             placeholder="Document Title"
+            aria-label="Document title"
           />
         </div>
         <div className="flex items-center gap-2">
@@ -362,21 +403,21 @@ export function ManuscriptEditor({
           className={`p-2 rounded ${btnBg}`}
           title="Align Left"
         >
-          ☯
+          Left
         </button>
         <button
           onClick={() => execCmd('justifyCenter')}
           className={`p-2 rounded ${btnBg}`}
           title="Align Center"
         >
-          ☰
+          Center
         </button>
         <button
           onClick={() => execCmd('justifyRight')}
           className={`p-2 rounded ${btnBg}`}
           title="Align Right"
         >
-          ☰
+          Right
         </button>
         <div className={`w-px h-6 ${isDarkTheme ? 'bg-slate-600' : 'bg-gray-300'}`} />
 
@@ -386,14 +427,14 @@ export function ManuscriptEditor({
           className={`p-2 rounded ${btnBg}`}
           title="Bullet List"
         >
-          •
+          Bullets
         </button>
         <button
           onClick={() => execCmd('insertOrderedList')}
           className={`p-2 rounded ${btnBg}`}
           title="Numbered List"
         >
-          1.
+          Numbers
         </button>
         <div className={`w-px h-6 ${isDarkTheme ? 'bg-slate-600' : 'bg-gray-300'}`} />
 
@@ -422,18 +463,37 @@ export function ManuscriptEditor({
         <div className={`w-px h-6 ${isDarkTheme ? 'bg-slate-600' : 'bg-gray-300'}`} />
 
         {/* Insert */}
-        <button onClick={insertLink} className={`p-2 rounded ${btnBg}`} title="Insert Link">
-          🔗
+        <button onClick={insertTable} className={`p-2 rounded ${btnBg}`} title="Insert Table">
+          Table
         </button>
-        <button onClick={insertImage} className={`p-2 rounded ${btnBg}`} title="Insert Image">
-          🖼️
+        <button
+          onClick={() => {
+            navigator.clipboard.writeText(window.getSelection()?.toString() || content);
+          }}
+          className={`p-2 rounded ${btnBg}`}
+          title="Copy - Copy selected text or entire content"
+        >
+          Copy
+        </button>
+        <button
+          onClick={() => {
+            navigator.clipboard.readText().then(text => {
+              if (text) {
+                execCmd('insertText', text);
+              }
+            });
+          }}
+          className={`p-2 rounded ${btnBg}`}
+          title="Paste - Paste from clipboard"
+        >
+          Paste
         </button>
         <button
           onClick={() => execCmd('insertHorizontalRule')}
           className={`p-2 rounded ${btnBg}`}
-          title="Horizontal Rule"
+          title="Horizontal Rule - Insert divider line"
         >
-          —
+          Line
         </button>
         <div className={`w-px h-6 ${isDarkTheme ? 'bg-slate-600' : 'bg-gray-300'}`} />
 
@@ -441,9 +501,9 @@ export function ManuscriptEditor({
         <button
           onClick={() => execCmd('removeFormat')}
           className={`p-2 rounded ${btnBg}`}
-          title="Clear Formatting"
+          title="Clear Formatting - Remove bold, italic, etc"
         >
-          ✕
+          Clear
         </button>
       </div>
 
@@ -482,7 +542,8 @@ export function ManuscriptEditor({
           ref={editorRef}
           contentEditable
           onInput={handleInput}
-          className={`mx-auto rounded-lg shadow-lg ${isDarkTheme ? 'bg-slate-900 text-slate-200' : 'bg-white text-gray-800'}`}
+          spellCheck={false}
+          className={`mx-auto rounded-lg shadow-lg overflow-hidden ${isDarkTheme ? 'bg-slate-900 text-slate-200' : 'bg-white text-gray-800'}`}
           style={{
             fontFamily: defaultFont,
             fontSize: defaultFontSize,
@@ -503,8 +564,10 @@ export function ManuscriptEditor({
           <span>Characters: {charCount}</span>
         </div>
         <div className="flex items-center gap-2">
-          <label>Zoom:</label>
+          <label htmlFor="zoom-slider">Zoom:</label>
           <input
+            id="zoom-slider"
+            name="zoom"
             type="range"
             min="50"
             max="150"

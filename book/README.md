@@ -65,6 +65,14 @@ You work with OpenCode, ChatGPT, Claude, or your preferred AI to implement chang
 
 ---
 
+## What's New in Version 2.7 (Current)
+
+• **New Chapter 30**: LLM-to-LLM Communication - Research & Architecture
+• **Model Message Bus**: Small models can escalate to cloud when overwhelmed
+• **Research Documentation**: Patentability assessment and competitive analysis
+• **Presentation Generator**: New script to create slide decks
+• **Daily Briefing Enhancements**: Security status and self-reflection recommendations
+
 ## What's New in Version 2.6.4 (Current)
 
 • **New Chapter 29**: Conclusion - Your Journey Continues with encouragement to share and build
@@ -148,6 +156,7 @@ You work with OpenCode, ChatGPT, Claude, or your preferred AI to implement chang
 | 27 | [Mixing and Matching LLMs - Match Model to Task](./chapter-27-mixing-llms.md) | ✅ Complete |
 | 28 | [LLM Research - Keeping Current](./chapter-28-llm-research.md) | ✅ Complete |
 | 29 | [Conclusion - Your Journey Continues](./chapter-29-conclusion.md) | ✅ Complete |
+| 30 | [LLM-to-LLM Communication - Research & Architecture](./chapter-30-llm-to-llm-communication.md) | 🆕 New |
 
 **Legend:**
 • ✅ Complete

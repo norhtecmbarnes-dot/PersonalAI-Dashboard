@@ -11,7 +11,9 @@ type PresentationAction =
   | 'outline'
   | 'improve'
   | 'summary'
-  | 'create-from-outline';
+  | 'create-from-outline'
+  | 'diagram'
+  | 'table';
 
 export default function OfficeAIPage() {
   const [activeTab, setActiveTab] = useState<'spreadsheet' | 'presentation'>('spreadsheet');
@@ -51,6 +53,26 @@ export default function OfficeAIPage() {
   const [selectedBrandId, setSelectedBrandId] = useState<string>('');
   const [brands, setBrands] = useState<Array<{ id: string; name: string; logo?: string }>>([]);
 
+  // Initialize mermaid when diagram result is shown
+  useEffect(() => {
+    if (result && presentationAction === 'diagram') {
+      const initMermaid = async () => {
+        try {
+          const mermaid = (await import('mermaid')).default;
+          mermaid.initialize({
+            startOnLoad: true,
+            theme: 'dark',
+            securityLevel: 'loose',
+          });
+          await mermaid.run();
+        } catch (e) {
+          console.error('Mermaid init error:', e);
+        }
+      };
+      initMermaid();
+    }
+  }, [result, presentationAction]);
+
   const spreadsheetActions = [
     { id: 'analyze', name: 'Analyze', icon: '📊', desc: 'Analyze data for insights and patterns' },
     { id: 'formula', name: 'Formula', icon: 'ƒx', desc: 'Generate spreadsheet formulas' },
@@ -71,6 +93,18 @@ export default function OfficeAIPage() {
       name: 'From Outline',
       icon: '🏗️',
       desc: 'Create slides from outline',
+    },
+    {
+      id: 'diagram',
+      name: 'Diagram',
+      icon: '📊',
+      desc: 'Generate Mermaid diagram',
+    },
+    {
+      id: 'table',
+      name: 'Table',
+      icon: '📱',
+      desc: 'Generate table from data',
     },
   ] as const;
 
@@ -169,6 +203,12 @@ export default function OfficeAIPage() {
         case 'create-from-outline':
           data = { outline: outlineInput };
           break;
+        case 'diagram':
+          data = { content: slideContent || presentationTopic, type: 'diagram' };
+          break;
+        case 'table':
+          data = { content: slideContent || presentationTopic, type: 'table' };
+          break;
       }
 
       // Add styling information
@@ -200,6 +240,8 @@ export default function OfficeAIPage() {
             json.improvements ||
             json.summary ||
             json.slides ||
+            json.diagram ||
+            json.table ||
             JSON.stringify(json, null, 2)
         );
       } else {
@@ -210,6 +252,85 @@ export default function OfficeAIPage() {
     }
 
     setLoading(false);
+  };
+
+  // Render result based on action type
+  const renderResult = () => {
+    if (!result) return null;
+
+    // For diagram action, render mermaid code
+    if (presentationAction === 'diagram') {
+      return (
+        <div className="mt-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm text-slate-400">Mermaid Diagram Code:</span>
+            <button
+              onClick={() => navigator.clipboard.writeText(result)}
+              className="px-3 py-1 bg-slate-700 text-white text-xs rounded hover:bg-slate-600"
+            >
+              📋 Copy Code
+            </button>
+          </div>
+          <pre className="bg-slate-800 text-green-400 p-4 rounded-lg overflow-x-auto text-sm font-mono">
+            {result}
+          </pre>
+          <div className="mt-4 mermaid-preview">
+            <span className="text-sm text-slate-400">Preview:</span>
+            <div className="mt-2 bg-white rounded-lg p-4">
+              <pre className="mermaid">{result}</pre>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // For table action, render as formatted table
+    if (presentationAction === 'table' && result.includes('|')) {
+      return (
+        <div className="mt-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm text-slate-400">Generated Table:</span>
+            <button
+              onClick={() => navigator.clipboard.writeText(result)}
+              className="px-3 py-1 bg-slate-700 text-white text-xs rounded hover:bg-slate-600"
+            >
+              📋 Copy Markdown
+            </button>
+          </div>
+          <div className="bg-white rounded-lg p-4 overflow-x-auto">
+            <table className="w-full border-collapse">
+              <tbody>
+                {result
+                  .split('\n')
+                  .filter(l => l.trim() && l.includes('|'))
+                  .map((row, i) => (
+                    <tr key={i}>
+                      {row
+                        .split('|')
+                        .filter(c => c.trim())
+                        .map((cell, j) => (
+                          <td
+                            key={j}
+                            className={`border px-4 py-2 ${i === 0 ? 'bg-slate-100 font-semibold' : ''}`}
+                          >
+                            {cell.trim()}
+                          </td>
+                        ))}
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      );
+    }
+
+    // Default text result
+    return (
+      <div className="mt-4 bg-slate-800 text-white p-4 rounded-lg whitespace-pre-wrap text-sm">
+        {result}
+      </div>
+    );
   };
 
   return (
@@ -721,6 +842,32 @@ export default function OfficeAIPage() {
                     </div>
                   )}
 
+                  {(presentationAction === 'diagram' || presentationAction === 'table') && (
+                    <div className="mb-4">
+                      <label className="block text-slate-300 mb-2">
+                        {presentationAction === 'diagram'
+                          ? 'Topic or Content for Diagram'
+                          : 'Data for Table'}
+                      </label>
+                      <textarea
+                        value={slideContent}
+                        onChange={e => setSlideContent(e.target.value)}
+                        placeholder={
+                          presentationAction === 'diagram'
+                            ? "Enter a process, flow, or concept to diagram. E.g., 'Order processing: Customer places order → System validates → Payment processed → Order shipped → Customer notified'"
+                            : "Enter data or description for the table. E.g., 'Q1 Sales: Product A $10K, Product B $15K, Product C $8K'"
+                        }
+                        className="w-full h-32 bg-slate-900 text-white p-3 rounded-lg border border-slate-700 focus:border-orange-500 focus:outline-none"
+                      />
+                      {presentationAction === 'diagram' && (
+                        <p className="mt-2 text-xs text-slate-400">
+                          Supports: flowchart TD (processes), flowchart LR (linear flows),
+                          stateDiagram, sequenceDiagram, ER diagrams
+                        </p>
+                      )}
+                    </div>
+                  )}
+
                   <button
                     onClick={handlePresentationSubmit}
                     disabled={loading}
@@ -774,11 +921,7 @@ export default function OfficeAIPage() {
               </div>
             )}
 
-            {result && (
-              <pre className="h-96 overflow-auto bg-slate-900 p-4 rounded-lg text-slate-200 text-sm whitespace-pre-wrap">
-                {result}
-              </pre>
-            )}
+            {result && renderResult()}
           </div>
         </div>
 

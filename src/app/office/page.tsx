@@ -5,6 +5,7 @@ import { ModelSelector } from '@/components/ModelSelector';
 
 type DocumentType = 'word' | 'excel' | 'powerpoint';
 type GenerationMode = 'ai' | 'raw';
+type PresentationTheme = 'default' | 'dark' | 'blue' | 'green' | 'red' | 'purple' | 'orange';
 
 interface GenerationState {
   loading: boolean;
@@ -33,6 +34,7 @@ export default function OfficePage() {
   const [content, setContent] = useState('');
   const [prompt, setPrompt] = useState('');
   const [selectedModel, setSelectedModel] = useState<string>('');
+  const [presentationTheme, setPresentationTheme] = useState<PresentationTheme>('default');
   const [state, setState] = useState<GenerationState>({
     loading: false,
     error: null,
@@ -69,7 +71,8 @@ export default function OfficePage() {
       icon: '📄',
       description: 'Create professional Word documents (.docx)',
       color: 'bg-blue-600 hover:bg-blue-700',
-      promptHint: 'Describe the document you want. Example: "Create a marketing report about Q3 sales with executive summary, key metrics, and recommendations"',
+      promptHint:
+        'Describe the document you want. Example: "Create a marketing report about Q3 sales with executive summary, key metrics, and recommendations"',
     },
     {
       id: 'excel' as DocumentType,
@@ -77,7 +80,8 @@ export default function OfficePage() {
       icon: '📊',
       description: 'Create data spreadsheets (.xlsx)',
       color: 'bg-green-600 hover:bg-green-700',
-      promptHint: 'Describe the spreadsheet you want. Example: "Create a budget tracker with categories, monthly columns, and totals"',
+      promptHint:
+        'Describe the spreadsheet you want. Example: "Create a budget tracker with categories, monthly columns, and totals"',
     },
     {
       id: 'powerpoint' as DocumentType,
@@ -85,7 +89,8 @@ export default function OfficePage() {
       icon: '📽️',
       description: 'Create presentations (.pptx)',
       color: 'bg-orange-600 hover:bg-orange-700',
-      promptHint: 'Describe the presentation you want. Example: "Create a 5-slide pitch deck for a startup presenting a mobile app"',
+      promptHint:
+        'Describe the presentation you want. Example: "Create a 5-slide pitch deck for a startup presenting a mobile app"',
     },
   ];
 
@@ -113,6 +118,56 @@ export default function OfficePage() {
     ],
   };
 
+  const presentationThemes: {
+    id: PresentationTheme;
+    name: string;
+    description: string;
+    preview: string;
+  }[] = [
+    {
+      id: 'default',
+      name: 'Default',
+      description: 'Clean white background with dark text',
+      preview: 'bg-white border-2 border-gray-300',
+    },
+    {
+      id: 'dark',
+      name: 'Dark Mode',
+      description: 'Dark background with light text',
+      preview: 'bg-gray-900 border-2 border-gray-700',
+    },
+    {
+      id: 'blue',
+      name: 'Professional Blue',
+      description: 'Blue gradient with white text',
+      preview: 'bg-gradient-to-r from-blue-600 to-blue-800 border-2 border-blue-400',
+    },
+    {
+      id: 'green',
+      name: 'Nature Green',
+      description: 'Green gradient with white text',
+      preview: 'bg-gradient-to-r from-green-600 to-green-800 border-2 border-green-400',
+    },
+    {
+      id: 'red',
+      name: 'Bold Red',
+      description: 'Red gradient with white text',
+      preview: 'bg-gradient-to-r from-red-600 to-red-800 border-2 border-red-400',
+    },
+    {
+      id: 'purple',
+      name: 'Creative Purple',
+      description: 'Purple gradient with white text',
+      preview: 'bg-gradient-to-r from-purple-600 to-purple-800 border-2 border-purple-400',
+    },
+    {
+      id: 'orange',
+      name: 'Energetic Orange',
+      description: 'Orange gradient with white text',
+      preview: 'bg-gradient-to-r from-orange-500 to-orange-700 border-2 border-orange-400',
+    },
+  ];
+
   const handleGenerate = async () => {
     if (!title.trim()) {
       setState({ loading: false, error: 'Please enter a title', success: false });
@@ -120,7 +175,11 @@ export default function OfficePage() {
     }
 
     if (mode === 'ai' && !prompt.trim()) {
-      setState({ loading: false, error: 'Please enter a prompt describing what you want', success: false });
+      setState({
+        loading: false,
+        error: 'Please enter a prompt describing what you want',
+        success: false,
+      });
       return;
     }
 
@@ -139,6 +198,10 @@ export default function OfficePage() {
         rawContent: mode === 'raw' ? content : undefined,
         model: selectedModel || undefined,
       };
+
+      if (docType === 'powerpoint' && presentationTheme !== 'default') {
+        requestBody.theme = presentationTheme;
+      }
 
       if (selectedBrand) {
         requestBody.brandId = selectedBrandId;
@@ -175,7 +238,7 @@ export default function OfficePage() {
     }
   };
 
-  const selectedType = documentTypes.find((t) => t.id === docType);
+  const selectedType = documentTypes.find(t => t.id === docType);
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-8">
@@ -190,7 +253,7 @@ export default function OfficePage() {
 
         {/* Document Type Selection */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-          {documentTypes.map((type) => (
+          {documentTypes.map(type => (
             <button
               key={type.id}
               onClick={() => setDocType(type.id)}
@@ -210,25 +273,28 @@ export default function OfficePage() {
         {/* Brand Voice Selector */}
         {!loadingBrands && brands.length > 0 && (
           <div className="mb-6">
-            <label className="block text-sm font-medium mb-2">
-              Brand Voice (Optional)
-            </label>
+            <label className="block text-sm font-medium mb-2">Brand Voice (Optional)</label>
             <select
               value={selectedBrandId}
-              onChange={(e) => setSelectedBrandId(e.target.value)}
+              onChange={e => setSelectedBrandId(e.target.value)}
               className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white"
             >
               <option value="">No brand (use default style)</option>
-              {brands.map((brand) => (
+              {brands.map(brand => (
                 <option key={brand.id} value={brand.id}>
-                  {brand.name}{brand.industry ? ` (${brand.industry})` : ''}
+                  {brand.name}
+                  {brand.industry ? ` (${brand.industry})` : ''}
                 </option>
               ))}
             </select>
             {selectedBrand?.voiceProfile && (
               <div className="mt-2 text-sm text-gray-400">
-                {selectedBrand.voiceProfile.tone && <span className="mr-3">Tone: {selectedBrand.voiceProfile.tone}</span>}
-                {selectedBrand.voiceProfile.style && <span>Style: {selectedBrand.voiceProfile.style}</span>}
+                {selectedBrand.voiceProfile.tone && (
+                  <span className="mr-3">Tone: {selectedBrand.voiceProfile.tone}</span>
+                )}
+                {selectedBrand.voiceProfile.style && (
+                  <span>Style: {selectedBrand.voiceProfile.style}</span>
+                )}
               </div>
             )}
           </div>
@@ -244,6 +310,37 @@ export default function OfficePage() {
             className="w-full"
           />
         </div>
+
+        {/* Presentation Theme (only for PowerPoint) */}
+        {docType === 'powerpoint' && (
+          <div className="mb-6">
+            <label className="block text-sm font-medium mb-3">Presentation Theme</label>
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+              {presentationThemes.map(theme => (
+                <button
+                  key={theme.id}
+                  onClick={() => setPresentationTheme(theme.id)}
+                  className={`p-3 rounded-lg border-2 transition-all ${
+                    presentationTheme === theme.id
+                      ? 'border-purple-500 ring-2 ring-purple-500/30'
+                      : 'border-gray-600 hover:border-gray-500'
+                  }`}
+                >
+                  <div
+                    className={`w-full h-8 rounded ${theme.preview} mb-2 flex items-center justify-center`}
+                  >
+                    <span
+                      className={`text-xs font-medium ${theme.id === 'default' || theme.id === 'dark' ? '' : 'text-white'}`}
+                    >
+                      Aa
+                    </span>
+                  </div>
+                  <div className="text-xs font-medium">{theme.name}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Mode Selection */}
         <div className="flex gap-4 mb-6">
@@ -275,7 +372,7 @@ export default function OfficePage() {
           <input
             type="text"
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={e => setTitle(e.target.value)}
             placeholder="Enter a title for your document"
             className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white"
           />
@@ -284,12 +381,10 @@ export default function OfficePage() {
         {/* Content Area */}
         {mode === 'ai' ? (
           <div className="mb-6">
-            <label className="block text-sm font-medium mb-2">
-              Describe what you want
-            </label>
+            <label className="block text-sm font-medium mb-2">Describe what you want</label>
             <textarea
               value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
+              onChange={e => setPrompt(e.target.value)}
               placeholder={selectedType?.promptHint}
               rows={6}
               className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white font-mono text-sm"
@@ -308,12 +403,10 @@ export default function OfficePage() {
           </div>
         ) : (
           <div className="mb-6">
-            <label className="block text-sm font-medium mb-2">
-              Paste your content
-            </label>
+            <label className="block text-sm font-medium mb-2">Paste your content</label>
             <textarea
               value={content}
-              onChange={(e) => setContent(e.target.value)}
+              onChange={e => setContent(e.target.value)}
               placeholder={`Paste your content here and describe what you want to create with it. For example:\n\n---\nMeeting notes:\n- Discussed Q3 targets\n- Agreed on timeline\n- Action items assigned\n\nTask: Create a professional meeting summary document`}
               rows={10}
               className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white font-mono text-sm"
@@ -340,9 +433,7 @@ export default function OfficePage() {
           onClick={handleGenerate}
           disabled={state.loading}
           className={`w-full py-4 rounded-lg font-semibold text-lg transition-all ${
-            state.loading
-              ? 'bg-gray-600 cursor-not-allowed'
-              : 'bg-purple-600 hover:bg-purple-700'
+            state.loading ? 'bg-gray-600 cursor-not-allowed' : 'bg-purple-600 hover:bg-purple-700'
           }`}
         >
           {state.loading ? (
@@ -374,9 +465,15 @@ export default function OfficePage() {
         <div className="mt-8 p-4 bg-gray-800 rounded-lg">
           <h3 className="font-semibold mb-2">💡 Tips</h3>
           <ul className="text-sm text-gray-400 space-y-1">
-            <li>• <strong>Word:</strong> Describe sections, headings, and content you want</li>
-            <li>• <strong>Excel:</strong> Specify columns, data structure, and calculations needed</li>
-            <li>• <strong>PowerPoint:</strong> Mention number of slides and key points per slide</li>
+            <li>
+              • <strong>Word:</strong> Describe sections, headings, and content you want
+            </li>
+            <li>
+              • <strong>Excel:</strong> Specify columns, data structure, and calculations needed
+            </li>
+            <li>
+              • <strong>PowerPoint:</strong> Mention number of slides and key points per slide
+            </li>
             <li>• Use specific numbers and details for better results</li>
             <li>• Raw content mode will transform your pasted text into the selected format</li>
           </ul>

@@ -30,6 +30,7 @@ import { aiSecurityScanner, getSecurityStatus } from '@/lib/security/ai-security
 import { deaiify, formatDeaiResult, analyzeText, DeAiMode } from '@/lib/writing/de-ai-ify';
 import { taskScheduler } from '@/lib/services/task-scheduler';
 import { sqlDatabase } from '@/lib/database/sqlite';
+import { getModelBus } from '@/lib/services/model-bus';
 
 let cachedDocumentContext: { data: string; timestamp: number } | null = null;
 const DOC_CACHE_TTL = 300000;
@@ -73,6 +74,8 @@ export interface ChatRequest {
   userName?: string;
   assistantName?: string;
   skipTools?: boolean;
+  brandId?: string;
+  projectId?: string;
 }
 
 const MAX_MESSAGE_LENGTH = 10000;
@@ -123,6 +126,22 @@ export async function POST(request: Request) {
       ? sanitizePrompt(sanitizeString(body.assistantName))
       : undefined;
     const skipTools = Boolean(body.skipTools);
+    const brandId = body.brandId ? sanitizeString(body.brandId) : undefined;
+    const projectId = body.projectId ? sanitizeString(body.projectId) : undefined;
+
+    // Load brand context if provided
+    let brandContext = '';
+    if (brandId) {
+      try {
+        const { brandWorkspace } = await import('@/lib/services/brand-workspace');
+        const context = await brandWorkspace.buildContextForChat(brandId, projectId);
+        if (context?.systemPrompt) {
+          brandContext = context.systemPrompt;
+        }
+      } catch (e) {
+        console.error('[Chat] Failed to load brand context:', e);
+      }
+    }
 
     // Handle commands
     // Web search - uses Ollama web search (default)
@@ -602,6 +621,99 @@ Generate appropriate chart type (line, bar, pie, doughnut, etc.) based on the re
       }
     }
 
+    // Message Bus commands - delegate to cloud when overwhelmed
+    if (message.startsWith('/delegate ')) {
+      const query = message.replace('/delegate ', '').trim();
+      try {
+        const bus = getModelBus();
+        const result = await bus.process({
+          originalQuery: query,
+          context: '',
+          sourceModel: 'user',
+        });
+
+        return NextResponse.json({
+          message: result.finalResponse,
+          done: true,
+          delegationPath: result.delegationPath,
+          costSavings: result.costSavings,
+        });
+      } catch (error) {
+        return NextResponse.json({
+          message: `## Delegation Error\n\n${error instanceof Error ? sanitizePrompt(error.message) : 'Unknown error'}`,
+          done: true,
+        });
+      }
+    }
+
+    if (message === '/bus status') {
+      try {
+        const bus = getModelBus();
+        const budget = bus.getBudgetStatus();
+
+        let response = `## Message Bus Status\n\n`;
+        response += `**Token Budget:** ${budget.remaining.toLocaleString()} / ${budget.daily.toLocaleString()}\n`;
+        response += `**Used:** ${budget.percentUsed.toFixed(1)}%\n`;
+        response += `**Local Tokens:** ${budget.localVsCloud.local.toLocaleString()}\n`;
+        response += `**Cloud Tokens:** ${budget.localVsCloud.cloud.toLocaleString()}\n\n`;
+        response += `*Use /bus history to see recent delegations.*\n`;
+
+        return NextResponse.json({ message: response, done: true });
+      } catch (error) {
+        return NextResponse.json({
+          message: `## Bus Status Error\n\n${error instanceof Error ? sanitizePrompt(error.message) : 'Unknown error'}`,
+          done: true,
+        });
+      }
+    }
+
+    if (message === '/bus history') {
+      try {
+        const bus = getModelBus();
+        const history = bus.getHistory(10);
+
+        if (history.length === 0) {
+          return NextResponse.json({
+            message: `## Message Bus History\n\n*No messages processed yet.*\n`,
+            done: true,
+          });
+        }
+
+        let response = `## Recent Message Bus History\n\n`;
+        for (const msg of history.slice(-5).reverse()) {
+          response += `**${msg.source}** → ${msg.complexity}\n`;
+          response += `Task: ${msg.task.slice(0, 50)}${msg.task.length > 50 ? '...' : ''}\n`;
+          if (msg.response) {
+            response += `Response: ${msg.response.slice(0, 50)}...\n`;
+          }
+          response += `\n`;
+        }
+
+        return NextResponse.json({ message: response, done: true });
+      } catch (error) {
+        return NextResponse.json({
+          message: `## Bus History Error\n\n${error instanceof Error ? sanitizePrompt(error.message) : 'Unknown error'}`,
+          done: true,
+        });
+      }
+    }
+
+    if (message === '/bus reset') {
+      try {
+        const bus = getModelBus();
+        bus.resetBudget();
+        return NextResponse.json({
+          message: `## Budget Reset\n\nToken budget has been reset for today.`,
+          done: true,
+        });
+      } catch (error) {
+        return NextResponse.json({
+          message: `## Bus Reset Error\n\n${error instanceof Error ? sanitizePrompt(error.message) : 'Unknown error'}`,
+          done: true,
+        });
+      }
+    }
+
     let context = '';
     let vectorLakeUsed = false;
     let vectorLakeData = null;
@@ -674,7 +786,11 @@ Generate appropriate chart type (line, bar, pie, doughnut, etc.) based on the re
       {
         role: 'system',
         content:
-          persistentMemoryContext + memoryContext + personalizedSystemPrompt + documentContext,
+          brandContext +
+          persistentMemoryContext +
+          memoryContext +
+          personalizedSystemPrompt +
+          documentContext,
       },
       ...(conversationHistory as any[]),
       { role: 'user', content: context + message },
@@ -820,7 +936,7 @@ Generate appropriate chart type (line, bar, pie, doughnut, etc.) based on the re
         ];
 
     // Tool call execution loop - limit to 2 iterations for speed, or skip entirely
-    const maxToolIterations = skipTools ? 0 : 2;
+    const maxToolIterations = skipTools ? 0 : 5; // Increased from 2 to allow tool calls + final response
     let currentMessages = [...messages];
     let finalContent = '';
     let toolCallsExecuted: string[] = [];
@@ -852,6 +968,9 @@ Generate appropriate chart type (line, bar, pie, doughnut, etc.) based on the re
         done: true,
       });
     }
+
+    // Track tool results for potential use in response
+    const toolResults: { name: string; result: string }[] = [];
 
     for (let iteration = 0; iteration < maxToolIterations; iteration++) {
       const result = await chatCompletion({
@@ -898,6 +1017,7 @@ Generate appropriate chart type (line, bar, pie, doughnut, etc.) based on the re
             toolCallsExecuted.push('web_search');
             const searchResult = await executeWebSearchTool(functionArgs);
             toolResult = searchResult;
+            toolResults.push({ name: 'web_search', result: searchResult });
           } else if (functionName === 'save_memory') {
             toolCallsExecuted.push('save_memory');
             try {
@@ -1008,7 +1128,18 @@ Links found: ${result.result.links.join(', ')}`;
 
     // If we exhausted iterations, use the last content
     if (!finalContent) {
-      finalContent = "I'm still processing. Please ask again.";
+      // If we have tool results but no final response, synthesize one
+      if (toolResults.length > 0) {
+        const lastSearchResult = toolResults.filter(r => r.name === 'web_search').pop();
+        if (lastSearchResult) {
+          finalContent = lastSearchResult.result;
+        } else {
+          finalContent = toolResults.map(r => r.result).join('\n\n');
+        }
+      } else {
+        finalContent =
+          "I couldn't find an answer to your question. Please try rephrasing or asking something else.";
+      }
     }
 
     // Log conversation for RL training

@@ -83,6 +83,9 @@ export default function Home() {
   const [experts, setExperts] = useState<Expert[]>([]);
   const [selectedExpert, setSelectedExpert] = useState<Expert | null>(null);
   const [showExpertSelector, setShowExpertSelector] = useState(false);
+  const [expertDropdownPos, setExpertDropdownPos] = useState<{ top: number; left: number } | null>(
+    null
+  );
   const expertDropdownRef = useRef<HTMLButtonElement>(null);
 
   // Voice states
@@ -94,6 +97,15 @@ export default function Home() {
   // Search mode
   const [searchMode, setSearchModeState] = useState(false);
   const [mounted, setMounted] = useState(false);
+
+  // Dashboard panels
+  const [showBriefing, setShowBriefing] = useState(false);
+  const [showDatabase, setShowDatabase] = useState(false);
+  const [briefingData, setBriefingData] = useState<any>(null);
+  const [securityData, setSecurityData] = useState<any>(null);
+  const [reflectionData, setReflectionData] = useState<any>(null);
+  const [dbQuery, setDbQuery] = useState('');
+  const [dbResult, setDbResult] = useState<any>(null);
 
   // Refs
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -155,6 +167,43 @@ export default function Home() {
       });
     } catch (error) {
       console.error('Error saving search mode:', error);
+    }
+  };
+
+  const loadBriefing = async () => {
+    try {
+      const [briefingRes, securityRes, reflectionRes] = await Promise.all([
+        fetch('/api/daily-briefing'),
+        fetch('/api/security'),
+        fetch('/api/self-reflection'),
+      ]);
+      const [briefing, security, reflection] = await Promise.all([
+        briefingRes.json(),
+        securityRes.json(),
+        reflectionRes.json(),
+      ]);
+      setBriefingData(briefing);
+      setSecurityData(security);
+      setReflectionData(reflection);
+      setShowBriefing(true);
+    } catch (e) {
+      console.error('Error loading briefing:', e);
+    }
+  };
+
+  const runDatabaseQuery = async () => {
+    if (!dbQuery.trim()) return;
+    try {
+      const res = await fetch('/api/database', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'query', sql: dbQuery }),
+      });
+      const data = await res.json();
+      setDbResult(data);
+    } catch (e) {
+      console.error('Error running query:', e);
+      setDbResult({ error: 'Query failed' });
     }
   };
 
@@ -845,6 +894,34 @@ export default function Home() {
               >
                 {ollamaHealthy ? '● Online' : '● Offline'}
               </span>
+              <button
+                onClick={loadBriefing}
+                className="px-3 py-1.5 bg-indigo-700 hover:bg-indigo-600 text-white text-sm rounded border border-indigo-500 flex items-center gap-1"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                  />
+                </svg>
+                Briefing
+              </button>
+              <button
+                onClick={() => setShowDatabase(true)}
+                className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white text-sm rounded border border-emerald-500 flex items-center gap-1"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4"
+                  />
+                </svg>
+                Database
+              </button>
             </div>
             <div className="flex items-center gap-2">
               {/* Model Selector */}
@@ -863,7 +940,17 @@ export default function Home() {
               {/* Expert Selector */}
               <div className="relative">
                 <button
-                  onClick={() => setShowExpertSelector(!showExpertSelector)}
+                  ref={expertDropdownRef}
+                  onClick={() => {
+                    if (expertDropdownRef.current) {
+                      const rect = expertDropdownRef.current.getBoundingClientRect();
+                      setExpertDropdownPos({
+                        top: rect.bottom + window.scrollY,
+                        left: rect.left + window.scrollX,
+                      });
+                    }
+                    setShowExpertSelector(!showExpertSelector);
+                  }}
                   className="flex items-center gap-2 px-3 py-1.5 bg-slate-700 text-white rounded border border-slate-600 hover:border-purple-500"
                 >
                   <span>{selectedExpert ? selectedExpert.name : 'Assistant'}</span>
@@ -878,6 +965,7 @@ export default function Home() {
                 </button>
 
                 {showExpertSelector &&
+                  expertDropdownPos &&
                   createPortal(
                     <div
                       className="fixed inset-0 z-50"
@@ -885,6 +973,11 @@ export default function Home() {
                     >
                       <div
                         className="absolute bg-slate-800 border border-slate-600 rounded-lg shadow-xl max-h-60 overflow-y-auto"
+                        style={{
+                          top: expertDropdownPos.top,
+                          left: expertDropdownPos.left,
+                          minWidth: '200px',
+                        }}
                         onClick={e => e.stopPropagation()}
                       >
                         <button
@@ -1275,6 +1368,372 @@ export default function Home() {
           </div>,
           document.body
         )}
+
+      {/* Daily Briefing Panel */}
+      {showBriefing && briefingData && (
+        <div
+          className="fixed inset-0 bg-black/70 backdrop-blur flex items-center justify-center z-50"
+          onClick={() => setShowBriefing(false)}
+        >
+          <div
+            className="bg-slate-800 rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[80vh] overflow-y-auto"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-white">Daily Briefing</h3>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => (window.location.href = '/daily-briefing')}
+                  className="px-3 py-1 text-sm bg-purple-600 hover:bg-purple-500 text-white rounded"
+                >
+                  Full Report
+                </button>
+                <button
+                  onClick={() => setShowBriefing(false)}
+                  className="text-gray-400 hover:text-white text-xl"
+                >
+                  ×
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Security Status */}
+              <div className="bg-slate-900/50 rounded p-4">
+                <h4 className="font-semibold text-white mb-2 flex items-center gap-2">
+                  <span className="text-red-400">🔒</span> Security Status
+                  {securityData?.latestReport?.riskScore !== undefined && (
+                    <span
+                      className={`text-xs px-2 py-0.5 rounded ${
+                        securityData.latestReport.riskScore > 70
+                          ? 'bg-red-900/50 text-red-400'
+                          : securityData.latestReport.riskScore > 40
+                            ? 'bg-yellow-900/50 text-yellow-400'
+                            : 'bg-green-900/50 text-green-400'
+                      }`}
+                    >
+                      Risk: {securityData.latestReport.riskScore}
+                    </span>
+                  )}
+                </h4>
+                {securityData?.latestReport?.findings?.length > 0 ? (
+                  <div className="space-y-2">
+                    {securityData.latestReport.findings
+                      .slice(0, 4)
+                      .map((finding: any, i: number) => (
+                        <div key={i} className="text-sm border-b border-slate-700 pb-1">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`w-2 h-2 rounded-full ${
+                                finding.severity === 'critical'
+                                  ? 'bg-red-500'
+                                  : finding.severity === 'high'
+                                    ? 'bg-orange-500'
+                                    : finding.severity === 'medium'
+                                      ? 'bg-yellow-500'
+                                      : 'bg-blue-500'
+                              }`}
+                            ></span>
+                            <span className="text-gray-300 font-medium">{finding.title}</span>
+                          </div>
+                          <p className="text-gray-500 text-xs ml-4 mt-0.5">
+                            {finding.recommendation}
+                          </p>
+                        </div>
+                      ))}
+                    {securityData.latestReport.findings.length > 4 && (
+                      <button
+                        onClick={() => (window.location.href = '/security')}
+                        className="text-purple-400 hover:text-purple-300 text-xs"
+                      >
+                        View all {securityData.latestReport.findings.length} findings →
+                      </button>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-green-400 text-sm">✓ No security issues detected</p>
+                )}
+              </div>
+
+              {/* Self-Improvement Recommendations */}
+              <div className="bg-slate-900/50 rounded p-4">
+                <h4 className="font-semibold text-white mb-2 flex items-center gap-2">
+                  <span className="text-cyan-400">💡</span> AI Recommendations
+                  {reflectionData?.latestReport?.healthScore !== undefined && (
+                    <span
+                      className={`text-xs px-2 py-0.5 rounded ${
+                        reflectionData.latestReport.healthScore > 80
+                          ? 'bg-green-900/50 text-green-400'
+                          : reflectionData.latestReport.healthScore > 60
+                            ? 'bg-yellow-900/50 text-yellow-400'
+                            : 'bg-red-900/50 text-red-400'
+                      }`}
+                    >
+                      Health: {reflectionData.latestReport.healthScore}%
+                    </span>
+                  )}
+                </h4>
+                {reflectionData?.latestReport?.insights?.length > 0 ? (
+                  <div className="space-y-2">
+                    {reflectionData.latestReport.insights
+                      .slice(0, 4)
+                      .map((insight: any, i: number) => (
+                        <div key={i} className="text-sm border-b border-slate-700 pb-1">
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`w-2 h-2 rounded-full ${
+                                insight.severity === 'critical'
+                                  ? 'bg-red-500'
+                                  : insight.severity === 'high'
+                                    ? 'bg-orange-500'
+                                    : insight.severity === 'medium'
+                                      ? 'bg-yellow-500'
+                                      : 'bg-blue-500'
+                              }`}
+                            ></span>
+                            <span className="text-gray-300">{insight.title}</span>
+                          </div>
+                          <p className="text-gray-500 text-xs ml-4 mt-0.5">
+                            {insight.recommendation}
+                          </p>
+                        </div>
+                      ))}
+                    {reflectionData.latestReport.quickWins?.length > 0 && (
+                      <div className="mt-2 pt-1 border-t border-slate-700">
+                        <span className="text-green-400 text-xs font-medium">Quick Wins:</span>
+                        {reflectionData.latestReport.quickWins
+                          .slice(0, 2)
+                          .map((qw: any, i: number) => (
+                            <p key={i} className="text-gray-400 text-xs ml-2">
+                              • {qw.title}
+                            </p>
+                          ))}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-gray-500 text-sm">No recommendations available</p>
+                )}
+              </div>
+
+              {/* Pending Tasks */}
+              <div className="bg-slate-900/50 rounded p-4">
+                <h4 className="font-semibold text-white mb-2 flex items-center gap-2">
+                  <span className="text-yellow-400">📋</span> Pending Tasks
+                </h4>
+                {briefingData?.tasks?.length > 0 ? (
+                  <ul className="space-y-2 text-sm">
+                    {briefingData.tasks.slice(0, 5).map((task: any, i: number) => (
+                      <li
+                        key={i}
+                        className="text-gray-300 border-b border-slate-700 pb-1 flex justify-between items-center"
+                      >
+                        <span className="truncate">{task.title || task.name}</span>
+                        <span
+                          className={`text-xs px-2 py-0.5 rounded ml-2 ${
+                            task.priority === 'high'
+                              ? 'bg-red-900/50 text-red-400'
+                              : task.priority === 'medium'
+                                ? 'bg-yellow-900/50 text-yellow-400'
+                                : 'bg-green-900/50 text-green-400'
+                          }`}
+                        >
+                          {task.priority || 'normal'}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-gray-500 text-sm">No pending tasks</p>
+                )}
+              </div>
+
+              {/* Upcoming Events */}
+              <div className="bg-slate-900/50 rounded p-4">
+                <h4 className="font-semibold text-white mb-2 flex items-center gap-2">
+                  <span className="text-green-400">📅</span> Upcoming Events
+                </h4>
+                {briefingData?.events?.length > 0 ? (
+                  <ul className="space-y-2 text-sm">
+                    {briefingData.events.slice(0, 5).map((event: any, i: number) => (
+                      <li key={i} className="text-gray-300 border-b border-slate-700 pb-1">
+                        <span className="font-medium">{event.title || event.name}</span>
+                        {event.date && (
+                          <span className="text-gray-500 text-xs ml-2">
+                            {new Date(event.date).toLocaleDateString()}
+                          </span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-gray-500 text-sm">No upcoming events</p>
+                )}
+              </div>
+
+              {/* Intelligence */}
+              <div className="bg-slate-900/50 rounded p-4">
+                <h4 className="font-semibold text-white mb-2 flex items-center gap-2">
+                  <span className="text-blue-400">📡</span> Intelligence
+                </h4>
+                {briefingData?.intelligence?.length > 0 ? (
+                  <ul className="space-y-2 text-sm">
+                    {briefingData.intelligence.slice(0, 4).map((item: any, i: number) => (
+                      <li key={i} className="text-gray-300 border-b border-slate-700 pb-1">
+                        <span className="font-medium text-xs text-blue-400">
+                          {item.source || 'News'}
+                        </span>
+                        <p className="text-gray-400 truncate">
+                          {item.title || item.summary?.substring(0, 80)}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-gray-500 text-sm">No intelligence reports</p>
+                )}
+              </div>
+
+              {/* Recent Learnings */}
+              <div className="bg-slate-900/50 rounded p-4">
+                <h4 className="font-semibold text-white mb-2 flex items-center gap-2">
+                  <span className="text-purple-400">🧠</span> Recent Learnings
+                </h4>
+                {briefingData?.learnings?.length > 0 ? (
+                  <ul className="space-y-2 text-sm">
+                    {briefingData.learnings.slice(0, 4).map((item: any, i: number) => (
+                      <li key={i} className="text-gray-300 border-b border-slate-700 pb-1">
+                        {item.content || item.text || item.entry?.substring(0, 80)}
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-gray-500 text-sm">No recent learnings</p>
+                )}
+              </div>
+            </div>
+
+            <div className="mt-4 flex justify-end">
+              <button
+                onClick={() => setShowBriefing(false)}
+                className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Database Query Panel */}
+      {showDatabase && (
+        <div
+          className="fixed inset-0 bg-black/70 backdrop-blur flex items-center justify-center z-50"
+          onClick={() => setShowDatabase(false)}
+        >
+          <div
+            className="bg-slate-800 rounded-lg p-6 max-w-4xl w-full mx-4 max-h-[80vh] overflow-y-auto"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-bold text-white">Database Query</h3>
+              <button
+                onClick={() => setShowDatabase(false)}
+                className="text-gray-400 hover:text-white text-xl"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-gray-400 mb-1">
+                  SQL Query (SELECT only for safety)
+                </label>
+                <textarea
+                  value={dbQuery}
+                  onChange={e => setDbQuery(e.target.value)}
+                  className="w-full px-4 py-2 bg-slate-900 border border-slate-600 rounded text-white font-mono text-sm"
+                  rows={4}
+                  placeholder="SELECT * FROM tasks LIMIT 10"
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={runDatabaseQuery}
+                  disabled={!dbQuery.trim()}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded disabled:opacity-50"
+                >
+                  Run Query
+                </button>
+                <button
+                  onClick={() => setDbQuery('SELECT * FROM tasks LIMIT 10')}
+                  className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white text-sm rounded"
+                >
+                  Tasks
+                </button>
+                <button
+                  onClick={() => setDbQuery('SELECT * FROM events LIMIT 10')}
+                  className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white text-sm rounded"
+                >
+                  Events
+                </button>
+                <button
+                  onClick={() => setDbQuery('SELECT * FROM contacts LIMIT 10')}
+                  className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white text-sm rounded"
+                >
+                  Contacts
+                </button>
+                <button
+                  onClick={() =>
+                    setDbQuery("SELECT name, sql FROM sqlite_master WHERE type='table'")
+                  }
+                  className="px-3 py-2 bg-slate-700 hover:bg-slate-600 text-white text-sm rounded"
+                >
+                  Tables
+                </button>
+              </div>
+
+              {dbResult && (
+                <div className="bg-slate-900 rounded p-4 max-h-64 overflow-auto">
+                  {dbResult.error ? (
+                    <p className="text-red-400">{dbResult.error}</p>
+                  ) : dbResult.results?.length > 0 ? (
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-gray-400 border-b border-slate-700">
+                          {Object.keys(dbResult.results[0]).map(key => (
+                            <th key={key} className="px-2 py-1 text-left">
+                              {key}
+                            </th>
+                          ))}
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {dbResult.results.map((row: any, i: number) => (
+                          <tr
+                            key={i}
+                            className="text-gray-300 border-b border-slate-800 hover:bg-slate-800"
+                          >
+                            {Object.values(row).map((val: any, j: number) => (
+                              <td key={j} className="px-2 py-1">
+                                {String(val ?? '')}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  ) : (
+                    <p className="text-gray-400">Query returned no results</p>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,14 +1,14 @@
 import { sqlDatabase } from '@/lib/database/sqlite';
-import type { 
-  BrandDocument, 
-  Brand, 
-  Project, 
-  ChatSession, 
-  ChatMessage, 
+import type {
+  BrandDocument,
+  Brand,
+  Project,
+  ChatSession,
+  ChatMessage,
   GeneratedOutput,
   DocumentType,
   ProjectType,
-  ProjectStatus
+  ProjectStatus,
 } from '@/types/brand-workspace';
 
 function generateId(): string {
@@ -35,7 +35,7 @@ class BrandWorkspaceService {
     await this.initialize();
     const id = generateId();
     const now = Date.now();
-    
+
     const newBrand: Brand = {
       ...brand,
       id,
@@ -108,12 +108,12 @@ class BrandWorkspaceService {
 
   async deleteBrand(id: string): Promise<boolean> {
     await this.initialize();
-    
+
     const documents = await this.getBrandDocuments(id);
     for (const doc of documents) {
       await this.deleteDocument(doc.id);
     }
-    
+
     const projects = await this.getProjects(id);
     for (const project of projects) {
       await this.deleteProject(project.id);
@@ -238,11 +238,11 @@ class BrandWorkspaceService {
 
   private compactMarkdown(content: string): string {
     let compacted = content;
-    
+
     compacted = compacted.replace(/\n{3,}/g, '\n\n');
     compacted = compacted.replace(/[ \t]+\n/g, '\n');
     compacted = compacted.replace(/\n[ \t]+/g, '\n');
-    
+
     const lines = compacted.split('\n');
     const compactedLines: string[] = [];
     let previousWasEmpty = false;
@@ -353,15 +353,19 @@ class BrandWorkspaceService {
 
   async deleteProject(id: string): Promise<boolean> {
     await this.initialize();
-    
+
     await sqlDatabase.run('DELETE FROM brand_documents WHERE project_id = ?', [id]);
     await sqlDatabase.run('DELETE FROM chat_sessions WHERE project_id = ?', [id]);
     await sqlDatabase.run('DELETE FROM projects_v2 WHERE id = ?', [id]);
-    
+
     return true;
   }
 
-  async createChatSession(projectId: string | null | undefined, brandId: string, title?: string): Promise<ChatSession> {
+  async createChatSession(
+    projectId: string | null | undefined,
+    brandId: string,
+    title?: string
+  ): Promise<ChatSession> {
     await this.initialize();
     const id = generateId();
     const now = Date.now();
@@ -421,7 +425,10 @@ class BrandWorkspaceService {
     return row ? this.mapRowToChatSession(row) : null;
   }
 
-  async addMessageToSession(sessionId: string, message: Omit<ChatMessage, 'id' | 'timestamp'>): Promise<ChatSession | null> {
+  async addMessageToSession(
+    sessionId: string,
+    message: Omit<ChatMessage, 'id' | 'timestamp'>
+  ): Promise<ChatSession | null> {
     await this.initialize();
     const session = await this.getChatSessionById(sessionId);
     if (!session) return null;
@@ -435,10 +442,11 @@ class BrandWorkspaceService {
     session.messages.push(newMessage);
     session.updatedAt = Date.now();
 
-    await sqlDatabase.run(
-      `UPDATE chat_sessions SET messages = ?, updated_at = ? WHERE id = ?`,
-      [JSON.stringify(session.messages), session.updatedAt, sessionId]
-    );
+    await sqlDatabase.run(`UPDATE chat_sessions SET messages = ?, updated_at = ? WHERE id = ?`, [
+      JSON.stringify(session.messages),
+      session.updatedAt,
+      sessionId,
+    ]);
 
     return session;
   }
@@ -454,10 +462,11 @@ class BrandWorkspaceService {
     session.context = { ...session.context, ...context };
     session.updatedAt = Date.now();
 
-    await sqlDatabase.run(
-      `UPDATE chat_sessions SET context = ?, updated_at = ? WHERE id = ?`,
-      [JSON.stringify(session.context), session.updatedAt, sessionId]
-    );
+    await sqlDatabase.run(`UPDATE chat_sessions SET context = ?, updated_at = ? WHERE id = ?`, [
+      JSON.stringify(session.context),
+      session.updatedAt,
+      sessionId,
+    ]);
   }
 
   async deleteChatSession(id: string): Promise<boolean> {
@@ -535,7 +544,10 @@ class BrandWorkspaceService {
     return true;
   }
 
-  async buildContextForChat(brandId: string, projectId?: string): Promise<{
+  async buildContextForChat(
+    brandId: string,
+    projectId?: string
+  ): Promise<{
     systemPrompt: string;
     documents: BrandDocument[];
   }> {
@@ -575,6 +587,33 @@ class BrandWorkspaceService {
       }
     }
 
+    // Add extracted knowledge to context
+    try {
+      const { knowledgeExtractor } = await import('./knowledge-extractor');
+      const knowledge = await knowledgeExtractor.getBrandKnowledge(brandId);
+      if (knowledge.length > 0) {
+        contextParts.push('\n## Extracted Knowledge');
+
+        const grouped = knowledge.reduce(
+          (acc, entry) => {
+            if (!acc[entry.category]) acc[entry.category] = [];
+            acc[entry.category].push(entry);
+            return acc;
+          },
+          {} as Record<string, typeof knowledge>
+        );
+
+        for (const [category, entries] of Object.entries(grouped).slice(0, 10)) {
+          contextParts.push(`\n### ${category.charAt(0).toUpperCase() + category.slice(1)}`);
+          for (const entry of entries.slice(0, 5)) {
+            contextParts.push(`- **${entry.key}**: ${String(entry.value).substring(0, 200)}`);
+          }
+        }
+      }
+    } catch (keError) {
+      console.error('[BrandWorkspace] Failed to load knowledge:', keError);
+    }
+
     if (projectId) {
       const project = await this.getProjectById(projectId);
       if (project) {
@@ -588,7 +627,9 @@ class BrandWorkspaceService {
           contextParts.push(`\n## Requirements\n${project.requirements}`);
         }
         if (project.deliverables?.length) {
-          contextParts.push(`\n## Deliverables\n${project.deliverables.map(d => `- ${d}`).join('\n')}`);
+          contextParts.push(
+            `\n## Deliverables\n${project.deliverables.map(d => `- ${d}`).join('\n')}`
+          );
         }
 
         const projectDocs = await this.getBrandDocuments(brandId, projectId);
@@ -600,7 +641,8 @@ class BrandWorkspaceService {
       contextParts.push('\n# Available Documents');
       for (const doc of documents) {
         const content = doc.compactedContent || doc.content;
-        const truncatedContent = content.length > 4000 ? content.substring(0, 4000) + '\n...[truncated]' : content;
+        const truncatedContent =
+          content.length > 4000 ? content.substring(0, 4000) + '\n...[truncated]' : content;
         contextParts.push(`\n## ${doc.title} (${doc.type})\n${truncatedContent}`);
       }
     }
@@ -670,11 +712,13 @@ class BrandWorkspaceService {
       brandId: row.brand_id,
       title: row.title,
       messages: row.messages ? JSON.parse(row.messages) : [],
-      context: row.context ? JSON.parse(row.context) : {
-        brandDocumentsUsed: [],
-        projectDocumentsUsed: [],
-        totalTokensUsed: 0,
-      },
+      context: row.context
+        ? JSON.parse(row.context)
+        : {
+            brandDocumentsUsed: [],
+            projectDocumentsUsed: [],
+            totalTokensUsed: 0,
+          },
       createdAt: row.created_at,
       updatedAt: row.updated_at,
     };

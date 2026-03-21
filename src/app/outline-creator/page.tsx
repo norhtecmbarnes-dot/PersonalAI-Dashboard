@@ -13,6 +13,13 @@ interface OutlineResult {
   sections: number;
 }
 
+interface OutlineNode {
+  level: number;
+  text: string;
+  children: OutlineNode[];
+  expanded: boolean;
+}
+
 export default function OutlineCreatorPage() {
   const [topic, setTopic] = useState('');
   const [detailLevel, setDetailLevel] = useState<
@@ -57,7 +64,7 @@ export default function OutlineCreatorPage() {
     setError(null);
     setResult(null);
 
-    const modelToUse = model || 'kimi-k2.5';
+    const modelToUse = model || 'ollama/qwen3.5:2b';
 
     try {
       const prompt = `Create a ${detailLevel} ${outlineType} outline for: "${topic}"
@@ -103,17 +110,8 @@ Provide ONLY the outline, no explanations.`;
 
       if (data.success) {
         const content = data.result;
-        const sections = (content.match(/## /g) || []).length;
-        const subsections = (content.match(/### /g) || []).length;
-        const levels = subsections > 0 ? 3 : 2;
-
-        setResult({
-          title: topic,
-          content,
-          model: modelToUse,
-          levels,
-          sections: sections + subsections,
-        });
+        localStorage.setItem('outline-content', content);
+        window.location.href = '/writing';
       } else {
         setError(data.error || 'Failed to generate outline');
       }
@@ -130,6 +128,83 @@ Provide ONLY the outline, no explanations.`;
       navigator.clipboard.writeText(result.content);
     }
   };
+
+  const parseOutlineToTree = (content: string): OutlineNode[] => {
+    const lines = content.split('\n');
+    const root: OutlineNode[] = [];
+    const stack: { node: OutlineNode; level: number }[] = [];
+
+    for (const line of lines) {
+      const match = line.match(/^(#{1,4})\s+(.+)/);
+      if (!match) continue;
+
+      const level = match[1].length;
+      const text = match[2].trim();
+
+      const node: OutlineNode = {
+        level,
+        text,
+        children: [],
+        expanded: level <= 2,
+      };
+
+      while (stack.length > 0 && stack[stack.length - 1].level >= level) {
+        stack.pop();
+      }
+
+      if (stack.length === 0) {
+        root.push(node);
+      } else {
+        stack[stack.length - 1].node.children.push(node);
+      }
+
+      stack.push({ node, level });
+    }
+
+    return root;
+  };
+
+  const toggleExpanded = (paths: number[][], path: number[]): number[][] => {
+    const exists = paths.some(p => JSON.stringify(p) === JSON.stringify(path));
+    if (exists) {
+      return paths.filter(p => JSON.stringify(p) !== JSON.stringify(path));
+    }
+    return [...paths, path];
+  };
+
+  const renderOutlineNode = (node: OutlineNode, path: number[]): JSX.Element => {
+    const headingClasses: Record<number, string> = {
+      1: 'text-2xl font-bold mb-3 text-purple-400',
+      2: 'text-xl font-semibold mb-2 mt-4 text-purple-300 cursor-pointer hover:text-purple-200',
+      3: 'text-lg font-medium mb-1 mt-3 text-blue-300 cursor-pointer hover:text-blue-200',
+      4: 'text-base font-normal mb-1 ml-4 text-slate-300',
+    };
+
+    const hasChildren = node.children.length > 0;
+    const isExpanded = expandedPaths.some(p => JSON.stringify(p) === JSON.stringify(path));
+
+    return (
+      <div key={path.join('-')} className="animate-fadeIn">
+        <div
+          className={`flex items-center gap-2 ${headingClasses[node.level]} ${
+            hasChildren ? 'cursor-pointer' : ''
+          }`}
+          onClick={() => hasChildren && setExpandedPaths(toggleExpanded(expandedPaths, path))}
+        >
+          {hasChildren && <span className="text-sm mr-1">{isExpanded ? '▼' : '▶'}</span>}
+          {node.text}
+        </div>
+        {hasChildren && isExpanded && (
+          <div className="ml-4 border-l-2 border-slate-700 pl-4">
+            {node.children.map((child, i) => renderOutlineNode(child, [...path, i]))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const [expandedPaths, setExpandedPaths] = useState<number[][]>([]);
+  const [viewMode, setViewMode] = useState<'tree' | 'markdown'>('tree');
 
   const exportOutline = async (format: 'txt' | 'md' | 'docx' | 'pdf') => {
     if (!result?.content) return;
@@ -333,114 +408,29 @@ Provide ONLY the outline, no explanations.`;
               } disabled:opacity-50 disabled:cursor-not-allowed`}
             >
               {loading && <span className="animate-spin">◐</span>}
-              {loading ? 'Generating...' : '📋 Generate Outline'}
+              {loading ? 'Generating & sending to editor...' : '📋 Generate & Send to Editor'}
             </button>
           </div>
 
-          {/* Output Section */}
+          {/* Output Section - Simplified for direct-to-editor flow */}
           <div className="lg:col-span-2">
-            <div className={`${cardClasses} rounded-xl p-4 h-full`}>
-              <div className="flex items-center justify-between mb-4">
-                <h2
-                  className={`text-xl font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}
-                >
-                  Outline Result
-                </h2>
-                {result && (
-                  <div className="flex gap-2">
-                    <button
-                      onClick={copyOutline}
-                      className={`px-3 py-1 rounded text-sm ${
-                        theme === 'dark'
-                          ? 'bg-slate-700 text-slate-300'
-                          : 'bg-gray-200 text-gray-700'
-                      } hover:opacity-80`}
-                    >
-                      Copy
-                    </button>
-                    <button
-                      onClick={() => exportOutline('md')}
-                      className={`px-3 py-1 rounded text-sm ${
-                        theme === 'dark'
-                          ? 'bg-slate-700 text-slate-300'
-                          : 'bg-gray-200 text-gray-700'
-                      } hover:opacity-80`}
-                    >
-                      Export MD
-                    </button>
-                    <button
-                      onClick={() => exportOutline('docx')}
-                      className={`px-3 py-1 rounded text-sm ${
-                        theme === 'dark'
-                          ? 'bg-slate-700 text-slate-300'
-                          : 'bg-gray-200 text-gray-700'
-                      } hover:opacity-80`}
-                    >
-                      Export DOCX
-                    </button>
-                    <button
-                      onClick={() => exportOutline('pdf')}
-                      className={`px-3 py-1 rounded text-sm ${
-                        theme === 'dark'
-                          ? 'bg-slate-700 text-slate-300'
-                          : 'bg-gray-200 text-gray-700'
-                      } hover:opacity-80`}
-                    >
-                      Export PDF
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {error && (
-                <div className="bg-red-900/30 border border-red-700 rounded-lg p-4 text-red-300 mb-4">
-                  {error}
+            <div
+              className={`${cardClasses} rounded-xl p-4 h-full flex items-center justify-center`}
+            >
+              {loading ? (
+                <div className="text-center">
+                  <div className="text-4xl animate-pulse mb-3">🤖</div>
+                  <p className={theme === 'dark' ? 'text-slate-400' : 'text-gray-500'}>
+                    Generating outline and opening editor...
+                  </p>
                 </div>
-              )}
-
-              {!result && !error && !loading && (
-                <div className="h-96 flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="text-4xl mb-3">📋</div>
-                    <p className={theme === 'dark' ? 'text-slate-500' : 'text-gray-500'}>
-                      Your outline will appear here
-                    </p>
-                    <p
-                      className={`text-sm mt-2 ${theme === 'dark' ? 'text-slate-600' : 'text-gray-600'}`}
-                    >
-                      Enter a topic and click Generate
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {loading && (
-                <div className="h-96 flex items-center justify-center">
-                  <div className="text-center">
-                    <div className="text-4xl animate-pulse mb-3">🤖</div>
-                    <p className={theme === 'dark' ? 'text-slate-400' : 'text-gray-500'}>
-                      Generating outline with {model}...
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              {result && (
-                <div>
-                  <div
-                    className={`mb-3 flex gap-4 text-sm ${theme === 'dark' ? 'text-slate-400' : 'text-gray-600'}`}
-                  >
-                    <span>📊 {result.sections} sections</span>
-                    <span>📈 {result.levels} levels</span>
-                    <span>🤖 {result.model}</span>
-                  </div>
-                  <div
-                    className={`h-[600px] overflow-auto rounded-lg p-4 ${
-                      theme === 'dark' ? 'bg-slate-900' : 'bg-gray-50'
-                    }`}
-                  >
-                    <MarkdownRenderer content={result.content} />
-                  </div>
+              ) : (
+                <div className="text-center">
+                  <div className="text-4xl mb-3">✨</div>
+                  <p className={theme === 'dark' ? 'text-slate-500' : 'text-gray-500'}>
+                    Enter a topic, select options, and click Generate to create your outline in the
+                    editor
+                  </p>
                 </div>
               )}
             </div>

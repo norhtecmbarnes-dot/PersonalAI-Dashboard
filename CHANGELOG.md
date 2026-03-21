@@ -1,5 +1,122 @@
 # Change Log - AI Dashboard
 
+## Version 2.6.5 (March 20, 2026) - Mermaid Diagrams & Rate Limiting
+
+---
+
+### Mermaid Diagram Visualization
+
+Added new Mermaid diagram component and Writing page integration:
+
+**New Component:** `src/components/MermaidDiagram.tsx`
+- `MermaidDiagram` - Renders Mermaid code as SVG
+- `tableToMermaid` - Converts CSV/table data to Mermaid flowchart, sequence, or state diagrams
+- `parseCSV` - Parses CSV text to table data
+- `MERMAID_PROMPTS` - AI prompts for generating diagrams from text
+
+**Features:**
+- Flowchart (TD/LR) from tabular data
+- Sequence diagrams from interaction data
+- State diagrams from process data
+- AI-powered diagram generation from natural language
+- Live preview with dark theme
+- Copy Mermaid code or insert directly into input
+
+**Usage:**
+1. Go to Writing page
+2. Select "Diagram" action
+3. Enter CSV data or describe what you want to visualize
+4. Choose diagram type (Flowchart, Sequence, or State)
+5. Preview renders live, insert or copy the code
+
+---
+
+### Rate Limiting Middleware
+
+Added rate limiting middleware for API protection:
+
+```typescript
+import { checkRateLimit, rateLimitConfigs } from '@/lib/middleware/rate-limit';
+
+const { allowed, response } = await checkRateLimit(request, rateLimitConfigs.ai);
+if (!allowed && response) {
+  return response;
+}
+```
+
+**Available Configs:**
+| Config | Requests | Window | Use Case |
+|--------|----------|--------|----------|
+| `strict` | 10 | 60s | Login, auth |
+| `normal` | 60 | 60s | General API |
+| `relaxed` | 300 | 60s | Bulk operations |
+| `ai` | 30 | 60s | AI chat endpoints |
+
+---
+
+## Version 2.6.4 (March 19, 2026) - Expert System & Security Improvements
+
+---
+
+### Enhanced Expert System Prompts
+
+Major improvements to expert agent prompts for better task-specific assistance:
+
+**Updated Experts:**
+- **General Assistant**: Added response guidelines, task handling frameworks (writing outlines, research structure, analysis formats)
+- **Researcher**: Added source hierarchy, research methodology, output formats, critical thinking framework
+- **Copywriter**: Added AIDA/PAS/FAB frameworks, headline formulas, email sequences, landing page structure
+- **Marketing Expert**: Added growth funnel, strategy development, channel selection criteria, KPI framework
+- **Legal Expert**: Added contract analysis framework, red flags checklist, compliance considerations, risk assessment
+- **Accountant**: Added financial statements guide, key metrics/ratios, budgeting process, cost analysis
+
+**New Experts Added:**
+- **HR Specialist**: Recruitment strategy, job descriptions, interview best practices, performance reviews, onboarding
+- **Sales Expert**: Consultative selling, deal qualification (BANT/MEDDIC), pipeline management, negotiation tactics
+
+---
+
+### Self-Reflection Research Enhancement
+
+The self-reflection system now performs parallel research to provide actionable improvement suggestions:
+
+- Runs reflection analysis and research concurrently for faster results
+- Research phase identifies new technologies, best practices, and specific improvements
+- Research findings integrated into suggestions and suggested tools
+- Provides evidence-based recommendations for system enhancement
+
+---
+
+### Security Improvements
+
+**Removed Problematic Endpoint:**
+- Deleted `/api/test-pdf` route that referenced non-existent pdf-parse package path
+- Fixed build warnings related to missing module references
+
+**Existing Security Features:**
+- Input sanitization via `sanitizePrompt()` for all user inputs
+- SQL injection prevention through parameterized queries
+- XSS protection through proper escaping
+- API key protection (values never exposed to frontend)
+
+---
+
+### Model Routing Review
+
+**Routing Logic Verified:**
+- Three-tier system: local-fast → local-capable → cloud-thinking
+- Task-specific routing (heartbeat/scheduled use smallest models)
+- Budget-aware cloud model selection
+- Model size extraction for proper tier assignment
+
+**Model Selector Component:**
+- Groups models by provider (Ollama, Gemini, OpenAI, Claude, Groq, etc.)
+- Auto-selects best available model
+- Shows Ollama connection health status
+- Displays model count (local vs cloud)
+
+---
+
 ## Version 2.6.3 (March 18, 2026) - LLM Research & Free Stack
 
 ---

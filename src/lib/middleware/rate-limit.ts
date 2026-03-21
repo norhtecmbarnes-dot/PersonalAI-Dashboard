@@ -26,17 +26,22 @@ function cleanupStore(): void {
 
 setInterval(cleanupStore, 60000);
 
+function getClientIP(request: NextRequest): string {
+  return (
+    request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+    request.headers.get('x-real-ip') ||
+    'unknown'
+  );
+}
+
 export function rateLimit(config: RateLimitConfig) {
   const { windowMs, maxRequests, message = 'Too many requests, please try again later.' } = config;
 
   return async function rateLimitMiddleware(request: NextRequest): Promise<NextResponse | null> {
-    const ip = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
-               request.headers.get('x-real-ip') ||
-               'unknown';
-    
+    const ip = getClientIP(request);
     const key = `${ip}:${request.nextUrl.pathname}`;
     const now = Date.now();
-    
+
     if (!store[key]) {
       store[key] = {
         count: 1,
@@ -44,7 +49,7 @@ export function rateLimit(config: RateLimitConfig) {
       };
       return null;
     }
-    
+
     if (now > store[key].resetTime) {
       store[key] = {
         count: 1,
@@ -52,32 +57,41 @@ export function rateLimit(config: RateLimitConfig) {
       };
       return null;
     }
-    
+
     store[key].count++;
-    
+
     if (store[key].count > maxRequests) {
       const retryAfter = Math.ceil((store[key].resetTime - now) / 1000);
       return NextResponse.json(
-        { 
+        {
           error: message,
           retryAfter,
           limit: maxRequests,
-          window: Math.ceil(windowMs / 1000)
+          window: Math.ceil(windowMs / 1000),
         },
-        { 
+        {
           status: 429,
           headers: {
             'Retry-After': String(retryAfter),
             'X-RateLimit-Limit': String(maxRequests),
             'X-RateLimit-Remaining': '0',
             'X-RateLimit-Reset': String(Math.ceil(store[key].resetTime / 1000)),
-          }
+          },
         }
       );
     }
-    
+
     return null;
   };
+}
+
+export async function checkRateLimit(
+  request: NextRequest,
+  config: RateLimitConfig
+): Promise<{ allowed: boolean; response: NextResponse | null }> {
+  const limiter = rateLimit(config);
+  const result = await limiter(request);
+  return { allowed: result === null, response: result };
 }
 
 export function withRateLimit(
@@ -85,7 +99,7 @@ export function withRateLimit(
   config: RateLimitConfig
 ) {
   const limiter = rateLimit(config);
-  
+
   return async (request: NextRequest): Promise<NextResponse> => {
     const rateLimitResponse = await limiter(request);
     if (rateLimitResponse) {

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import ReactMarkdown from 'react-markdown';
 import { ManuscriptEditor } from '@/components/ManuscriptEditor';
 import { bookWriterPlugin } from '@/plugins/book-writer';
 import type { TrackedChange } from '@/types/collab-editor';
@@ -57,6 +58,7 @@ export default function WritingStudioPage() {
   const [chapters, setChapters] = useState<
     Array<{ id: string; title: string; level: number; wordCount: number; position: number }>
   >([]);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const loadSavedData = () => {
@@ -212,6 +214,13 @@ export default function WritingStudioPage() {
     );
   }, [defaultFont, defaultFontSize, defaultSaveDir]);
 
+  // Auto-scroll chat to bottom when new messages arrive
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [chatMessages, isLoading]);
+
   // Auto-save version history every 5 minutes
   useEffect(() => {
     const saveVersion = () => {
@@ -309,7 +318,265 @@ export default function WritingStudioPage() {
     extractChapters();
   }, [content]);
 
+  const markdownToHtml = (md: string): string => {
+    let html = md;
+
+    // Escape HTML first
+    html = html.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    // Process headers - order matters (#### before ### before ## before #)
+    // Also handle Roman numerals and letter-based headers
+    html = html.replace(
+      /^####\s+(.+)$/gm,
+      '<h4 style="font-size: 1em; font-weight: bold; margin: 0.5em 0 0.3em 0;">$1</h4>'
+    );
+    html = html.replace(
+      /^###\s+(.+)$/gm,
+      '<h3 style="font-size: 1.1em; font-weight: bold; margin: 0.6em 0 0.3em 0;">$1</h3>'
+    );
+    html = html.replace(
+      /^##\s+(.+)$/gm,
+      '<h2 style="font-size: 1.3em; font-weight: bold; margin: 0.8em 0 0.3em 0;">$1</h2>'
+    );
+    html = html.replace(
+      /^#\s+(.+)$/gm,
+      '<h1 style="font-size: 1.5em; font-weight: bold; margin: 1em 0 0.3em 0;">$1</h1>'
+    );
+
+    // Roman numeral headers (I., II., III., etc.)
+    html = html.replace(
+      /^(I{1,3}|I{0}V|X{0,3}I{0,3})\.\s+(.+)$/gm,
+      '<h2 style="font-size: 1.3em; font-weight: bold; margin: 0.8em 0 0.3em 0;">$2</h2>'
+    );
+
+    // Letter-based headers (A., B., C., etc.)
+    html = html.replace(
+      /^[A-Z]\.\s+(.+)$/gm,
+      '<h3 style="font-size: 1.1em; font-weight: bold; margin: 0.6em 0 0.3em 0;">$1</h3>'
+    );
+
+    // Numbered headers (1., 2., 3., etc.)
+    html = html.replace(
+      /^\d+\.\s+(.+)$/gm,
+      '<h4 style="font-size: 1em; font-weight: bold; margin: 0.5em 0 0.3em 0;">$1</h4>'
+    );
+
+    // Bold and italic
+    html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+    html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+
+    // Split into lines for list processing
+    const lines = html.split('\n');
+    const result: string[] = [];
+    let i = 0;
+
+    while (i < lines.length) {
+      const line = lines[i].trim();
+
+      // Skip empty lines
+      if (!line) {
+        i++;
+        continue;
+      }
+
+      // Check if it's a list item
+      if (line.startsWith('<li')) {
+        // Collect consecutive list items
+        const listItems: string[] = [];
+        const listType = line.includes('style="list-style-type: disc"') ? 'ul' : 'ul';
+
+        while (i < lines.length && lines[i].trim().startsWith('<li')) {
+          // Remove the list-style-type from individual items (it goes on the container)
+          let item = lines[i].trim();
+          item = item.replace(/ style="list-style-type: disc;"/, '');
+          listItems.push(item);
+          i++;
+        }
+
+        // Wrap in ul/ol
+        if (listItems.length > 0) {
+          result.push(`<${listType} style="margin: 0.5em 0; padding-left: 1.5em;">`);
+          result.push(...listItems);
+          result.push(`</${listType}>`);
+        }
+        continue;
+      }
+
+      // Not a list item, just add the line
+      result.push(line);
+      i++;
+    }
+
+    return result.join('\n');
+  };
+
+  const handleDiagramAction = async (type: 'diagram' | 'table') => {
+    const sel = window.getSelection();
+    const selectedText = sel?.toString() || '';
+    if (!selectedText) {
+      alert('Select text first');
+      return;
+    }
+    setIsLoading(true);
+    try {
+      const prompt =
+        type === 'diagram'
+          ? `Generate a Mermaid diagram code for the following content. Return ONLY the mermaid code, no explanations. Use flowchart TD for processes, flowchart LR for linear flows, or stateDiagram for state machines.\n\nContent: ${selectedText}`
+          : `Generate a markdown table for the following content. Return ONLY the table in markdown format.\n\nContent: ${selectedText}`;
+
+      const res = await fetch('/api/writing/stream', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'simplify', // Reuse existing action
+          text: prompt,
+          brandId: selectedBrandId,
+          projectId: selectedProjectId,
+          model: selectedModel,
+        }),
+      });
+
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const reader = res.body?.getReader();
+      if (!reader) throw new Error('No reader available');
+
+      const decoder = new TextDecoder();
+      let accumulatedText = '';
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value);
+        const lines = chunk.split('\n').filter(line => line.startsWith('data: '));
+        for (const line of lines) {
+          const data = line.replace('data: ', '').trim();
+          if (data && data !== '[DONE]') {
+            try {
+              const parsed = JSON.parse(data);
+              if (parsed.content) accumulatedText += parsed.content;
+            } catch (e) {
+              /* ignore */
+            }
+          }
+        }
+      }
+
+      // Clean up mermaid code block if present
+      let code = accumulatedText.trim();
+      code = code
+        .replace(/^```mermaid\n?/, '')
+        .replace(/```$/, '')
+        .trim();
+      code = code
+        .replace(/^```\n?/, '')
+        .replace(/```$/, '')
+        .trim();
+
+      const selection = window.getSelection();
+      if (selection && selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
+
+        if (type === 'diagram') {
+          // Create a div to hold the mermaid diagram
+          const diagramDiv = document.createElement('div');
+          diagramDiv.className = 'mermaid-diagram-container';
+          diagramDiv.style.cssText =
+            'margin: 16px 0; padding: 16px; background: white; border-radius: 8px; text-align: center;';
+          diagramDiv.innerHTML = `<pre class="mermaid">${code}</pre>`;
+          range.deleteContents();
+          range.insertNode(diagramDiv);
+
+          // Initialize mermaid and render
+          if (typeof window !== 'undefined') {
+            const mermaid = (await import('mermaid')).default;
+            mermaid.initialize({
+              startOnLoad: true,
+              theme: isDarkTheme ? 'dark' : 'default',
+              securityLevel: 'loose',
+            });
+            try {
+              const id = `mermaid-${Date.now()}`;
+              const { svg } = await mermaid.render(id, code);
+              diagramDiv.innerHTML = `<div class="mermaid">${svg}</div>`;
+            } catch (e) {
+              console.error('Mermaid render error:', e);
+              diagramDiv.innerHTML = `<pre class="mermaid">${code}</pre><p style="color: red; font-size: 12px;">Diagram render error - Mermaid code may be invalid</p>`;
+            }
+          }
+        } else {
+          // Table - convert markdown table to HTML
+          const tableHtml = markdownTableToHtml(code);
+          const tableDiv = document.createElement('div');
+          tableDiv.className = 'table-container';
+          tableDiv.style.cssText = 'margin: 16px 0; overflow-x: auto;';
+          tableDiv.innerHTML = tableHtml;
+          range.deleteContents();
+          range.insertNode(tableDiv);
+        }
+
+        // Sync with React state
+        const parentElement = range.commonAncestorContainer.parentElement;
+        if (parentElement && parentElement.innerHTML) {
+          setContent(parentElement.innerHTML);
+        }
+      }
+    } catch (e: any) {
+      console.error(`${type} error:`, e);
+      alert(`Error: ${e.message}`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const markdownTableToHtml = (md: string): string => {
+    const lines = md.split('\n').filter(l => l.trim() && !l.match(/^\|[-:\s]+\|$/));
+    if (lines.length < 2) return '<p>Invalid table</p>';
+
+    const headers = lines[0]
+      .split('|')
+      .map(h => h.trim())
+      .filter(h => h);
+    const rows = lines.slice(1).map(row =>
+      row
+        .split('|')
+        .map(cell => cell.trim())
+        .filter(cell => cell)
+    );
+
+    let html = '<table style="width: 100%; border-collapse: collapse; margin: 16px 0;">';
+
+    // Headers
+    html += '<thead><tr>';
+    headers.forEach(h => {
+      html += `<th style="border: 1px solid #ddd; padding: 8px; background: #f5f5f5; text-align: left;">${h}</th>`;
+    });
+    html += '</tr></thead>';
+
+    // Body
+    html += '<tbody>';
+    rows.forEach(row => {
+      html += '<tr>';
+      row.forEach(cell => {
+        html += `<td style="border: 1px solid #ddd; padding: 8px;">${cell}</td>`;
+      });
+      html += '</tr>';
+    });
+    html += '</tbody></table>';
+
+    return html;
+  };
+
   const handleAIAction = async (action: string) => {
+    // Handle diagram and table specially
+    if (action === 'diagram') {
+      await handleDiagramAction('diagram');
+      return;
+    }
+    if (action === 'table') {
+      await handleDiagramAction('table');
+      return;
+    }
     const sel = window.getSelection();
     const selectedText = sel?.toString() || '';
     if (!selectedText) {
@@ -365,14 +632,17 @@ export default function WritingStudioPage() {
       if (selection && selection.rangeCount > 0) {
         const range = selection.getRangeAt(0);
         range.deleteContents();
-        range.insertNode(loadingIndicator);
 
-        // Create hidden span for streaming text
-        const tempSpan = document.createElement('span');
-        tempSpan.style.cssText = 'position: absolute; opacity: 0; pointer-events: none;';
-        document.body.appendChild(tempSpan);
+        // Create visible streaming container
+        const streamDiv = document.createElement('div');
+        streamDiv.className = 'ai-streaming';
+        streamDiv.style.cssText = isDarkTheme
+          ? 'color: #e5e5e5; padding: 4px; margin: 4px 0;'
+          : 'color: #1a1a1a; padding: 4px; margin: 4px 0;';
+        streamDiv.textContent = '';
+        range.insertNode(streamDiv);
 
-        // Read streaming chunks
+        // Read streaming chunks with real-time visual feedback
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
@@ -387,7 +657,8 @@ export default function WritingStudioPage() {
                 const parsed = JSON.parse(data);
                 if (parsed.content) {
                   accumulatedText += parsed.content;
-                  tempSpan.textContent = accumulatedText;
+                  // Real-time update visible element
+                  streamDiv.textContent = accumulatedText;
                 }
               } catch (e) {
                 // Ignore parse errors for non-JSON chunks
@@ -396,39 +667,20 @@ export default function WritingStudioPage() {
           }
         }
 
-        // Remove loading indicator
-        loadingIndicator.remove();
+        // Convert markdown to HTML for proper formatting
+        const htmlContent = markdownToHtml(accumulatedText);
 
-        // Replace with final text span (readable colors)
-        const finalSpan = document.createElement('span');
-        finalSpan.className = 'ai-suggestion';
-        finalSpan.style.cssText = isDarkTheme
-          ? 'background-color: rgba(147, 51, 234, 0.25); color: #e5e5e5; border-left: 3px solid #a855f7; padding: 2px 4px;'
-          : 'background-color: rgba(147, 51, 234, 0.2); color: #1a1a1a; border-left: 3px solid #a855f7; padding: 2px 4px;';
-        finalSpan.textContent = accumulatedText;
-        range.deleteContents();
-        range.insertNode(finalSpan);
+        // Replace streaming div with formatted content (no highlight, just insert)
+        const finalDiv = document.createElement('div');
+        finalDiv.style.cssText = 'display: inline;';
+        finalDiv.innerHTML = htmlContent;
+        streamDiv.replaceWith(finalDiv);
 
         // Sync with React state
-        const parentElement = finalSpan.parentElement;
+        const parentElement = finalDiv.parentElement;
         if (parentElement && parentElement.innerHTML) {
           setContent(parentElement.innerHTML);
         }
-
-        // Track the change for accept/reject
-        const change: TrackedChange = {
-          id: `change_${Date.now()}`,
-          type: 'ai_suggestion',
-          status: 'pending',
-          author: 'ai',
-          position: 0,
-          positionEnd: accumulatedText.length,
-          originalText: selectedText,
-          newText: accumulatedText,
-          timestamp: Date.now(),
-          reason: `Applied ${action}`,
-        };
-        setChanges(p => [...p, change]);
       }
     } catch (e: any) {
       console.error('AI action error:', e);
@@ -442,41 +694,62 @@ export default function WritingStudioPage() {
 
   const handleChatSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!chatInput.trim()) return;
+
+    const messageToSend = chatInput.trim();
+    if (!messageToSend || isLoading) return;
+
     const userMsg: ChatMessage = {
       id: `m_${Date.now()}`,
       author: 'user',
-      text: chatInput,
+      text: messageToSend,
       timestamp: new Date(),
     };
     setChatMessages(p => [...p, userMsg]);
     setChatInput('');
     setIsLoading(true);
+
+    console.log('[Writing Studio Chat] Sending message:', messageToSend);
+
     try {
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: chatInput,
-          searchMode: true, // Enable research/search mode
-          model: selectedModel || 'llama3.2:3b', // Use selected writing model or fallback
+          message: messageToSend,
+          searchMode: true,
+          model: selectedModel || 'qwen3.5:9b',
+          brandId: selectedBrandId,
+          projectId: selectedProjectId,
         }),
       });
+
+      console.log('[Writing Studio Chat] Response status:', res.status);
+
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('[Writing Studio Chat] Error response:', errorText);
+        throw new Error(`HTTP ${res.status}: ${errorText}`);
+      }
+
       const data = await res.json();
+      console.log('[Writing Studio Chat] Response data:', data);
+
+      const responseText = data.message?.content || data.message || 'No response received';
+
       const aiMsg: ChatMessage = {
         id: `m_${Date.now()}`,
         author: 'ai',
-        text: data.message?.content || data.message || '',
+        text: responseText,
         timestamp: new Date(),
-        sources: data.sources || [], // Include research sources
+        sources: data.sources || [],
       };
       setChatMessages(p => [...p, aiMsg]);
     } catch (e) {
-      console.error('Chat error:', e);
+      console.error('[Writing Studio Chat] Error:', e);
       const errorMsg: ChatMessage = {
         id: `m_${Date.now()}`,
         author: 'ai',
-        text: 'Sorry, I encountered an error. Please try again.',
+        text: `Error: ${e instanceof Error ? e.message : 'Unknown error'}. Please try again.`,
         timestamp: new Date(),
       };
       setChatMessages(p => [...p, errorMsg]);
@@ -520,7 +793,7 @@ export default function WritingStudioPage() {
     return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   };
 
-  // Add CSS animation for spinner
+  // Add CSS animation for spinner and mermaid
   useEffect(() => {
     const style = document.createElement('style');
     style.textContent = `
@@ -531,6 +804,26 @@ export default function WritingStudioPage() {
       @keyframes pulse {
         0%, 100% { opacity: 1; }
         50% { opacity: 0.5; }
+      }
+      .mermaid-diagram-container svg {
+        max-width: 100%;
+        height: auto;
+      }
+      .mermaid {
+        background: white;
+        border-radius: 8px;
+        padding: 16px;
+      }
+      .table-container table {
+        border-collapse: collapse;
+        width: 100%;
+      }
+      .table-container th, .table-container td {
+        border: 1px solid #ddd;
+        padding: 8px;
+      }
+      .table-container th {
+        background: #f5f5f5;
       }
     `;
     document.head.appendChild(style);
@@ -546,6 +839,8 @@ export default function WritingStudioPage() {
     { id: 'simplify', name: 'Simplify', icon: '💡' },
     { id: 'humanize', name: 'Humanize', icon: '✨' },
     { id: 'grammar', name: 'Grammar', icon: '✓' },
+    { id: 'diagram', name: 'Diagram', icon: '📊' },
+    { id: 'table', name: 'Table', icon: '📱' },
   ];
 
   const pendingChanges = changes.filter(c => c.status === 'pending');
@@ -612,9 +907,9 @@ export default function WritingStudioPage() {
           </button>
           <button
             onClick={() => setShowChatPanel(!showChatPanel)}
-            className={`px-3 py-1.5 rounded-lg text-sm ${showChatPanel ? 'bg-purple-600 text-white' : isDarkTheme ? 'bg-slate-800 text-slate-300' : 'bg-gray-200 text-gray-700'}`}
+            className={`px-3 py-1.5 rounded-lg text-sm ${showChatPanel ? 'bg-purple-600 text-white font-bold' : isDarkTheme ? 'bg-slate-800 text-slate-300' : 'bg-gray-200 text-gray-700'}`}
           >
-            💬 Chat
+            💬 Chat {showChatPanel ? 'ON' : 'OFF'}
           </button>
           <button
             onClick={() => setIsDarkTheme(!isDarkTheme)}
@@ -696,10 +991,49 @@ export default function WritingStudioPage() {
         ))}
       </div>
 
+      {/* Pending Changes Bar - Right below toolbar for visibility */}
+      {pendingChanges.length > 0 && (
+        <div
+          className={`px-4 py-2 border-b ${isDarkTheme ? 'bg-purple-900/30 border-purple-700' : 'bg-purple-50 border-purple-200'}`}
+        >
+          <div className="flex items-center gap-3 overflow-x-auto">
+            <span
+              className={`text-xs font-semibold uppercase whitespace-nowrap ${isDarkTheme ? 'text-purple-300' : 'text-purple-700'}`}
+            >
+              AI Changes ({pendingChanges.length})
+            </span>
+            {pendingChanges.map(c => (
+              <div
+                key={c.id}
+                className={`flex items-center gap-2 px-3 py-1.5 rounded border ${isDarkTheme ? 'bg-slate-800 border-purple-600' : 'bg-white border-purple-300'}`}
+              >
+                <span className={`text-xs ${isDarkTheme ? 'text-purple-200' : 'text-purple-700'}`}>
+                  {c.reason}
+                </span>
+                <button
+                  onClick={() => handleAcceptChange(c.id)}
+                  className="px-2 py-0.5 bg-green-600 hover:bg-green-500 text-white text-xs rounded"
+                  title="Accept change"
+                >
+                  ✓ Accept
+                </button>
+                <button
+                  onClick={() => handleRejectChange(c.id)}
+                  className="px-2 py-0.5 bg-red-600 hover:bg-red-500 text-white text-xs rounded"
+                  title="Reject change"
+                >
+                  ✗ Reject
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Main Content - with top padding to clear fixed header */}
-      <div className="flex flex-1 overflow-hidden pt-[64px]">
+      <div className="flex flex-1 overflow-hidden" style={{ paddingTop: '64px' }}>
         {/* Editor */}
-        <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
           <div className="flex-1 overflow-hidden">
             <ManuscriptEditor
               content={content}
@@ -712,52 +1046,7 @@ export default function WritingStudioPage() {
             />
           </div>
 
-          {/* Changes Panel */}
-          {pendingChanges.length > 0 && (
-            <div
-              className={`px-4 py-3 border-t ${isDarkTheme ? 'bg-slate-800/50 border-slate-700' : 'bg-gray-100 border-gray-200'}`}
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <span
-                  className={`text-xs uppercase ${isDarkTheme ? 'text-slate-400' : 'text-gray-600'}`}
-                >
-                  Pending Changes ({pendingChanges.length})
-                </span>
-              </div>
-              <div className="flex gap-2 overflow-x-auto">
-                {pendingChanges.map(c => (
-                  <div
-                    key={c.id}
-                    className={`flex-shrink-0 p-2 rounded-lg border max-w-xs ${isDarkTheme ? 'bg-slate-700/50 border-slate-600' : 'bg-white border-gray-300'}`}
-                  >
-                    <p
-                      className={`text-xs mb-1 ${isDarkTheme ? 'text-slate-400' : 'text-gray-600'}`}
-                    >
-                      {c.reason}
-                    </p>
-                    <p className="text-xs text-red-400 line-through mb-1">
-                      {c.originalText.slice(0, 30)}...
-                    </p>
-                    <p className="text-xs text-emerald-400 mb-2">{c.newText.slice(0, 30)}...</p>
-                    <div className="flex gap-1">
-                      <button
-                        onClick={() => handleAcceptChange(c.id)}
-                        className="flex-1 px-2 py-1 bg-emerald-600/20 text-emerald-400 text-xs rounded"
-                      >
-                        ✓
-                      </button>
-                      <button
-                        onClick={() => handleRejectChange(c.id)}
-                        className="flex-1 px-2 py-1 bg-red-600/20 text-red-400 text-xs rounded"
-                      >
-                        ✗
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+          {/* Changes Panel - removed, now at top */}
         </div>
 
         {/* Book Panel */}
@@ -796,50 +1085,88 @@ export default function WritingStudioPage() {
         )}
 
         {/* Chat Panel - Research Agent */}
-        {showChatPanel && (
+        {showChatPanel ? (
           <div
-            className={`w-80 border-l flex flex-col ${isDarkTheme ? 'bg-slate-900/80 border-slate-800' : 'bg-gray-50 border-gray-200'}`}
+            className="w-80 bg-slate-900 border-l border-slate-700 flex flex-col"
+            style={{ minHeight: '400px' }}
           >
-            <div className={`p-4 border-b ${isDarkTheme ? 'border-slate-700' : 'border-gray-300'}`}>
-              <h3
-                className={`text-lg font-semibold ${isDarkTheme ? 'text-white' : 'text-gray-900'}`}
-              >
-                Research Chat
-              </h3>
+            <div className="p-3 border-b border-slate-700 bg-purple-900">
+              <h3 className="text-sm font-semibold text-white">Research Chat</h3>
             </div>
-            <div className="flex-1 overflow-auto p-4">
+            <div className="flex-1 overflow-auto p-3 bg-slate-800" ref={chatContainerRef}>
+              {!isLoading && chatMessages.length === 0 && (
+                <div className="text-center py-8 text-slate-400">
+                  <div className="text-3xl mb-2">?</div>
+                  <p className="text-sm font-medium">Research Assistant</p>
+                  <p className="text-xs mt-1">Ask anything - web search enabled</p>
+                </div>
+              )}
               {chatMessages.map(msg => (
-                <div key={msg.id} className="mb-4">
+                <div key={msg.id} className="mb-3">
                   <div
                     className={`text-xs mb-1 ${msg.author === 'user' ? 'text-purple-400' : 'text-emerald-400'}`}
                   >
-                    {msg.author === 'user' ? 'You' : 'Research AI'}{' '}
-                    {msg.timestamp.toLocaleTimeString()}
+                    {msg.author === 'user' ? 'You' : 'AI'}
                   </div>
-                  <div
-                    className={`p-3 rounded ${isDarkTheme ? 'bg-slate-800 text-slate-300' : 'bg-white text-gray-800'}`}
-                  >
-                    {msg.text}
+                  <div className="p-2 rounded bg-slate-700 text-white text-sm group relative prose prose-invert prose-sm max-w-none">
+                    <ReactMarkdown>{msg.text}</ReactMarkdown>
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(msg.text);
+                      }}
+                      className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity px-2 py-1 bg-slate-600 hover:bg-slate-500 rounded text-xs"
+                      title="Copy to clipboard"
+                    >
+                      Copy
+                    </button>
                   </div>
-                  {msg.sources && msg.sources.length > 0 && (
-                    <div className="mt-2 text-xs text-gray-500">
-                      Sources: {msg.sources.length} links
-                    </div>
-                  )}
                 </div>
               ))}
+              {isLoading && (
+                <div className="mb-3">
+                  <div className="text-xs mb-1 text-emerald-400">AI</div>
+                  <div className="p-2 rounded bg-slate-700 flex items-center gap-2">
+                    <svg
+                      className="w-4 h-4 animate-spin text-purple-500"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                    >
+                      <circle cx="12" cy="12" r="10" opacity="0.25" />
+                      <path d="M12 2a10 10 0 0 1 10 10" opacity="0.75" />
+                    </svg>
+                    <span className="text-sm text-slate-300 animate-pulse">Searching...</span>
+                  </div>
+                </div>
+              )}
             </div>
-            <form onSubmit={handleChatSubmit} className="p-4 border-t">
-              <input
-                type="text"
-                value={chatInput}
-                onChange={e => setChatInput(e.target.value)}
-                placeholder="Ask for research..."
-                className={`w-full px-3 py-2 rounded border ${isDarkTheme ? 'bg-slate-800 border-slate-600 text-white' : 'bg-white border-gray-300 text-gray-900'}`}
-              />
-            </form>
+            {/* Chat Input - Always visible at bottom */}
+            <div className="shrink-0 p-3 border-t-2 border-purple-500 bg-black">
+              <form onSubmit={handleChatSubmit} className="flex gap-2">
+                <input
+                  id="chat-input"
+                  name="chatInput"
+                  type="text"
+                  value={chatInput}
+                  onChange={e => setChatInput(e.target.value)}
+                  placeholder="Type your question..."
+                  disabled={isLoading}
+                  autoComplete="off"
+                  autoFocus
+                  className="flex-1 px-4 py-3 rounded-lg text-base bg-white text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-purple-500 border-2 border-gray-300 font-medium"
+                />
+                <button
+                  type="submit"
+                  disabled={isLoading || !chatInput.trim()}
+                  className="px-6 py-3 rounded-lg text-base font-bold bg-purple-600 text-white hover:bg-purple-500 disabled:bg-gray-500 disabled:text-gray-300 transition-colors"
+                >
+                  {isLoading ? '...' : 'Send'}
+                </button>
+              </form>
+            </div>
           </div>
-        )}
+        ) : null}
 
         {/* Templates Modal */}
         {showTemplates && (
@@ -870,43 +1197,43 @@ export default function WritingStudioPage() {
                       id: 'blog',
                       name: 'Blog Post',
                       icon: '📝',
-                      content:
-                        '# [Blog Post Title]\n\n## Introduction\n[Hook your reader with an engaging opening]\n\n## Main Point 1\n[Your first key insight]\n\n## Main Point 2\n[Your second key insight]\n\n## Main Point 3\n[Your third key insight]\n\n## Conclusion\n[Summarize and include call-to-action]',
+                      content: `<h1>Blog Post Title</h1><p><br></p><h2>Introduction</h2><p>[Hook your reader with an engaging opening paragraph. Write 2-3 sentences that grab attention and set up your topic.]</p><p><br></p><h2>Main Point 1</h2><p>[Your first key insight. Provide evidence, examples, or data to support this point.]</p><p><br></p><h2>Main Point 2</h2><p>[Your second key insight. Build on the first point and add depth to your argument.]</p><p><br></p><h2>Main Point 3</h2><p>[Your third key insight. Provide the final supporting argument before concluding.]</p><p><br></p><h2>Conclusion</h2><p>[Summarize your main points and include a clear call-to-action for your readers.]</p>`,
                     },
                     {
                       id: 'proposal',
                       name: 'Business Proposal',
                       icon: '💼',
-                      content:
-                        '# Business Proposal\n\n## Executive Summary\n[Brief overview of the proposal]\n\n## Problem Statement\n[Describe the problem or opportunity]\n\n## Proposed Solution\n[Your solution approach]\n\n## Deliverables\n[List specific deliverables]\n\n## Timeline\n[Project timeline and milestones]\n\n## Investment\n[Pricing and terms]\n\n## About Us\n[Company background and credentials]',
+                      content: `<h1>Business Proposal</h1><p><br></p><h2>Executive Summary</h2><p>[Brief overview of the proposal. Summarize the key points and benefits in 2-3 paragraphs.]</p><p><br></p><h2>Problem Statement</h2><p>[Describe the problem or opportunity. What challenge does this proposal address?]</p><p><br></p><h2>Proposed Solution</h2><p>[Your solution approach. Explain how you will solve the problem or capitalize on the opportunity.]</p><p><br></p><h2>Deliverables</h2><p>[List specific deliverables. What will you provide?]</p><p><br></p><h2>Timeline</h2><p>[Project timeline and milestones. What are the key dates and phases?]</p><p><br></p><h2>Investment</h2><p>[Pricing and terms. What is the cost and payment schedule?]</p><p><br></p><h2>About Us</h2><p>[Company background and credentials. Why should they choose you?]</p>`,
                     },
                     {
                       id: 'academic',
                       name: 'Academic Paper',
                       icon: '🎓',
-                      content:
-                        '# [Paper Title]\n\n## Abstract\n[250-word summary]\n\n## Introduction\n[Background and research question]\n\n## Literature Review\n[Related work and theoretical framework]\n\n## Methodology\n[Research design and methods]\n\n## Results\n[Findings and data]\n\n## Discussion\n[Interpretation and implications]\n\n## Conclusion\n[Summary and future research]\n\n## References\n[APA/MLA/Chicago format]',
+                      content: `<h1>Paper Title</h1><p><br></p><h2>Abstract</h2><p>[250-word summary of your research, including the research question, methodology, key findings, and conclusions.]</p><p><br></p><h2>Introduction</h2><p>[Background and research question. Establish the context and significance of your study.]</p><p><br></p><h2>Literature Review</h2><p>[Related work and theoretical framework. What have others found? Where are the gaps?]</p><p><br></p><h2>Methodology</h2><p>[Research design and methods. How did you conduct your research?]</p><p><br></p><h2>Results</h2><p>[Findings and data. What did you discover?]</p><p><br></p><h2>Discussion</h2><p>[Interpretation and implications. What do your findings mean?]</p><p><br></p><h2>Conclusion</h2><p>[Summary and future research. What are the key takeaways and next steps?]</p><p><br></p><h2>References</h2><p>[APA/MLA/Chicago format citations]</p>`,
                     },
                     {
                       id: 'novel',
                       name: 'Novel Chapter',
                       icon: '📖',
-                      content:
-                        '# Chapter [Number]\n\n[Chapter Title]\n\n[Opening scene - establish setting and mood]\n\n[Character introduction or development]\n\n[Plot advancement - conflict or tension]\n\n[Dialogue - reveal character or move plot]\n\n[Climax of chapter - key moment]\n\n[Resolution - transition to next chapter]',
+                      content: `<h1>Chapter N</h1><p><br></p><h2>Opening Scene</h2><p>[Establish setting and mood. Where are we? What's the atmosphere? Use sensory details to immerse the reader.]</p><p><br></p><h2>Character Introduction</h2><p>[Introduce or develop your characters. What do they look like? What are they feeling?]</p><p><br></p><h2>Rising Action</h2><p>[Advance the plot. Create tension or conflict. What challenges do the characters face?]</p><p><br></p><h2>Dialogue</h2><p>[Conversations that reveal character or move the plot. Give each character a distinct voice.]</p><p><br></p><h2>Climax</h2><p>[The key moment of the chapter. What's the turning point or revelation?]</p><p><br></p><h2>Resolution</h2><p>[Transition to the next chapter. Leave readers wanting more.]</p>`,
                     },
                     {
                       id: 'grant',
                       name: 'SBIR Grant Proposal',
                       icon: '🏛️',
-                      content:
-                        '# SBIR/STTR Grant Proposal\n\n## Project Summary\n[400-word abstract]\n\n## Statement of Need/Problem\n[Describe the problem being addressed]\n\n## Innovation\n[Novelty and competitive advantage]\n\n## Technical Approach\n[Research plan and methodology]\n\n### Phase I Objectives\n[Phase I goals and deliverables]\n\n### Phase II Plan\n[Phase II commercialization]\n\n## Commercialization Strategy\n[Market analysis and commercial potential]\n\n## Team Qualifications\n[Key personnel and capabilities]',
+                      content: `<h1>SBIR/STTR Grant Proposal</h1><p><br></p><h2>Project Summary</h2><p>[400-word abstract summarizing the innovation, approach, and commercial potential.]</p><p><br></p><h2>Statement of Need/Problem</h2><p>[Describe the problem being addressed. What is the market need or societal challenge?]</p><p><br></p><h2>Innovation</h2><p>[Novelty and competitive advantage. What makes your solution unique?]</p><p><br></p><h2>Technical Approach</h2><p>[Research plan and methodology. How will you develop and test your solution?]</p><p><br></p><h3>Phase I Objectives</h3><p>[Phase I goals and deliverables. What will you accomplish in 6 months?]</p><p><br></p><h3>Phase II Plan</h3><p>[Phase II commercialization. How will you scale after Phase I?] </p><p><br></p><h2>Commercialization Strategy</h2><p>[Market analysis and commercial potential. Who are your customers? How big is the market?]</p><p><br></p><h2>Team Qualifications</h2><p>[Key personnel and capabilities. Why is your team the right one for this project?]</p>`,
                     },
                     {
                       id: 'report',
                       name: 'Research Report',
                       icon: '📊',
-                      content:
-                        '# Research Report\n\n## Executive Summary\n[Key findings and recommendations]\n\n## Background\n[Context and rationale]\n\n## Methodology\n[Research approach and data sources]\n\n## Findings\n[Key discoveries and analysis]\n\n## Analysis\n[Interpretation of results]\n\n## Recommendations\n[Actionable next steps]\n\n## Appendices\n[Supporting data and materials]',
+                      content: `<h1>Research Report</h1><p><br></p><h2>Executive Summary</h2><p>[Key findings and recommendations. A concise overview for busy readers.]</p><p><br></p><h2>Background</h2><p>[Context and rationale. Why was this research conducted?]</p><p><br></p><h2>Methodology</h2><p>[Research approach and data sources. How was the data collected and analyzed?]</p><p><br></p><h2>Findings</h2><p>[Key discoveries and analysis. Present your data clearly with charts or tables if needed.]</p><p><br></p><h2>Analysis</h2><p>[Interpretation of results. What do the findings mean?]</p><p><br></p><h2>Recommendations</h2><p>[Actionable next steps. What should stakeholders do?] </p><p><br></p><h2>Appendices</h2><p>[Supporting data, materials, and detailed methodologies.]</p>`,
+                    },
+                    {
+                      id: 'article',
+                      name: 'Quick Article',
+                      icon: '📄',
+                      content: `<h1>Article Title</h1><p><br></p><p>Write your opening paragraph here. Hook the reader with an interesting statement, question, or story.</p><p><br></p><h2>Main Section</h2><p>[Expand on your main ideas. Use paragraphs to organize your thoughts.]</p><p><br></p><h3>Subsection</h3><p>[Add detail and supporting information.]</p><p><br></p><p>Continue writing...</p><p><br></p><h2>Conclusion</h2><p>[Wrap up with a strong closing thought.]</p>`,
                     },
                   ].map(template => (
                     <button

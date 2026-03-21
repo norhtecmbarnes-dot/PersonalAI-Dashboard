@@ -3,9 +3,15 @@
 import { useState, useEffect, useRef } from 'react';
 import { MarkdownRenderer } from '@/components/MarkdownRenderer';
 import { PageModelSelector } from '@/components/PageModelSelector';
-import type { Brand, Project, BrandDocument, ChatSession, ChatMessage } from '@/types/brand-workspace';
+import type {
+  Brand,
+  Project,
+  BrandDocument,
+  ChatSession,
+  ChatMessage,
+} from '@/types/brand-workspace';
 
-type ViewMode = 'brands' | 'projects' | 'documents' | 'chat';
+type ViewMode = 'brands' | 'projects' | 'documents' | 'chat' | 'memory';
 
 export default function BrandWorkspacePage() {
   const [brands, setBrands] = useState<Brand[]>([]);
@@ -20,6 +26,13 @@ export default function BrandWorkspacePage() {
   const [viewMode, setViewMode] = useState<ViewMode>('brands');
   const [isLoading, setIsLoading] = useState(false);
   const [chatInput, setChatInput] = useState('');
+  const [memoryData, setMemoryData] = useState<any>(null);
+  const [soulData, setSoulData] = useState<string>('');
+  const [memoryLoading, setMemoryLoading] = useState(false);
+  const [editingMemory, setEditingMemory] = useState(false);
+  const [editingSoul, setEditingSoul] = useState(false);
+  const [editedSoul, setEditedSoul] = useState<string>('');
+  const [memoryMode, setMemoryMode] = useState<'auto' | 'manual'>('auto');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -27,8 +40,71 @@ export default function BrandWorkspacePage() {
   }, []);
 
   useEffect(() => {
+    if (viewMode === 'memory') {
+      loadMemoryData();
+    }
+  }, [viewMode]);
+
+  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [currentSession?.messages]);
+
+  const saveSoul = async () => {
+    try {
+      const response = await fetch('/api/memory-file', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'updateSoul',
+          soul: editedSoul,
+        }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setSoulData(editedSoul);
+        setEditingSoul(false);
+      }
+    } catch (e) {
+      console.error('Failed to save soul:', e);
+    }
+  };
+
+  const saveMemory = async (updatedMemory: any) => {
+    try {
+      const response = await fetch('/api/memory-file', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'memory',
+          memory: updatedMemory,
+        }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setMemoryData(updatedMemory);
+        setEditingMemory(false);
+      }
+    } catch (e) {
+      console.error('Failed to save memory:', e);
+    }
+  };
+
+  const loadMemoryData = async () => {
+    setMemoryLoading(true);
+    try {
+      const [memRes, soulRes] = await Promise.all([
+        fetch('/api/memory-file?action=memory'),
+        fetch('/api/memory-file?action=soul'),
+      ]);
+      const memData = await memRes.json();
+      const soulDataResult = await soulRes.json();
+      if (memData.success) setMemoryData(memData.memory);
+      if (soulDataResult.success) setSoulData(soulDataResult.soul);
+    } catch (e) {
+      console.error('Failed to load memory:', e);
+    }
+    setMemoryLoading(false);
+  };
 
   const loadBrands = async () => {
     try {
@@ -57,17 +133,23 @@ export default function BrandWorkspacePage() {
       const brandResponse = await fetch(`/api/brand-workspace/brands?${brandParams}`);
       const brandData = await brandResponse.json();
       const allDocs = brandData.documents || [];
-      
+
       // Separate brand voice docs (no projectId) from project docs
       setBrandVoiceDocs(allDocs.filter((doc: BrandDocument) => !doc.projectId));
-      
+
       // If projectId provided, also load project-specific docs
       if (projectId) {
-        const projectParams = new URLSearchParams({ id: brandId, includeDocuments: 'true', projectId });
+        const projectParams = new URLSearchParams({
+          id: brandId,
+          includeDocuments: 'true',
+          projectId,
+        });
         const projectResponse = await fetch(`/api/brand-workspace/brands?${projectParams}`);
         const projectData = await projectResponse.json();
         const projectDocuments = projectData.documents || [];
-        setProjectDocs(projectDocuments.filter((doc: BrandDocument) => doc.projectId === projectId));
+        setProjectDocs(
+          projectDocuments.filter((doc: BrandDocument) => doc.projectId === projectId)
+        );
       } else {
         setProjectDocs([]);
       }
@@ -231,7 +313,11 @@ export default function BrandWorkspacePage() {
     const name = prompt('Enter project name:');
     if (!name) return;
 
-    const type = prompt('Enter project type (bid/proposal/marketing/campaign/research/quote/other):', 'other') || 'other';
+    const type =
+      prompt(
+        'Enter project type (bid/proposal/marketing/campaign/research/quote/other):',
+        'other'
+      ) || 'other';
 
     setIsLoading(true);
     try {
@@ -257,7 +343,11 @@ export default function BrandWorkspacePage() {
   };
 
   const deleteBrand = async (brandId: string, brandName: string) => {
-    if (!confirm(`Are you sure you want to delete "${brandName}"?\n\nThis will permanently delete:\n- The brand\n- All ${brands.find(b => b.id === brandId) ? 'brand documents' : 'documents'}\n- All projects\n- All chat sessions\n\nThis action cannot be undone.`)) {
+    if (
+      !confirm(
+        `Are you sure you want to delete "${brandName}"?\n\nThis will permanently delete:\n- The brand\n- All ${brands.find(b => b.id === brandId) ? 'brand documents' : 'documents'}\n- All projects\n- All chat sessions\n\nThis action cannot be undone.`
+      )
+    ) {
       return;
     }
 
@@ -285,7 +375,11 @@ export default function BrandWorkspacePage() {
   };
 
   const deleteProject = async (projectId: string, projectName: string) => {
-    if (!confirm(`Are you sure you want to delete "${projectName}"?\n\nThis will permanently delete:\n- The project\n- All project documents\n- All chat sessions\n\nThis action cannot be undone.`)) {
+    if (
+      !confirm(
+        `Are you sure you want to delete "${projectName}"?\n\nThis will permanently delete:\n- The project\n- All project documents\n- All chat sessions\n\nThis action cannot be undone.`
+      )
+    ) {
       return;
     }
 
@@ -317,33 +411,23 @@ export default function BrandWorkspacePage() {
     setIsLoading(true);
     try {
       for (const file of files) {
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-          const content = e.target?.result as string;
-          const extension = file.name.split('.').pop()?.toLowerCase() || 'other';
-          const typeMap: Record<string, string> = {
-            pdf: 'pdf', doc: 'docx', docx: 'docx', txt: 'txt',
-            md: 'markdown', markdown: 'markdown', html: 'html', htm: 'html',
-          };
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('brandId', selectedBrand.id);
+        if (uploadTarget === 'project' && selectedProject?.id) {
+          formData.append('projectId', selectedProject.id);
+        }
+        formData.append('title', file.name.replace(/\.[^/.]+$/, ''));
+        formData.append('extractKnowledge', 'true');
 
-          const response = await fetch('/api/brand-workspace/brands', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              action: 'addDocumentFromText',
-              brandId: selectedBrand.id,
-              projectId: uploadTarget === 'project' ? selectedProject?.id : undefined,
-              title: file.name.replace(/\.[^/.]+$/, ''),
-              content,
-              type: typeMap[extension] || 'other',
-            }),
-          });
-          const data = await response.json();
-          if (data.success) {
-            await loadDocuments(selectedBrand.id, selectedProject?.id);
-          }
-        };
-        reader.readAsText(file);
+        const response = await fetch('/api/brand-workspace/upload', {
+          method: 'POST',
+          body: formData,
+        });
+        const data = await response.json();
+        if (data.success) {
+          await loadDocuments(selectedBrand.id, selectedProject?.id);
+        }
       }
     } catch (error) {
       console.error('Error uploading document:', error);
@@ -427,7 +511,11 @@ export default function BrandWorkspacePage() {
           <div className="flex items-center gap-2">
             {selectedBrand && (
               <button
-                onClick={() => { setSelectedBrand(null); setSelectedProject(null); setViewMode('brands'); }}
+                onClick={() => {
+                  setSelectedBrand(null);
+                  setSelectedProject(null);
+                  setViewMode('brands');
+                }}
                 className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm"
               >
                 All Brands
@@ -435,7 +523,10 @@ export default function BrandWorkspacePage() {
             )}
             {selectedProject && (
               <button
-                onClick={() => { setSelectedProject(null); setViewMode('projects'); }}
+                onClick={() => {
+                  setSelectedProject(null);
+                  setViewMode('projects');
+                }}
                 className="px-3 py-1 bg-gray-700 hover:bg-gray-600 rounded text-sm"
               >
                 {selectedBrand?.name} Projects
@@ -445,344 +536,422 @@ export default function BrandWorkspacePage() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto p-6">
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Sidebar */}
-          <div className="lg:col-span-1 space-y-4">
-            {/* Brands List */}
-            {viewMode === 'brands' && (
-              <div className="bg-gray-800 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold">Brands</h2>
-                  <button
-                    onClick={createBrand}
-                    className="px-3 py-1 bg-purple-600 hover:bg-purple-700 rounded text-sm"
-                  >
-                    + New
-                  </button>
-                </div>
-                <div className="space-y-2">
-                  {brands.map(brand => (
-                    <div key={brand.id} className="w-full">
-                      <div className="flex gap-1">
-                        <button
-                          onClick={() => selectBrand(brand)}
-                          className="flex-1 text-left p-3 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
-                        >
-                          <div className="font-medium">{brand.name}</div>
-                          {brand.industry && (
-                            <div className="text-sm text-gray-400">{brand.industry}</div>
-                          )}
-                        </button>
-                        <button
-                          onClick={() => deleteBrand(brand.id, brand.name)}
-                          className="px-2 py-2 bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white rounded-lg transition-colors"
-                          title="Delete brand"
-                        >
-                          🗑️
-                        </button>
-                      </div>
-                      <button
-                        onClick={() => {
-                          setSelectedBrand(brand);
-                          startBrandChat();
-                        }}
-                        className="w-full mt-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm flex items-center justify-center gap-2"
-                      >
-                        💬 Chat with {brand.name}
-                      </button>
-                    </div>
-                  ))}
-                  {brands.length === 0 && (
-                    <p className="text-gray-500 text-sm text-center py-4">
-                      No brands yet. Create one to get started.
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
+      {/* View Mode Tabs */}
+      <div className="bg-gray-800/50 border-b border-gray-700 px-6">
+        <div className="max-w-7xl mx-auto flex gap-1">
+          {(['brands', 'projects', 'documents', 'chat', 'memory'] as ViewMode[]).map(tab => (
+            <button
+              key={tab}
+              onClick={() => setViewMode(tab)}
+              className={`px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+                viewMode === tab
+                  ? 'border-purple-500 text-purple-400'
+                  : 'border-transparent text-gray-400 hover:text-white hover:border-gray-500'
+              }`}
+            >
+              {tab === 'brands' && '🏢 '}
+              {tab === 'projects' && '📁 '}
+              {tab === 'documents' && '📄 '}
+              {tab === 'chat' && '💬 '}
+              {tab === 'memory' && '🧠 '}
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            </button>
+          ))}
+        </div>
+      </div>
 
-            {/* Projects List */}
-            {viewMode === 'projects' && selectedBrand && (
-              <div className="bg-gray-800 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-lg font-semibold">{selectedBrand.name}</h2>
-                  <div className="flex gap-2">
+      <div className="max-w-7xl mx-auto p-6">
+        <div
+          className={`grid gap-6 ${viewMode === 'memory' ? 'grid-cols-1' : 'grid-cols-1 lg:grid-cols-4'}`}
+        >
+          {/* Sidebar - hidden in memory view */}
+          {viewMode !== 'memory' && (
+            <div className="lg:col-span-1 space-y-4">
+              {/* Brands List */}
+              {viewMode === 'brands' && (
+                <div className="bg-gray-800 rounded-lg p-4">
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-semibold">Brands</h2>
                     <button
-                      onClick={startBrandChat}
-                      className="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm"
-                      title="Chat with brand documents"
-                    >
-                      💬 Chat
-                    </button>
-                    <button
-                      onClick={createProject}
+                      onClick={createBrand}
                       className="px-3 py-1 bg-purple-600 hover:bg-purple-700 rounded text-sm"
                     >
                       + New
                     </button>
                   </div>
-                </div>
-                <div className="space-y-2">
-                  {projects.map(project => (
-                    <div key={project.id} className="flex gap-1">
-                      <button
-                        onClick={() => selectProject(project)}
-                        className={`flex-1 text-left p-3 rounded-lg transition-colors ${
-                          selectedProject?.id === project.id
-                            ? 'bg-purple-900/50 border border-purple-500'
-                            : 'bg-gray-700 hover:bg-gray-600'
-                        }`}
-                      >
-                        <div className="font-medium">{project.name}</div>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="text-xs px-2 py-0.5 bg-gray-600 rounded">{project.type}</span>
-                          <span className="text-xs text-gray-400">{project.status}</span>
-                        </div>
-                      </button>
-                      <button
-                        onClick={() => deleteProject(project.id, project.name)}
-                        className="px-2 py-2 bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white rounded-lg transition-colors self-start mt-3"
-                        title="Delete project"
-                      >
-                        🗑️
-                      </button>
-                    </div>
-                  ))}
-                  {projects.length === 0 && (
-                    <div className="text-gray-500 text-sm text-center py-4">
-                      <p>No projects yet.</p>
-                      <button
-                        onClick={startBrandChat}
-                        className="mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded text-sm"
-                      >
-                        💬 Start Brand Chat
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Project Details Sidebar */}
-            {(viewMode === 'documents' || viewMode === 'chat') && selectedProject && (
-              <div className="space-y-4">
-                <div className="bg-gray-800 rounded-lg p-4">
-                  <h2 className="text-lg font-semibold mb-2">{selectedProject.name}</h2>
-                  <p className="text-gray-400 text-sm mb-3">{selectedProject.description || 'No description'}</p>
-                  <div className="flex gap-2 flex-wrap">
-                    <span className="text-xs px-2 py-1 bg-purple-900/50 text-purple-300 rounded">{selectedProject.type}</span>
-                    <span className="text-xs px-2 py-1 bg-gray-700 rounded">{selectedProject.status}</span>
-                  </div>
-                </div>
-
-                {/* Document Actions */}
-                <div className="bg-gray-800 rounded-lg p-4">
-                  <h3 className="font-semibold mb-3">Add Sources</h3>
-                  
-                  {/* Upload Target Toggle */}
-                  <div className="flex gap-2 mb-3">
-                    <button
-                      onClick={() => setUploadTarget('project')}
-                      className={`flex-1 px-3 py-2 rounded text-sm transition-colors ${
-                        uploadTarget === 'project'
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                      }`}
-                    >
-                      To Project
-                    </button>
-                    <button
-                      onClick={() => setUploadTarget('brand')}
-                      className={`flex-1 px-3 py-2 rounded text-sm transition-colors ${
-                        uploadTarget === 'brand'
-                          ? 'bg-purple-600 text-white'
-                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                      }`}
-                    >
-                      To Brand Voice
-                    </button>
-                  </div>
-                  
                   <div className="space-y-2">
-                    <label className="block w-full px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded cursor-pointer text-center text-sm">
-                      Upload Files
-                      <input
-                        type="file"
-                        multiple
-                        accept=".txt,.md,.markdown,.html,.pdf,.json,.docx"
-                        className="hidden"
-                        onChange={(e) => e.target.files && uploadDocument(e.target.files)}
-                      />
-                    </label>
-                    <button
-                      onClick={addUrlDocument}
-                      className="w-full px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm"
-                    >
-                      Add URL
-                    </button>
-                  </div>
-                </div>
-
-                {/* Chat Sessions */}
-                <div className="bg-gray-800 rounded-lg p-4">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="font-semibold">Chat Sessions</h3>
-                    <button
-                      onClick={startChat}
-                      className="px-2 py-1 bg-purple-600 hover:bg-purple-700 rounded text-xs"
-                    >
-                      New Chat
-                    </button>
-                  </div>
-                  <div className="space-y-2 max-h-40 overflow-y-auto">
-                    {sessions.map(session => (
-                      <button
-                        key={session.id}
-                        onClick={() => selectSession(session)}
-                        className={`w-full text-left p-2 rounded text-sm ${
-                          currentSession?.id === session.id
-                            ? 'bg-purple-900/50 border border-purple-500'
-                            : 'bg-gray-700 hover:bg-gray-600'
-                        }`}
-                      >
-                        <div className="truncate">{session.title || 'Untitled Chat'}</div>
-                        <div className="text-xs text-gray-400">
-                          {session.messages.length} messages
+                    {brands.map(brand => (
+                      <div key={brand.id} className="w-full">
+                        <div className="flex gap-1">
+                          <button
+                            onClick={() => selectBrand(brand)}
+                            className="flex-1 text-left p-3 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+                          >
+                            <div className="font-medium">{brand.name}</div>
+                            {brand.industry && (
+                              <div className="text-sm text-gray-400">{brand.industry}</div>
+                            )}
+                          </button>
+                          <button
+                            onClick={() => deleteBrand(brand.id, brand.name)}
+                            className="px-2 py-2 bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white rounded-lg transition-colors"
+                            title="Delete brand"
+                          >
+                            🗑️
+                          </button>
                         </div>
-                      </button>
+                        <button
+                          onClick={() => {
+                            setSelectedBrand(brand);
+                            startBrandChat();
+                          }}
+                          className="w-full mt-1 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 rounded-lg text-sm flex items-center justify-center gap-2"
+                        >
+                          💬 Chat with {brand.name}
+                        </button>
+                      </div>
                     ))}
-                    {sessions.length === 0 && (
-                      <p className="text-gray-500 text-xs text-center py-2">No chats yet</p>
+                    {brands.length === 0 && (
+                      <p className="text-gray-500 text-sm text-center py-4">
+                        No brands yet. Create one to get started.
+                      </p>
                     )}
                   </div>
                 </div>
+              )}
 
-                {/* Generate Actions */}
+              {/* Projects List */}
+              {viewMode === 'projects' && selectedBrand && (
                 <div className="bg-gray-800 rounded-lg p-4">
-                  <h3 className="font-semibold mb-3">Generate</h3>
+                  <div className="flex items-center justify-between mb-4">
+                    <h2 className="text-lg font-semibold">{selectedBrand.name}</h2>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={startBrandChat}
+                        className="px-3 py-1 bg-blue-600 hover:bg-blue-700 rounded text-sm"
+                        title="Chat with brand documents"
+                      >
+                        💬 Chat
+                      </button>
+                      <button
+                        onClick={createProject}
+                        className="px-3 py-1 bg-purple-600 hover:bg-purple-700 rounded text-sm"
+                      >
+                        + New
+                      </button>
+                    </div>
+                  </div>
                   <div className="space-y-2">
-                    <button
-                      onClick={() => generateOutput('proposal')}
-                      disabled={isLoading}
-                      className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded text-sm disabled:opacity-50"
-                    >
-                      Generate Proposal
-                    </button>
-                    <button
-                      onClick={() => generateOutput('quote')}
-                      disabled={isLoading}
-                      className="w-full px-3 py-2 bg-green-600 hover:bg-green-700 rounded text-sm disabled:opacity-50"
-                    >
-                      Generate Quote
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Main Content */}
-          <div className="lg:col-span-3">
-            {/* Brand Voice Upload (no project needed) */}
-            {(viewMode === 'documents' || viewMode === 'projects') && selectedBrand && !selectedProject && (
-              <div className="bg-gray-800 rounded-lg p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h2 className="text-xl font-semibold">Brand Voice Documents</h2>
-                    <p className="text-sm text-gray-400">These documents define {selectedBrand.name}'s voice and will be available across all projects</p>
-                  </div>
-                  <span className="text-gray-400 text-sm">{brandVoiceDocs.length} documents</span>
-                </div>
-
-                {/* Upload Area */}
-                <div className="mb-6 p-6 border-2 border-dashed border-gray-600 rounded-lg bg-gray-700/30">
-                  <div className="text-center mb-4">
-                    <p className="text-gray-300 mb-2">Upload documents to build your brand voice</p>
-                    <p className="text-xs text-gray-500">Supported files: .txt, .md, .markdown, .html, .pdf, .json, .docx</p>
-                  </div>
-                  <div className="flex gap-3 justify-center">
-                    <label className="px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg cursor-pointer text-white font-medium transition-colors">
-                      Upload Files
-                      <input
-                        type="file"
-                        multiple
-                        accept=".txt,.md,.markdown,.html,.pdf,.json,.docx"
-                        className="hidden"
-                        onChange={(e) => {
-                          setUploadTarget('brand');
-                          e.target.files && uploadDocument(e.target.files);
-                        }}
-                      />
-                    </label>
-                    <button
-                      onClick={() => {
-                        setUploadTarget('brand');
-                        addUrlDocument();
-                      }}
-                      className="px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg text-white font-medium transition-colors"
-                    >
-                      Add URL
-                    </button>
-                  </div>
-                </div>
-
-                {/* Brand Voice Documents Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {brandVoiceDocs.map((doc: BrandDocument) => (
-                    <div key={doc.id} className="bg-gradient-to-br from-purple-900/30 to-gray-700 rounded-lg p-4 border border-purple-500/30">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <h3 className="font-medium">{doc.title}</h3>
-                          <div className="flex gap-2 mt-1">
-                            <span className="text-xs px-2 py-0.5 bg-purple-900/50 text-purple-300 rounded">{doc.type}</span>
-                            <span className="text-xs px-2 py-0.5 bg-purple-600/50 text-purple-200 rounded">Brand Voice</span>
-                          </div>
-                        </div>
+                    {projects.map(project => (
+                      <div key={project.id} className="flex gap-1">
                         <button
-                          onClick={async () => {
-                            if (!confirm('Delete this document?')) return;
-                            await fetch('/api/brand-workspace/brands', {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({
-                                action: 'deleteDocument',
-                                documentId: doc.id,
-                              }),
-                            });
-                            loadDocuments(selectedBrand.id);
-                          }}
-                          className="p-1 text-gray-400 hover:text-red-400"
+                          onClick={() => selectProject(project)}
+                          className={`flex-1 text-left p-3 rounded-lg transition-colors ${
+                            selectedProject?.id === project.id
+                              ? 'bg-purple-900/50 border border-purple-500'
+                              : 'bg-gray-700 hover:bg-gray-600'
+                          }`}
                         >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
+                          <div className="font-medium">{project.name}</div>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-xs px-2 py-0.5 bg-gray-600 rounded">
+                              {project.type}
+                            </span>
+                            <span className="text-xs text-gray-400">{project.status}</span>
+                          </div>
+                        </button>
+                        <button
+                          onClick={() => deleteProject(project.id, project.name)}
+                          className="px-2 py-2 bg-red-600/20 hover:bg-red-600 text-red-400 hover:text-white rounded-lg transition-colors self-start mt-3"
+                          title="Delete project"
+                        >
+                          🗑️
                         </button>
                       </div>
-                      {doc.metadata?.summary && (
-                        <p className="text-sm text-gray-400 mt-2 line-clamp-2">{doc.metadata.summary}</p>
-                      )}
-                      {doc.metadata?.tags && doc.metadata.tags.length > 0 && (
-                        <div className="flex gap-1 mt-2 flex-wrap">
-                          {doc.metadata.tags.slice(0, 5).map((tag: string) => (
-                            <span key={tag} className="text-xs px-1.5 py-0.5 bg-gray-600 rounded">{tag}</span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                  {brandVoiceDocs.length === 0 && (
-                    <div className="col-span-2 text-center py-12 text-gray-500">
-                      <svg className="w-16 h-16 mx-auto mb-4 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                      </svg>
-                      <p className="text-lg mb-2">No brand voice documents yet</p>
-                      <p className="text-sm">Upload company guidelines, style guides, or reference materials</p>
-                    </div>
-                  )}
+                    ))}
+                    {projects.length === 0 && (
+                      <div className="text-gray-500 text-sm text-center py-4">
+                        <p>No projects yet.</p>
+                        <button
+                          onClick={startBrandChat}
+                          className="mt-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded text-sm"
+                        >
+                          💬 Start Brand Chat
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
-            )}
+              )}
+
+              {/* Project Details Sidebar */}
+              {(viewMode === 'documents' || viewMode === 'chat') && selectedProject && (
+                <div className="space-y-4">
+                  <div className="bg-gray-800 rounded-lg p-4">
+                    <h2 className="text-lg font-semibold mb-2">{selectedProject.name}</h2>
+                    <p className="text-gray-400 text-sm mb-3">
+                      {selectedProject.description || 'No description'}
+                    </p>
+                    <div className="flex gap-2 flex-wrap">
+                      <span className="text-xs px-2 py-1 bg-purple-900/50 text-purple-300 rounded">
+                        {selectedProject.type}
+                      </span>
+                      <span className="text-xs px-2 py-1 bg-gray-700 rounded">
+                        {selectedProject.status}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Document Actions */}
+                  <div className="bg-gray-800 rounded-lg p-4">
+                    <h3 className="font-semibold mb-3">Add Sources</h3>
+
+                    {/* Upload Target Toggle */}
+                    <div className="flex gap-2 mb-3">
+                      <button
+                        onClick={() => setUploadTarget('project')}
+                        className={`flex-1 px-3 py-2 rounded text-sm transition-colors ${
+                          uploadTarget === 'project'
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                        }`}
+                      >
+                        To Project
+                      </button>
+                      <button
+                        onClick={() => setUploadTarget('brand')}
+                        className={`flex-1 px-3 py-2 rounded text-sm transition-colors ${
+                          uploadTarget === 'brand'
+                            ? 'bg-purple-600 text-white'
+                            : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                        }`}
+                      >
+                        To Brand Voice
+                      </button>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="block w-full px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded cursor-pointer text-center text-sm">
+                        Upload Files
+                        <input
+                          type="file"
+                          multiple
+                          accept=".txt,.md,.markdown,.html,.pdf,.json,.docx"
+                          className="hidden"
+                          onChange={e => e.target.files && uploadDocument(e.target.files)}
+                        />
+                      </label>
+                      <button
+                        onClick={addUrlDocument}
+                        className="w-full px-3 py-2 bg-gray-700 hover:bg-gray-600 rounded text-sm"
+                      >
+                        Add URL
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Chat Sessions */}
+                  <div className="bg-gray-800 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="font-semibold">Chat Sessions</h3>
+                      <button
+                        onClick={startChat}
+                        className="px-2 py-1 bg-purple-600 hover:bg-purple-700 rounded text-xs"
+                      >
+                        New Chat
+                      </button>
+                    </div>
+                    <div className="space-y-2 max-h-40 overflow-y-auto">
+                      {sessions.map(session => (
+                        <button
+                          key={session.id}
+                          onClick={() => selectSession(session)}
+                          className={`w-full text-left p-2 rounded text-sm ${
+                            currentSession?.id === session.id
+                              ? 'bg-purple-900/50 border border-purple-500'
+                              : 'bg-gray-700 hover:bg-gray-600'
+                          }`}
+                        >
+                          <div className="truncate">{session.title || 'Untitled Chat'}</div>
+                          <div className="text-xs text-gray-400">
+                            {session.messages.length} messages
+                          </div>
+                        </button>
+                      ))}
+                      {sessions.length === 0 && (
+                        <p className="text-gray-500 text-xs text-center py-2">No chats yet</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Generate Actions */}
+                  <div className="bg-gray-800 rounded-lg p-4">
+                    <h3 className="font-semibold mb-3">Generate</h3>
+                    <div className="space-y-2">
+                      <button
+                        onClick={() => generateOutput('proposal')}
+                        disabled={isLoading}
+                        className="w-full px-3 py-2 bg-blue-600 hover:bg-blue-700 rounded text-sm disabled:opacity-50"
+                      >
+                        Generate Proposal
+                      </button>
+                      <button
+                        onClick={() => generateOutput('quote')}
+                        disabled={isLoading}
+                        className="w-full px-3 py-2 bg-green-600 hover:bg-green-700 rounded text-sm disabled:opacity-50"
+                      >
+                        Generate Quote
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Main Content */}
+          <div className={viewMode === 'memory' ? 'col-span-1' : 'lg:col-span-3'}>
+            {/* Brand Voice Upload (no project needed) */}
+            {(viewMode === 'documents' || viewMode === 'projects') &&
+              selectedBrand &&
+              !selectedProject && (
+                <div className="bg-gray-800 rounded-lg p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h2 className="text-xl font-semibold">Brand Voice Documents</h2>
+                      <p className="text-sm text-gray-400">
+                        These documents define {selectedBrand.name}'s voice and will be available
+                        across all projects
+                      </p>
+                    </div>
+                    <span className="text-gray-400 text-sm">{brandVoiceDocs.length} documents</span>
+                  </div>
+
+                  {/* Upload Area */}
+                  <div className="mb-6 p-6 border-2 border-dashed border-gray-600 rounded-lg bg-gray-700/30">
+                    <div className="text-center mb-4">
+                      <p className="text-gray-300 mb-2">
+                        Upload documents to build your brand voice
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        Supported files: .txt, .md, .markdown, .html, .pdf, .json, .docx
+                      </p>
+                    </div>
+                    <div className="flex gap-3 justify-center">
+                      <label className="px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg cursor-pointer text-white font-medium transition-colors">
+                        Upload Files
+                        <input
+                          type="file"
+                          multiple
+                          accept=".txt,.md,.markdown,.html,.pdf,.json,.docx"
+                          className="hidden"
+                          onChange={e => {
+                            setUploadTarget('brand');
+                            e.target.files && uploadDocument(e.target.files);
+                          }}
+                        />
+                      </label>
+                      <button
+                        onClick={() => {
+                          setUploadTarget('brand');
+                          addUrlDocument();
+                        }}
+                        className="px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg text-white font-medium transition-colors"
+                      >
+                        Add URL
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Brand Voice Documents Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {brandVoiceDocs.map((doc: BrandDocument) => (
+                      <div
+                        key={doc.id}
+                        className="bg-gradient-to-br from-purple-900/30 to-gray-700 rounded-lg p-4 border border-purple-500/30"
+                      >
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <h3 className="font-medium">{doc.title}</h3>
+                            <div className="flex gap-2 mt-1">
+                              <span className="text-xs px-2 py-0.5 bg-purple-900/50 text-purple-300 rounded">
+                                {doc.type}
+                              </span>
+                              <span className="text-xs px-2 py-0.5 bg-purple-600/50 text-purple-200 rounded">
+                                Brand Voice
+                              </span>
+                            </div>
+                          </div>
+                          <button
+                            onClick={async () => {
+                              if (!confirm('Delete this document?')) return;
+                              await fetch('/api/brand-workspace/brands', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                  action: 'deleteDocument',
+                                  documentId: doc.id,
+                                }),
+                              });
+                              loadDocuments(selectedBrand.id);
+                            }}
+                            className="p-1 text-gray-400 hover:text-red-400"
+                          >
+                            <svg
+                              className="w-4 h-4"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth={2}
+                                d="M6 18L18 6M6 6l12 12"
+                              />
+                            </svg>
+                          </button>
+                        </div>
+                        {doc.metadata?.summary && (
+                          <p className="text-sm text-gray-400 mt-2 line-clamp-2">
+                            {doc.metadata.summary}
+                          </p>
+                        )}
+                        {doc.metadata?.tags && doc.metadata.tags.length > 0 && (
+                          <div className="flex gap-1 mt-2 flex-wrap">
+                            {doc.metadata.tags.slice(0, 5).map((tag: string) => (
+                              <span key={tag} className="text-xs px-1.5 py-0.5 bg-gray-600 rounded">
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                    {brandVoiceDocs.length === 0 && (
+                      <div className="col-span-2 text-center py-12 text-gray-500">
+                        <svg
+                          className="w-16 h-16 mx-auto mb-4 opacity-30"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={1.5}
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                          />
+                        </svg>
+                        <p className="text-lg mb-2">No brand voice documents yet</p>
+                        <p className="text-sm">
+                          Upload company guidelines, style guides, or reference materials
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
 
             {/* Documents View */}
             {viewMode === 'documents' && selectedProject && (
@@ -792,19 +961,28 @@ export default function BrandWorkspacePage() {
                   <div className="flex items-center justify-between mb-4">
                     <div>
                       <h2 className="text-xl font-semibold">Brand Voice Documents</h2>
-                      <p className="text-sm text-gray-400">Shared across all {selectedBrand?.name} projects</p>
+                      <p className="text-sm text-gray-400">
+                        Shared across all {selectedBrand?.name} projects
+                      </p>
                     </div>
                     <span className="text-gray-400 text-sm">{brandVoiceDocs.length} documents</span>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {brandVoiceDocs.map((doc: BrandDocument) => (
-                      <div key={doc.id} className="bg-gradient-to-br from-purple-900/30 to-gray-700 rounded-lg p-4 border border-purple-500/30">
+                      <div
+                        key={doc.id}
+                        className="bg-gradient-to-br from-purple-900/30 to-gray-700 rounded-lg p-4 border border-purple-500/30"
+                      >
                         <div className="flex items-start justify-between">
                           <div>
                             <h3 className="font-medium">{doc.title}</h3>
                             <div className="flex gap-2 mt-1">
-                              <span className="text-xs px-2 py-0.5 bg-purple-900/50 text-purple-300 rounded">{doc.type}</span>
-                              <span className="text-xs px-2 py-0.5 bg-purple-600/50 text-purple-200 rounded">Brand Voice</span>
+                              <span className="text-xs px-2 py-0.5 bg-purple-900/50 text-purple-300 rounded">
+                                {doc.type}
+                              </span>
+                              <span className="text-xs px-2 py-0.5 bg-purple-600/50 text-purple-200 rounded">
+                                Brand Voice
+                              </span>
                             </div>
                           </div>
                           <span className="text-xs text-gray-400">
@@ -812,12 +990,16 @@ export default function BrandWorkspacePage() {
                           </span>
                         </div>
                         {doc.metadata?.summary && (
-                          <p className="text-sm text-gray-400 mt-2 line-clamp-2">{doc.metadata.summary}</p>
+                          <p className="text-sm text-gray-400 mt-2 line-clamp-2">
+                            {doc.metadata.summary}
+                          </p>
                         )}
                         {doc.metadata?.tags && doc.metadata.tags.length > 0 && (
                           <div className="flex gap-1 mt-2 flex-wrap">
                             {doc.metadata.tags.slice(0, 5).map((tag: string) => (
-                              <span key={tag} className="text-xs px-1.5 py-0.5 bg-gray-600 rounded">{tag}</span>
+                              <span key={tag} className="text-xs px-1.5 py-0.5 bg-gray-600 rounded">
+                                {tag}
+                              </span>
                             ))}
                           </div>
                         )}
@@ -848,8 +1030,12 @@ export default function BrandWorkspacePage() {
                           <div>
                             <h3 className="font-medium">{doc.title}</h3>
                             <div className="flex gap-2 mt-1">
-                              <span className="text-xs px-2 py-0.5 bg-gray-600 rounded">{doc.type}</span>
-                              <span className="text-xs px-2 py-0.5 bg-blue-900/50 text-blue-300 rounded">Project</span>
+                              <span className="text-xs px-2 py-0.5 bg-gray-600 rounded">
+                                {doc.type}
+                              </span>
+                              <span className="text-xs px-2 py-0.5 bg-blue-900/50 text-blue-300 rounded">
+                                Project
+                              </span>
                             </div>
                           </div>
                           <span className="text-xs text-gray-400">
@@ -857,12 +1043,16 @@ export default function BrandWorkspacePage() {
                           </span>
                         </div>
                         {doc.metadata?.summary && (
-                          <p className="text-sm text-gray-400 mt-2 line-clamp-2">{doc.metadata.summary}</p>
+                          <p className="text-sm text-gray-400 mt-2 line-clamp-2">
+                            {doc.metadata.summary}
+                          </p>
                         )}
                         {doc.metadata?.tags && doc.metadata.tags.length > 0 && (
                           <div className="flex gap-1 mt-2 flex-wrap">
                             {doc.metadata.tags.slice(0, 5).map((tag: string) => (
-                              <span key={tag} className="text-xs px-1.5 py-0.5 bg-gray-600 rounded">{tag}</span>
+                              <span key={tag} className="text-xs px-1.5 py-0.5 bg-gray-600 rounded">
+                                {tag}
+                              </span>
                             ))}
                           </div>
                         )}
@@ -871,7 +1061,9 @@ export default function BrandWorkspacePage() {
                     {projectDocs.length === 0 && (
                       <div className="col-span-2 text-center py-8 text-gray-500 bg-gray-800/50 rounded-lg border border-dashed border-gray-600">
                         <p className="text-sm">No project documents yet</p>
-                        <p className="text-xs mt-1">Upload RFPs, specifications, or other project files</p>
+                        <p className="text-xs mt-1">
+                          Upload RFPs, specifications, or other project files
+                        </p>
                       </div>
                     )}
                   </div>
@@ -881,12 +1073,17 @@ export default function BrandWorkspacePage() {
 
             {/* Chat View */}
             {viewMode === 'chat' && currentSession && (
-              <div className="bg-gray-800 rounded-lg flex flex-col" style={{ height: 'calc(100vh - 200px)' }}>
+              <div
+                className="bg-gray-800 rounded-lg flex flex-col"
+                style={{ height: 'calc(100vh - 200px)' }}
+              >
                 {/* Chat Header */}
                 <div className="p-4 border-b border-gray-700">
                   <h2 className="font-semibold">{currentSession.title || 'Chat'}</h2>
                   <p className="text-sm text-gray-400">
-                    {currentSession.messages.length} messages | {brandVoiceDocs.length + projectDocs.length} sources available ({brandVoiceDocs.length} brand, {projectDocs.length} project)
+                    {currentSession.messages.length} messages |{' '}
+                    {brandVoiceDocs.length + projectDocs.length} sources available (
+                    {brandVoiceDocs.length} brand, {projectDocs.length} project)
                   </p>
                 </div>
 
@@ -895,7 +1092,9 @@ export default function BrandWorkspacePage() {
                   {currentSession.messages.length === 0 && (
                     <div className="text-center text-gray-500 py-12">
                       <p className="text-lg mb-2">Start a conversation</p>
-                      <p className="text-sm">Ask questions about {selectedBrand?.name} and your documents</p>
+                      <p className="text-sm">
+                        Ask questions about {selectedBrand?.name} and your documents
+                      </p>
                     </div>
                   )}
                   {currentSession.messages.map(message => (
@@ -917,7 +1116,8 @@ export default function BrandWorkspacePage() {
                         )}
                         {message.metadata?.documentsReferenced && (
                           <div className="text-xs text-gray-400 mt-2">
-                            Sources: {message.metadata.documentsReferenced.length} documents referenced
+                            Sources: {message.metadata.documentsReferenced.length} documents
+                            referenced
                           </div>
                         )}
                       </div>
@@ -946,7 +1146,7 @@ export default function BrandWorkspacePage() {
                   <div className="flex gap-2">
                     <textarea
                       value={chatInput}
-                      onChange={(e) => setChatInput(e.target.value)}
+                      onChange={e => setChatInput(e.target.value)}
                       onKeyDown={handleKeyDown}
                       placeholder="Ask about your documents, request content generation..."
                       className="flex-1 bg-gray-900 text-white border border-gray-700 rounded-lg px-4 py-2 focus:outline-none focus:border-purple-500 resize-none"
@@ -979,6 +1179,313 @@ export default function BrandWorkspacePage() {
                 >
                   Create Your First Brand
                 </button>
+              </div>
+            )}
+
+            {/* Memory Tab - AI-managed context with optional editing */}
+            {viewMode === 'memory' && (
+              <div className="space-y-6">
+                {/* Mode Toggle */}
+                <div className="bg-gray-800 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h2 className="text-lg font-semibold">🧠 AI Memory & Soul</h2>
+                      <p className="text-sm text-gray-400">
+                        Memory is built automatically through conversations. Toggle to manual mode
+                        to edit directly.
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-4">
+                      <span
+                        className={`text-sm ${memoryMode === 'auto' ? 'text-cyan-400' : 'text-gray-400'}`}
+                      >
+                        {memoryMode === 'auto' ? '🤖 Auto Mode' : '✏️ Manual Mode'}
+                      </span>
+                      <button
+                        onClick={() => setMemoryMode(memoryMode === 'auto' ? 'manual' : 'auto')}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          memoryMode === 'auto'
+                            ? 'bg-cyan-600 hover:bg-cyan-700 text-white'
+                            : 'bg-purple-600 hover:bg-purple-700 text-white'
+                        }`}
+                      >
+                        {memoryMode === 'auto' ? 'Enable Manual Editing' : 'Enable Auto Mode'}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Soul Section */}
+                <div className="bg-gray-800 rounded-lg p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h2 className="text-xl font-semibold">✨ AI Soul</h2>
+                      <p className="text-sm text-gray-400">
+                        Defines how the AI should behave and respond.
+                      </p>
+                    </div>
+                    {memoryMode === 'manual' && !editingSoul && (
+                      <button
+                        onClick={() => {
+                          setEditedSoul(soulData);
+                          setEditingSoul(true);
+                        }}
+                        className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm"
+                      >
+                        ✏️ Edit Soul
+                      </button>
+                    )}
+                  </div>
+
+                  {editingSoul ? (
+                    <div className="space-y-3">
+                      <textarea
+                        value={editedSoul}
+                        onChange={e => setEditedSoul(e.target.value)}
+                        className="w-full h-64 bg-gray-900 text-white border border-gray-700 rounded-lg p-4 font-mono text-sm"
+                        placeholder="Enter your AI Soul..."
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          onClick={saveSoul}
+                          className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm"
+                        >
+                          💾 Save
+                        </button>
+                        <button
+                          onClick={() => setEditingSoul(false)}
+                          className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg text-sm"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-gradient-to-r from-purple-900/30 to-blue-900/30 rounded-lg p-4 border border-purple-500/30">
+                      <pre className="whitespace-pre-wrap text-sm text-gray-200 font-mono">
+                        {soulData || 'No soul defined. Click Edit to create one.'}
+                      </pre>
+                    </div>
+                  )}
+                </div>
+
+                {/* Memory Context Section */}
+                <div className="bg-gray-800 rounded-lg p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <div>
+                      <h2 className="text-xl font-semibold">📋 Memory Context</h2>
+                      <p className="text-sm text-gray-400">
+                        AI-managed context including user info, projects, and learned knowledge.
+                      </p>
+                    </div>
+                    {memoryMode === 'manual' && (
+                      <button
+                        onClick={() => setEditingMemory(!editingMemory)}
+                        className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg text-sm"
+                      >
+                        {editingMemory ? '👁️ View Mode' : '✏️ Edit Memory'}
+                      </button>
+                    )}
+                  </div>
+
+                  {memoryLoading ? (
+                    <div className="text-center py-8">
+                      <p className="text-gray-400">Loading memory...</p>
+                    </div>
+                  ) : editingMemory ? (
+                    /* Edit Mode */
+                    <div className="space-y-4">
+                      {/* User Info Edit */}
+                      <div className="bg-gray-700/50 rounded-lg p-4">
+                        <h3 className="font-semibold text-purple-400 mb-3">User Profile</h3>
+                        <div className="grid grid-cols-2 gap-4">
+                          <input
+                            type="text"
+                            placeholder="Name"
+                            defaultValue={memoryData?.user?.name}
+                            className="bg-gray-900 text-white border border-gray-600 rounded px-3 py-2"
+                            onChange={e => {
+                              if (memoryData) {
+                                memoryData.user.name = e.target.value;
+                              }
+                            }}
+                          />
+                          <input
+                            type="text"
+                            placeholder="Role"
+                            defaultValue={memoryData?.user?.role}
+                            className="bg-gray-900 text-white border border-gray-600 rounded px-3 py-2"
+                            onChange={e => {
+                              if (memoryData) {
+                                memoryData.user.role = e.target.value;
+                              }
+                            }}
+                          />
+                          <input
+                            type="text"
+                            placeholder="Organization"
+                            defaultValue={memoryData?.user?.organization}
+                            className="bg-gray-900 text-white border border-gray-600 rounded px-3 py-2"
+                            onChange={e => {
+                              if (memoryData) {
+                                memoryData.user.organization = e.target.value;
+                              }
+                            }}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Knowledge Edit */}
+                      <div className="bg-gray-700/50 rounded-lg p-4">
+                        <h3 className="font-semibold text-purple-400 mb-3">Knowledge</h3>
+                        <div className="space-y-3">
+                          {memoryData?.knowledge?.map((k: any, i: number) => (
+                            <div key={i} className="bg-gray-800 rounded p-3">
+                              <input
+                                type="text"
+                                defaultValue={k.title}
+                                className="w-full bg-gray-900 text-white border border-gray-600 rounded px-2 py-1 mb-2"
+                                placeholder="Title"
+                              />
+                              <textarea
+                                defaultValue={k.content}
+                                className="w-full h-20 bg-gray-900 text-white border border-gray-600 rounded px-2 py-1 text-sm"
+                                placeholder="Content"
+                              />
+                            </div>
+                          )) || <p className="text-gray-500 text-sm">No knowledge entries yet.</p>}
+                        </div>
+                      </div>
+
+                      <button
+                        onClick={() => saveMemory(memoryData)}
+                        className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm"
+                      >
+                        💾 Save Changes
+                      </button>
+                    </div>
+                  ) : (
+                    /* View Mode */
+                    <div className="space-y-6">
+                      {/* User Info */}
+                      {memoryData?.user && (
+                        <div className="bg-gray-700/50 rounded-lg p-4">
+                          <h3 className="font-semibold text-purple-400 mb-2">User Profile</h3>
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            {memoryData.user.name && (
+                              <div>
+                                <span className="text-gray-400">Name:</span> {memoryData.user.name}
+                              </div>
+                            )}
+                            {memoryData.user.role && (
+                              <div>
+                                <span className="text-gray-400">Role:</span> {memoryData.user.role}
+                              </div>
+                            )}
+                            {memoryData.user.organization && (
+                              <div>
+                                <span className="text-gray-400">Organization:</span>{' '}
+                                {memoryData.user.organization}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Projects */}
+                      {memoryData?.projects?.length > 0 && (
+                        <div className="bg-gray-700/50 rounded-lg p-4">
+                          <h3 className="font-semibold text-purple-400 mb-2">Projects</h3>
+                          <div className="space-y-2">
+                            {memoryData.projects.map((p: any, i: number) => (
+                              <div key={i} className="flex justify-between items-center text-sm">
+                                <span>{p.name}</span>
+                                <span
+                                  className={`text-xs px-2 py-0.5 rounded ${
+                                    p.status === 'active'
+                                      ? 'bg-green-900/50 text-green-300'
+                                      : p.status === 'completed'
+                                        ? 'bg-blue-900/50 text-blue-300'
+                                        : 'bg-gray-600 text-gray-300'
+                                  }`}
+                                >
+                                  {p.status}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Knowledge Sections */}
+                      {memoryData?.knowledge?.length > 0 && (
+                        <div className="bg-gray-700/50 rounded-lg p-4">
+                          <h3 className="font-semibold text-purple-400 mb-2">Knowledge</h3>
+                          <div className="space-y-3">
+                            {memoryData.knowledge.map((k: any, i: number) => (
+                              <div key={i} className="border-l-2 border-purple-500 pl-3">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-medium">{k.title}</span>
+                                  <span
+                                    className={`text-xs px-1.5 py-0.5 rounded ${
+                                      k.importance === 'critical'
+                                        ? 'bg-red-900/50 text-red-300'
+                                        : k.importance === 'high'
+                                          ? 'bg-orange-900/50 text-orange-300'
+                                          : 'bg-gray-600 text-gray-300'
+                                    }`}
+                                  >
+                                    {k.importance}
+                                  </span>
+                                </div>
+                                <p className="text-sm text-gray-300 mt-1 line-clamp-2">
+                                  {k.content}
+                                </p>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Context */}
+                      {memoryData?.context && (
+                        <div className="bg-gray-700/50 rounded-lg p-4">
+                          <h3 className="font-semibold text-purple-400 mb-2">Current Context</h3>
+                          <div className="text-sm space-y-1">
+                            {memoryData.context.currentFocus && (
+                              <div>
+                                <span className="text-gray-400">Current Focus:</span>{' '}
+                                {memoryData.context.currentFocus}
+                              </div>
+                            )}
+                            {memoryData.context.recentFiles?.length > 0 && (
+                              <div>
+                                <span className="text-gray-400">Recent Files:</span>{' '}
+                                {memoryData.context.recentFiles.join(', ')}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {!memoryData?.knowledge?.length && !memoryData?.projects?.length && (
+                        <p className="text-gray-500 text-center py-4">
+                          No memory data yet. Memory is built through conversations with the AI.
+                        </p>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* Info Box */}
+                <div className="bg-blue-900/30 border border-blue-500/30 rounded-lg p-4">
+                  <p className="text-sm text-blue-200">
+                    💡 <strong>How it works:</strong> In <strong>Auto Mode</strong>, the AI
+                    automatically updates your memory and soul during conversations using the{' '}
+                    <code className="bg-blue-900/50 px-1 rounded">/memory</code> command. Switch to{' '}
+                    <strong>Manual Mode</strong> to edit directly.
+                  </p>
+                </div>
               </div>
             )}
           </div>

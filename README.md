@@ -1,9 +1,8 @@
-# PersonalAI Dashboard
+# AI Dashboard
 
-> **A Gift to the World** — Build Your Own AI Assistant. Runs Locally. Protects Your Privacy.
+> **Open Source AI Assistant** — Build Your Own. Runs Locally. Protects Your Privacy.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![License: CC BY-SA 4.0](https://img.shields.io/badge/License-CC%20BY--SA%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-sa/4.0/)
 [![Next.js](https://img.shields.io/badge/Next.js-16+-black)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0+-blue)](https://www.typescriptlang.org/)
 
@@ -11,38 +10,24 @@
 
 ## Purpose
 
-This project is a **gift to the world** — open source code (MIT) with Creative Commons documentation (CC BY-SA 4.0).
+This is an **open source AI dashboard** — use it as a foundation to build your own personalized AI assistant.
 
-We believe everyone deserves:
+Core principles:
 - **Privacy** — Your data stays on your machine
-- **Freedom** — No subscriptions, no vendor lock-in
+- **Freedom** — No subscriptions, no vendor lock-in  
 - **Control** — Customize everything for your needs
 - **Learning** — Understand how AI systems work
 
-Build your own personalized AI dashboard. Use it as a ChatGPT replacement. Create automated tasks. Write documents. Manage your knowledge.
+Features include: Chat, Writing Studio, Document Generation, Brand Voice, Builder, and more.
 
 ---
 
-## Core Features
-
-| Feature | Purpose |
-|---------|---------|
-| **Home** | ChatGPT replacement — local LLM, web search, memory |
-| **Heartbeat** | Cron system for automated task execution |
-| **Writing Studio** | Document editor with AI assistance |
-| **Office** | AI file generator (PowerPoint, Excel, Word, PDF) |
-| **Brand Voice** | Knowledge bases for context injection |
-| **Builder** | Visual UI generation + database forms |
-| **Telegram** | Remote system communication |
-
----
-
-## ⚡ Quick Start (5 Minutes)
+## Quick Start
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/norhtecmbarnes-dot/PersonalAI-Dashboard.git
-cd PersonalAI-Dashboard
+git clone https://github.com/YOUR_USERNAME/AI-Dashboard.git
+cd AI-Dashboard
 
 # 2. Install dependencies
 npm install
@@ -59,25 +44,23 @@ npm run dev
 
 Open **http://localhost:3000** and start chatting!
 
-**Want FREE cloud models?** Get your API key at https://ollama.com/settings/keys and add to `.env.local`:
+**Want cloud models?** Get your API key and add to `.env.local`:
 ```
 OLLAMA_API_KEY=your-key-here
 ```
 
 ---
 
-## 🚀 What's New
+## What's New
 
-### v2.6.3 (Current) - Builder Integration
-- **Unified Builder**: Combined Canvas and Forms into one page
-- **Security**: Replaced unsafe Function() with mathjs.evaluate()
-- **Cleanup**: Removed 30+ duplicate files
+### v3.0 - Major Refactor
+- **Writing Studio** - Improved markdown rendering, streaming output
+- **Diagram/Table Generation** - Mermaid diagrams and tables
+- **Office AI** - Enhanced presentation tools
+- **Brand Workspace Memory Tab** - Unified memory and soul management
 
-### v2.6.2 - PDF Processing Fix
-- Updated pdf-parse to v2 API
-- Added proper resource cleanup
-
-### Performance (v2.6.0)
+### Previous Versions
+See [CHANGELOG.md](./CHANGELOG.md) for full history.
 - **50% Token Reduction**: Context from 4096 to 2048 tokens
 - **40% Faster**: Response time 3.5s → 2.1s
 - **Smart Routing**: Task-based model selection
@@ -145,7 +128,7 @@ Please ensure:
 
 ## Support
 
-- **Issues**: https://github.com/norhtecmbarnes-dot/PersonalAI-Dashboard/issues
+- **Issues**: https://github.com/YOUR_USERNAME/AI-Dashboard/issues
 - **Discussions**: Use GitHub Discussions for questions
 
 ---

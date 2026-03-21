@@ -93,6 +93,9 @@ book-output/*.pdf
 # Aider
 .aider*
 
+# Personal extensions (private customizations)
+personal-extensions/
+
 # Temporary documentation files
 COMPLETION_NOTICE.txt
 POST_TO_GITHUB.txt

@@ -1,15 +1,19 @@
 export const runtime = 'nodejs';
 
 import { NextResponse } from 'next/server';
-import { listModels, checkOllamaHealth, getOllamaModels, getExternalModels } from '@/lib/models/sdk.server';
-
+import {
+  listModels,
+  checkOllamaHealth,
+  getOllamaModels,
+  getExternalModels,
+} from '@/lib/models/sdk.server';
 
 export async function GET() {
   try {
     const ollamaModels = await getOllamaModels();
     const externalModels = getExternalModels();
     const ollamaHealthy = await checkOllamaHealth();
-    
+
     // Default model preferences (since database may not be available)
     const modelPrefs = {
       defaultModel: 'glm-4.7-flash',
@@ -17,9 +21,8 @@ export async function GET() {
       preferLocal: true,
       cloudForChat: false,
     };
-    
-    // Filter external models to only show those with API keys configured
-    // Only use environment variables (database may not be available)
+
+    // Check which API keys are configured
     const availableApiKeys = {
       gemini: !!process.env.GEMINI_API_KEY,
       openai: !!process.env.OPENAI_API_KEY,
@@ -31,44 +34,51 @@ export async function GET() {
       glm: !!process.env.GLM_API_KEY,
       'ollama-cloud': !!process.env.OLLAMA_API_KEY,
     };
-    
+
     // Filter external models to only those with configured API keys
     const filteredExternalModels = externalModels.filter(m => {
       const provider = m.provider as keyof typeof availableApiKeys;
       return availableApiKeys[provider] === true;
     });
 
+    // IMPORTANT: Include ALL Ollama models (local) - these don't need API keys
+    // The ollamaModels from getOllamaModels() already contains only actually installed models
+    const allOllamaModels = ollamaModels.map(m => ({
+      ...m,
+      provider: 'ollama' as const,
+    }));
+
     // Determine default model based on preferences
     let defaultModel = modelPrefs.defaultModel;
-    
+
     // If auto-routing is enabled and local models are preferred
-    if (modelPrefs.autoRoute && modelPrefs.preferLocal && ollamaModels.length > 0) {
-      defaultModel = ollamaModels[0].name;
+    if (modelPrefs.autoRoute && modelPrefs.preferLocal && allOllamaModels.length > 0) {
+      defaultModel = allOllamaModels[0].name;
     }
-    
+
     // If cloud for chat is enabled, use cloud model
     if (modelPrefs.cloudForChat && filteredExternalModels.length > 0) {
       defaultModel = filteredExternalModels[0].id;
     }
-    
+
     // If Ollama is offline but we have external models, use first external
     if (!ollamaHealthy && filteredExternalModels.length > 0) {
       defaultModel = filteredExternalModels[0].id;
     }
-    
+
     // If no models at all, provide helpful defaults based on what might work
-    if (ollamaModels.length === 0 && filteredExternalModels.length === 0) {
+    if (allOllamaModels.length === 0 && filteredExternalModels.length === 0) {
       defaultModel = 'glm-4.7-flash'; // Most commonly available
     }
 
     return NextResponse.json({
       ollama: {
         available: ollamaHealthy,
-        models: ollamaModels,
+        models: allOllamaModels,
       },
       external: filteredExternalModels,
       allModels: [
-        ...ollamaModels.map(m => ({ ...m, provider: 'ollama' })),
+        ...allOllamaModels,
         ...filteredExternalModels.map(m => ({ ...m, provider: m.provider })),
       ],
       defaultModel,

@@ -319,6 +319,7 @@ END:VCALENDAR`;
 
   if (!isOpen) return null;
 
+  const selectedColorStyle = NOTE_COLORS.find(c => c.value === color) || NOTE_COLORS[0];
   const categories = [
     { value: 'general', label: 'General' },
     { value: 'meeting', label: 'Meeting Notes' },
@@ -333,9 +334,8 @@ END:VCALENDAR`;
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
       {/* Sticky note style editor */}
       <div
-        className="bg-yellow-100 rounded-sm shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col relative"
+        className={`${selectedColorStyle.bg} rounded-sm shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col relative`}
         style={{
-          backgroundImage: 'linear-gradient(to bottom, rgba(255,255,0,0.1) 0%, transparent 5%)',
           boxShadow: '0 10px 30px rgba(0,0,0,0.3), 0 0 0 1px rgba(0,0,0,0.05)',
         }}
       >
@@ -345,40 +345,50 @@ END:VCALENDAR`;
           style={{ boxShadow: '0 2px 4px rgba(0,0,0,0.3), inset 0 -2px 4px rgba(0,0,0,0.2)' }}
         />
 
-        <div className="flex items-center justify-between p-4 border-b border-yellow-300">
-          <h2 className="text-xl font-semibold text-yellow-900">
+        <div
+          className={`flex items-center justify-between p-4 border-b ${selectedColorStyle.border}`}
+        >
+          <h2 className={`text-xl font-semibold ${selectedColorStyle.text}`}>
             {initialNote ? 'Edit Note' : 'New Note'}
           </h2>
           <div className="flex gap-2">
             <button
               onClick={() => setShowPreview(!showPreview)}
-              className="px-3 py-1 text-sm bg-yellow-200 hover:bg-yellow-300 text-yellow-900 rounded"
+              className={`px-3 py-1 text-sm ${selectedColorStyle.bg} hover:opacity-80 ${selectedColorStyle.text} rounded`}
             >
               {showPreview ? 'Edit' : 'Preview'}
             </button>
             <button
               onClick={onClose}
-              className="px-3 py-1 text-sm bg-yellow-200 hover:bg-yellow-300 text-yellow-900 rounded"
+              className={`px-3 py-1 text-sm ${selectedColorStyle.bg} hover:opacity-80 ${selectedColorStyle.text} rounded`}
             >
               Cancel
             </button>
           </div>
         </div>
 
-        <div className="p-4 border-b border-yellow-300">
+        <div className={`p-4 border-b ${selectedColorStyle.border}`}>
           <input
+            id="note-title"
+            name="title"
             type="text"
             placeholder="Note title..."
             value={title}
             onChange={e => setTitle(e.target.value)}
-            className="w-full text-lg font-medium bg-transparent border-none text-yellow-900 placeholder-yellow-600/50 focus:outline-none"
+            className={`w-full text-lg font-medium bg-transparent border-none ${selectedColorStyle.text} placeholder-gray-500/50 focus:outline-none`}
+            aria-label="Note title"
           />
 
           <div className="flex gap-4 mt-3 items-center">
+            <label htmlFor="note-category" className="sr-only">
+              Category
+            </label>
             <select
+              id="note-category"
+              name="category"
               value={category}
               onChange={e => setCategory(e.target.value)}
-              className="px-3 py-1 bg-yellow-200 border border-yellow-400 rounded text-yellow-900 text-sm"
+              className={`px-3 py-1 ${selectedColorStyle.bg} border ${selectedColorStyle.border} rounded ${selectedColorStyle.text} text-sm`}
             >
               {categories.map(cat => (
                 <option key={cat.value} value={cat.value}>
@@ -389,7 +399,7 @@ END:VCALENDAR`;
 
             {/* Color selector */}
             <div className="flex items-center gap-1">
-              <span className="text-xs text-yellow-700 mr-1">Color:</span>
+              <span className={`text-xs ${selectedColorStyle.text} mr-1`}>Color:</span>
               {NOTE_COLORS.map(c => (
                 <button
                   key={c.value}
@@ -408,7 +418,7 @@ END:VCALENDAR`;
               {tags.map(tag => (
                 <span
                   key={tag}
-                  className="px-2 py-1 bg-yellow-300/70 text-yellow-900 text-xs rounded-full flex items-center gap-1"
+                  className={`px-2 py-1 ${selectedColorStyle.bg} ${selectedColorStyle.text} text-xs rounded-full flex items-center gap-1`}
                 >
                   {tag}
                   <button onClick={() => removeTag(tag)} className="hover:text-red-600">
@@ -417,25 +427,30 @@ END:VCALENDAR`;
                 </span>
               ))}
               <input
+                id="new-tag"
+                name="newTag"
                 type="text"
                 placeholder="Add tag..."
                 value={newTag}
                 onChange={e => setNewTag(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && addTag()}
-                className="px-2 py-1 bg-yellow-200 border border-yellow-400 rounded text-yellow-900 text-xs w-24 focus:outline-none focus:border-yellow-500"
+                className={`px-2 py-1 ${selectedColorStyle.bg} border ${selectedColorStyle.border} rounded ${selectedColorStyle.text} text-xs w-24 focus:outline-none`}
+                aria-label="Add a new tag"
               />
             </div>
           </div>
         </div>
 
         {/* Formatting Toolbar */}
-        <div className="flex items-center gap-2 px-4 py-2 border-b border-yellow-300 bg-yellow-200/50">
+        <div
+          className={`flex items-center gap-2 px-4 py-2 border-b ${selectedColorStyle.border} opacity-90`}
+        >
           <button
             onClick={() => {
               setBold(!bold);
               setContent(content + (bold ? '\n**bold**' : ''));
             }}
-            className={`px-3 py-1 rounded font-bold ${bold ? 'bg-yellow-400' : 'bg-yellow-300 hover:bg-yellow-400'}`}
+            className={`px-3 py-1 rounded font-bold ${bold ? 'opacity-80' : 'opacity-60 hover:opacity-80'} ${selectedColorStyle.text}`}
             title="Bold"
           >
             B
@@ -445,7 +460,7 @@ END:VCALENDAR`;
               setItalic(!italic);
               setContent(content + (italic ? '\n*italic*' : ''));
             }}
-            className={`px-3 py-1 rounded italic ${italic ? 'bg-yellow-400' : 'bg-yellow-300 hover:bg-yellow-400'}`}
+            className={`px-3 py-1 rounded italic ${italic ? 'opacity-80' : 'opacity-60 hover:opacity-80'} ${selectedColorStyle.text}`}
             title="Italic"
           >
             I
@@ -455,16 +470,16 @@ END:VCALENDAR`;
               setUnderline(!underline);
               setContent(content + '\n---');
             }}
-            className={`px-3 py-1 rounded underline ${underline ? 'bg-yellow-400' : 'bg-yellow-300 hover:bg-yellow-400'}`}
+            className={`px-3 py-1 rounded underline ${underline ? 'opacity-80' : 'opacity-60 hover:opacity-80'} ${selectedColorStyle.text}`}
             title="Underline"
           >
             U
           </button>
-          <div className="w-px h-6 bg-yellow-400" />
+          <div className={`w-px h-6 ${selectedColorStyle.border}`} />
           <select
             value={fontSize}
             onChange={e => setFontSize(Number(e.target.value))}
-            className="px-2 py-1 bg-yellow-300 rounded text-yellow-900 text-sm"
+            className={`px-2 py-1 ${selectedColorStyle.bg} rounded ${selectedColorStyle.text} text-sm`}
           >
             <option value={12}>12px</option>
             <option value={14}>14px</option>
@@ -476,17 +491,22 @@ END:VCALENDAR`;
           <button
             onClick={quickSave}
             disabled={isSaving || !title.trim() || !content.trim()}
-            className={`px-3 py-1 rounded text-sm ${isSaving ? 'bg-yellow-400' : 'bg-yellow-500 hover:bg-yellow-600'} text-yellow-900`}
+            className={`px-3 py-1 rounded text-sm ${isSaving ? 'opacity-60' : 'opacity-80 hover:opacity-100'} ${selectedColorStyle.text}`}
           >
             {isSaving ? 'Saving...' : 'Quick Save'}
           </button>
         </div>
 
-        <div className="flex-1 overflow-hidden bg-yellow-50" style={{ minHeight: '300px' }}>
+        <div
+          className={`flex-1 overflow-hidden ${selectedColorStyle.bg} opacity-50`}
+          style={{ minHeight: '300px' }}
+        >
           {showPreview ? (
-            <div className="h-full p-4 overflow-y-auto text-yellow-900 prose max-w-none">
+            <div
+              className={`h-full p-4 overflow-y-auto ${selectedColorStyle.text} prose max-w-none`}
+            >
               <h3>{title || 'Untitled'}</h3>
-              <p className="text-yellow-700 text-sm">
+              <p className={`text-sm opacity-70`}>
                 {category} • {tags.join(', ')}
               </p>
               <div className="mt-4 whitespace-pre-wrap">{content}</div>
@@ -505,27 +525,29 @@ Use Markdown for formatting:
               value={content}
               onChange={e => setContent(e.target.value)}
               style={{ fontSize: `${fontSize}px` }}
-              className="w-full h-64 p-4 bg-yellow-50 text-yellow-900 placeholder-yellow-600/50 resize-none focus:outline-none font-mono text-sm"
+              className={`w-full h-64 p-4 bg-transparent ${selectedColorStyle.text} placeholder-gray-500/50 resize-none focus:outline-none font-mono text-sm`}
             />
           )}
         </div>
 
-        <div className="flex items-center justify-between p-4 border-t border-yellow-300 bg-yellow-100">
-          <div className="text-xs text-yellow-700">
+        <div
+          className={`flex items-center justify-between p-4 border-t ${selectedColorStyle.border}`}
+        >
+          <div className={`text-xs ${selectedColorStyle.text} opacity-70`}>
             {content.split(/\s+/).filter(Boolean).length} words • {content.length} characters
           </div>
           <div className="flex gap-2">
             <button
               onClick={generateICS}
               disabled={!title.trim() || !content.trim()}
-              className="px-4 py-2 bg-yellow-300 hover:bg-yellow-400 disabled:bg-yellow-200 text-yellow-900 rounded text-sm"
+              className={`px-4 py-2 ${selectedColorStyle.bg} hover:opacity-80 disabled:opacity-40 ${selectedColorStyle.text} rounded text-sm`}
             >
               Export to Calendar
             </button>
             <button
               onClick={contextualizeAndSave}
               disabled={isSaving || !title.trim() || !content.trim()}
-              className="px-4 py-2 bg-yellow-500 hover:bg-yellow-600 disabled:bg-yellow-300 text-yellow-900 rounded text-sm font-medium"
+              className={`px-4 py-2 ${selectedColorStyle.bg} hover:opacity-80 disabled:opacity-40 ${selectedColorStyle.text} rounded text-sm font-medium`}
             >
               {contextualizing ? 'Analyzing...' : isSaving ? 'Saving...' : 'Save Note'}
             </button>
@@ -542,6 +564,7 @@ interface Note {
   content: string;
   category: string;
   tags: string[];
+  color?: string;
   createdAt: number;
   updatedAt: number;
 }
@@ -606,17 +629,29 @@ export function NotesList({ onEdit }: NotesListProps) {
     return matchesSearch && matchesCategory;
   });
 
+  const getNoteColorStyle = (color?: string) => {
+    return NOTE_COLORS.find(c => c.value === color) || NOTE_COLORS[0];
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex gap-4">
         <input
+          id="notes-search"
+          name="searchQuery"
           type="text"
           placeholder="Search notes..."
           value={searchQuery}
           onChange={e => setSearchQuery(e.target.value)}
           className="flex-1 px-4 py-2 bg-gray-800 border border-gray-700 rounded text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+          aria-label="Search notes"
         />
+        <label htmlFor="notes-category-filter" className="sr-only">
+          Filter by category
+        </label>
         <select
+          id="notes-category-filter"
+          name="categoryFilter"
           value={selectedCategory}
           onChange={e => setSelectedCategory(e.target.value)}
           className="px-4 py-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none"
@@ -652,15 +687,14 @@ export function NotesList({ onEdit }: NotesListProps) {
               '0.25deg',
             ];
             const rotation = rotations[index % rotations.length];
+            const colorStyle = getNoteColorStyle(note.color);
 
             return (
               <div
                 key={note.id}
-                className="p-4 bg-yellow-100 rounded-sm shadow-lg hover:shadow-xl transition-all cursor-pointer group relative"
+                className={`p-4 ${colorStyle.bg} rounded-sm shadow-lg hover:shadow-xl transition-all cursor-pointer group relative`}
                 style={{
                   transform: `rotate(${rotation})`,
-                  backgroundImage:
-                    'linear-gradient(to bottom, rgba(255,255,0,0.05) 0%, transparent 3%)',
                 }}
                 onClick={() => onEdit(note)}
               >
@@ -671,13 +705,13 @@ export function NotesList({ onEdit }: NotesListProps) {
                 />
 
                 <div className="flex justify-between items-start mb-2">
-                  <h3 className="font-medium text-yellow-900 truncate flex-1">{note.title}</h3>
+                  <h3 className={`font-medium ${colorStyle.text} truncate flex-1`}>{note.title}</h3>
                   <button
                     onClick={e => {
                       e.stopPropagation();
                       deleteNote(note.id);
                     }}
-                    className="p-1 text-yellow-700 opacity-0 group-hover:opacity-100 hover:text-red-600 transition-opacity"
+                    className={`p-1 ${colorStyle.text} opacity-0 group-hover:opacity-100 hover:text-red-600 transition-opacity`}
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path
@@ -689,21 +723,25 @@ export function NotesList({ onEdit }: NotesListProps) {
                     </svg>
                   </button>
                 </div>
-                <p className="text-sm text-yellow-800 line-clamp-3 mb-2">{note.content}</p>
+                <p className={`text-sm ${colorStyle.text} opacity-80 line-clamp-3 mb-2`}>
+                  {note.content}
+                </p>
                 <div className="flex flex-wrap gap-1 mb-2">
-                  <span className="text-xs px-2 py-0.5 bg-yellow-200 text-yellow-800 rounded">
+                  <span
+                    className={`text-xs px-2 py-0.5 ${colorStyle.bg} ${colorStyle.text} opacity-80 rounded`}
+                  >
                     {note.category}
                   </span>
                   {note.tags.slice(0, 2).map(tag => (
                     <span
                       key={tag}
-                      className="text-xs px-2 py-0.5 bg-yellow-300/50 text-yellow-700 rounded"
+                      className={`text-xs px-2 py-0.5 ${colorStyle.text} opacity-60 rounded`}
                     >
                       {tag}
                     </span>
                   ))}
                 </div>
-                <p className="text-xs text-yellow-600">
+                <p className={`text-xs ${colorStyle.text} opacity-60`}>
                   {new Date(note.updatedAt).toLocaleDateString()}
                 </p>
               </div>
