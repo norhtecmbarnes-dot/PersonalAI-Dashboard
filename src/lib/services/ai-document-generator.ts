@@ -75,6 +75,7 @@ export interface GenerateFromPromptParams {
   rawContent?: string;
   model?: string;
   theme?: 'default' | 'dark' | 'blue' | 'green' | 'red' | 'purple' | 'orange';
+  logo?: string;
 }
 
 export const PRESENTATION_THEMES: Record<
@@ -133,7 +134,7 @@ export const PRESENTATION_THEMES: Record<
 export async function generateDocumentFromPrompt(
   params: GenerateFromPromptParams
 ): Promise<GeneratedDocument> {
-  const { prompt, type, title = 'Untitled', rawContent, model } = params;
+  const { prompt, type, title = 'Untitled', rawContent, model, theme, logo } = params;
 
   const systemPrompt = DOCUMENT_PROMPTS[type];
 
@@ -185,7 +186,7 @@ ${prompt}`
     case 'word':
       return await generateWordFromContent(title, content);
     case 'slide':
-      return await generateSlidesFromContent(title, content);
+      return await generateSlidesFromContent(title, content, theme, logo);
     case 'cell':
       return await generateSpreadsheetFromContent(title, content);
     default:
@@ -233,7 +234,9 @@ async function generateWordFromContent(title: string, content: string): Promise<
 
 async function generateSlidesFromContent(
   title: string,
-  content: string
+  content: string,
+  theme?: string,
+  logo?: string
 ): Promise<GeneratedDocument> {
   // Clean up content - remove markdown code blocks
   let cleanContent = content
@@ -241,81 +244,59 @@ async function generateSlidesFromContent(
     .replace(/```\n?/g, '')
     .trim();
 
+  let slides: { title: string; bulletPoints: string[] }[] = [];
+  let parsedFromJson = false;
+
   // Try to parse as JSON first
   try {
-    const slides = JSON.parse(cleanContent);
+    const slidesData = JSON.parse(cleanContent);
 
-    if (Array.isArray(slides) && slides[0]?.title && Array.isArray(slides[0]?.bulletPoints)) {
-      const pptx = new PptxGenJS();
-      pptx.title = title;
-      pptx.author = 'AI Dashboard';
-
-      for (const slideData of slides) {
-        const slide = pptx.addSlide();
-        slide.addText(slideData.title, {
-          x: 0.5,
-          y: 0.5,
-          w: '90%',
-          h: 1,
-          fontSize: 32,
-          bold: true,
-          color: '363636',
-        });
-        if (slideData.bulletPoints?.length > 0) {
-          slide.addText(
-            slideData.bulletPoints.map((point: string) => ({
-              text: point,
-              options: { bullet: true },
-            })),
-            { x: 0.5, y: 1.5, w: '90%', h: 4, fontSize: 18, color: '363636', valign: 'top' }
-          );
-        }
-      }
-
-      const buf = await pptx.write({ outputType: 'nodebuffer' });
-      return {
-        buffer: Buffer.from(buf as ArrayBuffer),
-        filename: `${title}.pptx`,
-        mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-      };
+    if (
+      Array.isArray(slidesData) &&
+      slidesData[0]?.title &&
+      Array.isArray(slidesData[0]?.bulletPoints)
+    ) {
+      slides = slidesData;
+      parsedFromJson = true;
     }
   } catch (e) {
     console.log('[Document AI] Not valid JSON, parsing manually');
   }
 
-  // Parse manually - look for slide markers
-  const slides: { title: string; bulletPoints: string[] }[] = [];
-  const lines = cleanContent.split('\n');
-  let currentSlide: { title: string; bulletPoints: string[] } | null = null;
+  // Parse manually if not from JSON
+  if (!parsedFromJson) {
+    const lines = cleanContent.split('\n');
+    let currentSlide: { title: string; bulletPoints: string[] } | null = null;
 
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed) continue;
+    for (const line of lines) {
+      const trimmed = line.trim();
+      if (!trimmed) continue;
 
-    // Look for numbered titles or heading markers
-    if (/^(Slide\s*\d*[:.]?\s*|\d+[.)]\s+)/i.test(trimmed) || trimmed.startsWith('# ')) {
-      if (currentSlide && currentSlide.bulletPoints.length > 0) {
-        slides.push(currentSlide);
+      // Look for numbered titles or heading markers
+      if (/^(Slide\s*\d*[:.]?\s*|\d+[.)]\s*)/i.test(trimmed) || trimmed.startsWith('# ')) {
+        if (currentSlide && currentSlide.bulletPoints.length > 0) {
+          slides.push(currentSlide);
+        }
+        currentSlide = {
+          title:
+            trimmed.replace(/^(Slide\s*\d*[:.]?\s*|\d+[.)]\s*|#\s*)/i, '').trim() ||
+            'Untitled Slide',
+          bulletPoints: [],
+        };
+      } else if (trimmed.startsWith('- ') || trimmed.startsWith('• ') || trimmed.startsWith('* ')) {
+        if (currentSlide) {
+          currentSlide.bulletPoints.push(trimmed.replace(/^[-•*]\s*/, ''));
+        } else {
+          currentSlide = { title: title, bulletPoints: [trimmed.replace(/^[-•*]\s*/, '')] };
+        }
+      } else if (currentSlide && !currentSlide.title) {
+        currentSlide.title = trimmed;
       }
-      currentSlide = {
-        title:
-          trimmed.replace(/^(Slide\s*\d*[:.]?\s*|\d+[.)]\s*|#\s*)/i, '').trim() || 'Untitled Slide',
-        bulletPoints: [],
-      };
-    } else if (trimmed.startsWith('- ') || trimmed.startsWith('• ') || trimmed.startsWith('* ')) {
-      if (currentSlide) {
-        currentSlide.bulletPoints.push(trimmed.replace(/^[-•*]\s*/, ''));
-      } else {
-        // No slide yet, create one
-        currentSlide = { title: title, bulletPoints: [trimmed.replace(/^[-•*]\s*/, '')] };
-      }
-    } else if (currentSlide && !currentSlide.title) {
-      currentSlide.title = trimmed;
     }
-  }
 
-  if (currentSlide) {
-    slides.push(currentSlide);
+    if (currentSlide) {
+      slides.push(currentSlide);
+    }
   }
 
   // If no slides found, create from paragraphs
@@ -327,12 +308,34 @@ async function generateSlidesFromContent(
     });
   }
 
+  return createPresentationWithLogo(title, slides, theme, logo);
+}
+
+async function createPresentationWithLogo(
+  title: string,
+  slides: { title: string; bulletPoints: string[] }[],
+  theme?: string,
+  logo?: string
+): Promise<GeneratedDocument> {
   const pptx = new PptxGenJS();
   pptx.title = title;
   pptx.author = 'AI Dashboard';
 
-  // Add title slide
+  const themeColors = PRESENTATION_THEMES[theme || 'default'] || PRESENTATION_THEMES.default;
+
+  // Add logo to each slide if provided
   const titleSlide = pptx.addSlide();
+  titleSlide.background = { color: themeColors.background };
+
+  // Add logo to title slide if provided
+  if (logo) {
+    try {
+      titleSlide.addImage({ data: logo, x: 0.3, y: 0.2, w: 0.8, h: 0.5 });
+    } catch (e) {
+      console.log('[Document AI] Could not add logo to title slide:', e);
+    }
+  }
+
   titleSlide.addText(title, {
     x: 0.5,
     y: 2,
@@ -340,32 +343,53 @@ async function generateSlidesFromContent(
     h: 1.5,
     fontSize: 44,
     bold: true,
-    color: '363636',
-    align: 'center' as const,
+    color: themeColors.titleColor,
+    align: 'center',
   });
 
+  // Add content slides
   for (const slideData of slides) {
     const slide = pptx.addSlide();
+    slide.background = { color: themeColors.background };
+
+    // Add logo to each slide
+    if (logo) {
+      try {
+        slide.addImage({ data: logo, x: 0.3, y: 0.2, w: 0.8, h: 0.5 });
+      } catch (e) {
+        // Skip logo on this slide
+      }
+    }
+
     slide.addText(slideData.title, {
       x: 0.5,
-      y: 0.5,
+      y: 0.8,
       w: '90%',
       h: 1,
       fontSize: 32,
       bold: true,
-      color: '363636',
+      color: themeColors.titleColor,
     });
+
     if (slideData.bulletPoints?.length > 0) {
       slide.addText(
         slideData.bulletPoints.map(point => ({ text: point, options: { bullet: true } })),
-        { x: 0.5, y: 1.5, w: '90%', h: 4, fontSize: 18, color: '363636', valign: 'top' }
+        {
+          x: 0.5,
+          y: 1.8,
+          w: '90%',
+          h: 4,
+          fontSize: 18,
+          color: themeColors.textColor,
+          valign: 'top',
+        }
       );
     }
   }
 
-  const buf = pptx.write({ outputType: 'nodebuffer' }) as unknown as Buffer;
+  const buf = await pptx.write({ outputType: 'nodebuffer' });
   return {
-    buffer: buf,
+    buffer: Buffer.from(buf as ArrayBuffer),
     filename: `${title}.pptx`,
     mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
   };

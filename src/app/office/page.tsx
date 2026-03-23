@@ -18,6 +18,7 @@ interface Brand {
   name: string;
   description?: string;
   industry?: string;
+  logo?: string;
   voiceProfile?: {
     tone?: string;
     style?: string;
@@ -43,6 +44,7 @@ export default function OfficePage() {
   const [brands, setBrands] = useState<Brand[]>([]);
   const [selectedBrandId, setSelectedBrandId] = useState<string>('');
   const [loadingBrands, setLoadingBrands] = useState(true);
+  const [logo, setLogo] = useState<string | null>(null);
 
   useEffect(() => {
     loadBrands();
@@ -203,6 +205,10 @@ export default function OfficePage() {
         requestBody.theme = presentationTheme;
       }
 
+      if (docType === 'powerpoint' && logo) {
+        requestBody.logo = logo;
+      }
+
       if (selectedBrand) {
         requestBody.brandId = selectedBrandId;
       }
@@ -276,7 +282,13 @@ export default function OfficePage() {
             <label className="block text-sm font-medium mb-2">Brand Voice (Optional)</label>
             <select
               value={selectedBrandId}
-              onChange={e => setSelectedBrandId(e.target.value)}
+              onChange={e => {
+                setSelectedBrandId(e.target.value);
+                const brand = brands.find(b => b.id === e.target.value);
+                if (brand?.logo) {
+                  setLogo(brand.logo);
+                }
+              }}
               className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white"
             >
               <option value="">No brand (use default style)</option>
@@ -339,6 +351,45 @@ export default function OfficePage() {
                 </button>
               ))}
             </div>
+          </div>
+        )}
+
+        {/* Logo Upload (only for PowerPoint) */}
+        {docType === 'powerpoint' && (
+          <div className="mb-6">
+            <label className="block text-sm font-medium mb-3">Logo (Optional)</label>
+            <div className="flex items-center gap-4">
+              <label className="cursor-pointer">
+                <div className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm">
+                  {logo ? 'Change Logo' : 'Upload Logo'}
+                </div>
+                <input
+                  type="file"
+                  accept="image/png,image/svg+xml,image/jpeg"
+                  onChange={e => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onload = event => {
+                        setLogo(event.target?.result as string);
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                  className="hidden"
+                />
+              </label>
+              {logo && (
+                <button
+                  onClick={() => setLogo(null)}
+                  className="px-4 py-2 bg-red-600/20 text-red-400 hover:bg-red-600/30 rounded-lg text-sm"
+                >
+                  Remove
+                </button>
+              )}
+              {logo && <img src={logo} alt="Logo preview" className="h-10 w-auto object-contain" />}
+            </div>
+            <p className="text-xs text-slate-500 mt-1">Logo appears on all slides</p>
           </div>
         )}
 
