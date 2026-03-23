@@ -582,7 +582,9 @@ export default function WritingStudioPage() {
 
     // For outline action, use document content if nothing selected
     if (!selectedText && action === 'outline') {
-      selectedText = content;
+      // Get plain text from editor, not HTML
+      const editorEl = document.querySelector('[contenteditable="true"]') as HTMLElement | null;
+      selectedText = editorEl?.innerText || content || '';
     }
 
     if (!selectedText) {
