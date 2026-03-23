@@ -1083,6 +1083,8 @@ Generate appropriate chart type (line, bar, pie, doughnut, etc.) based on the re
             toolCallsExecuted.push('create_task');
             try {
               sqlDatabase.initialize();
+
+              // Create regular task in tasks table
               const newTask = sqlDatabase.addTask({
                 title: functionArgs.title,
                 description: functionArgs.description || '',
@@ -1093,7 +1095,18 @@ Generate appropriate chart type (line, bar, pie, doughnut, etc.) based on the re
                 status: 'pending',
                 tags: ['chat-created'],
               });
-              toolResult = `Task created successfully: "${sanitizePrompt(functionArgs.title)}" (Priority: ${functionArgs.priority || 'medium'})`;
+
+              // Also create a scheduled task entry so it can be run
+              const scheduledTask = taskScheduler.createTask({
+                name: functionArgs.title,
+                description: functionArgs.description || '',
+                taskType: 'custom',
+                schedule: 'once', // Run once, then can be manually run again
+                config: { linkedTaskId: newTask.id },
+                enabled: true,
+              });
+
+              toolResult = `Task created successfully: "${sanitizePrompt(functionArgs.title)}" (Priority: ${functionArgs.priority || 'medium'}). You can run it from the Tasks page.`;
             } catch (e) {
               toolResult = `Failed to create task: ${e instanceof Error ? sanitizePrompt(e.message) : 'Unknown error'}`;
             }
