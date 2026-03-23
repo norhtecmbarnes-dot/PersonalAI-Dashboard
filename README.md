@@ -1,9 +1,9 @@
 # PersonalAI Dashboard
 
-**All the power of AI-assisted development — running 100% locally.**
+**All the power of AI-assisted development — 100% local, private, and token-efficient.**
 
-Chat with your documents, generate beautiful presentations, automate tasks, and build your own AI assistants.  
-**No cloud dependencies. No usage limits. No monthly fees.** Just pure AI productivity that you control.
+Chat with your documents, generate beautiful presentations, automate tasks, and build your own intelligent AI assistants.  
+**No cloud lock-in. No monthly fees. No data leaks.** Just pure AI that you control.
 
 ## 🚀 Quick Start
 
@@ -15,37 +15,48 @@ ollama pull qwen3.5:2b
 npm run dev
 ```
 
-Open http://localhost:3000 — you're ready!
+**Docker option (one command):**
+```bash
+docker compose up
+```
 
-## Core Features
+## What Makes This Different
 
-- **Smart Model Router** (2B → 108B + Cloud)
-- **Model Message Bus** (self-escalating LLM-to-LLM communication)
-- **Vector Lake** (intelligent memory cache)
-- **Canvas UI Builder**
-- **Presentation Generator**
-- **Daily Briefing + Task Automation**
+- **Smart Model Router** — automatically picks the right brain (2B → 108B)
+- **Model Message Bus** — the small local model can "chat with its own ChatGPT" when it needs help
+- **Vector Lake** — your AI's growing, intelligent memory (never forgets)
+- **Canvas UI Builder**, **Presentation Generator**, **Daily Briefing**, **Task Automation**
 
-## The Book (included)
+## The Model Message Bus (Chapter 30)
 
-Full book chapters live in `/book/`. Start with:
+This is the unique architecture at the heart of the book. Your tiny local model decides when it's overwhelmed, escalates across the bus, gets a high-quality answer, validates it, and returns the final response — all while tracking tokens and keeping everything private.
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    MODEL MESSAGE BUS                         │
+│  Tier 1: Local Small (qwen3.5:2b)     ← Triage & simple tasks│
+│  Tier 2: Local Large (qwen2.5:14b)                           │
+│  Tier 3: Cloud Fast (groq/llama-3.1-8b)                      │
+│  Tier 4: Cloud Smart (gpt-4o, claude-3.5, glm-5)           │
+└─────────────────────────────────────────────────────────────┘
+```
+
+Self-assessment + budget awareness + bidirectional validation = truly novel in open source.
+
+## The Book
+
+Full chapters are in the `/book/` folder. Start here:
 
 - Chapter 3: What is a Container?
 - Chapter 5: Introducing Vector Lake
 - Chapter 30: Smart Model Selection and the Model Message Bus
 
-**Model Message Bus Tiers:**
-- Tier 1: Local Small (qwen3.5:2b) → Triage
-- Tier 2: Local Large (qwen2.5:14b)
-- Tier 3: Cloud Fast (groq/llama-3.1-8b)
-- Tier 4: Cloud Smart (gpt-4o, claude-3.5)
-
 ## Technologies
 
-Next.js 14 • Ollama • Tailwind • TypeScript • SQLite + Vector Lake
+Next.js 14 • TypeScript • Ollama • Tailwind • SQLite + Vector Lake • Docker
 
 ---
 
-Star ⭐ this repo if you want local AI that actually saves money and protects your data!
+Star ⭐ this repo if you believe in local-first AI that saves money and protects your data.
 
-Made with ❤️ by Michael C. Barnes
+Made with ❤️ by Michael C. Barnes (@norhtecmbarnes)

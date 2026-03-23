@@ -542,6 +542,37 @@ suggestedTier meaning:
   }
 }
 
+export interface ProcessQueryResult {
+  response: string;
+  modelUsed: string;
+  tier: number;
+  escalated: boolean;
+  tokensUsed: number;
+  costEstimate?: number;
+}
+
+export async function processQuery(
+  query: string,
+  expertMode: boolean = false
+): Promise<ProcessQueryResult> {
+  const bus = getModelBus();
+
+  const result = await bus.process({
+    originalQuery: query,
+    context: expertMode ? 'expert mode enabled' : '',
+    sourceModel: 'api',
+  });
+
+  return {
+    response: result.finalResponse,
+    modelUsed: result.delegationPath[result.delegationPath.length - 1] || 'unknown',
+    tier: result.selfAssessment?.suggestedTier || 2,
+    escalated: result.selfAssessment?.canHandle === false,
+    tokensUsed: result.totalTokens,
+    costEstimate: result.costSavings?.estimatedSaved,
+  };
+}
+
 let busInstance: ModelMessageBus | null = null;
 
 export function getModelBus(): ModelMessageBus {
