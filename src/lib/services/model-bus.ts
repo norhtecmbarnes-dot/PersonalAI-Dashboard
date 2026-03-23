@@ -1,14 +1,14 @@
 /**
  * Model Message Bus - Hierarchical LLM Communication
  *
- * Routes tasks between local and cloud models based on complexity.
- * Local models handle routine tasks; cloud models handle intelligence tasks.
+ * Uses self-assessment: local model decides if it can handle a task
+ * or needs to escalate to a smarter cloud model.
  *
  * Architecture:
- * 1. Local triage model assesses query complexity
- * 2. Simple tasks stay local (Angel Slim, Qwen, Llama)
- * 3. Complex tasks escalate to user's preferred cloud model
- * 4. Token budget tracking minimizes cloud costs
+ * 1. Small local model receives query with self-assessment prompt
+ * 2. Model honestly evaluates: can I answer this well?
+ * 3. If yes, process locally (cheap, fast)
+ * 4. If no, escalate to user's preferred cloud model
  */
 
 import { chatCompletion, getFirstAvailableModel, getOllamaModels } from '@/lib/models/sdk.server';
@@ -43,6 +43,11 @@ export interface DelegationResponse {
   finalResponse: string;
   delegationPath: string[];
   totalTokens: number;
+  selfAssessment?: {
+    canHandle: boolean;
+    reason: string;
+    suggestedTier: number;
+  };
   costSavings?: {
     localTokens: number;
     cloudTokens: number;
@@ -63,7 +68,7 @@ const MODEL_TIERS: ModelTier[] = [
     name: 'local-small',
     models: ['angglam.slim', 'qwen3.5:2b', 'glm-4.7-flash', 'llama3.2:3b'],
     provider: 'local',
-    preferredFor: ['triage', 'preprocessing', 'simple queries', 'formatting', 'routine tasks'],
+    preferredFor: ['triage', 'routine tasks', 'formatting', 'simple queries'],
     isCPUFriendly: true,
   },
   {
@@ -76,7 +81,7 @@ const MODEL_TIERS: ModelTier[] = [
     name: 'cloud-fast',
     models: ['groq/llama-3.1-8b-instant', 'groq/mixtral-8x7b-32768'],
     provider: 'cloud',
-    preferredFor: ['fast responses', 'simple escalations', 'speed-critical'],
+    preferredFor: ['fast responses', 'simple escalations'],
   },
   {
     name: 'cloud-smart',
@@ -89,13 +94,7 @@ const MODEL_TIERS: ModelTier[] = [
       'moonshot/kimi-2.5',
     ],
     provider: 'cloud',
-    preferredFor: [
-      'complex reasoning',
-      'research',
-      'high accuracy',
-      'writing',
-      'intelligence tasks',
-    ],
+    preferredFor: ['complex reasoning', 'research', 'high accuracy', 'intelligence tasks'],
   },
 ];
 
@@ -163,6 +162,12 @@ export const CLOUD_MODEL_OPTIONS: CloudModelOption[] = [
   },
 ];
 
+interface SelfAssessment {
+  canHandle: boolean;
+  reason: string;
+  suggestedTier: number;
+}
+
 export class ModelMessageBus {
   private messageLog: ModelMessage[] = [];
   private tokenBudget = {
@@ -226,6 +231,29 @@ export class ModelMessageBus {
     return `msg_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
   }
 
+  private getSelfAssessmentPrompt(): string {
+    return `You are a tiny local AI model with limited capabilities. Your job is to be HONEST about what you can handle.
+
+Analyze the user's query and decide:
+1. Can you answer this COMPLETELY and ACCURATELY right now?
+2. Would the user be SATISFIED with your answer?
+3. Should this go to a smarter cloud model?
+
+Rules:
+- If the query is a simple fact, definition, calculation, format, or routine task → canHandle: true
+- If the query requires deep reasoning, up-to-date knowledge, creative writing, complex analysis → canHandle: false
+- If you're UNSURE, lean toward canHandle: false
+- If the query is in a language you weren't trained on, lean toward canHandle: false
+
+Answer ONLY with valid JSON, no markdown, no explanation:
+{"canHandle": true/false, "reason": "one sentence explaining why", "suggestedTier": 2}
+
+suggestedTier meaning:
+- 2 = local large model (medium complexity, can try local first)
+- 3 = cloud fast model (needs cloud but not the smartest)
+- 4 = cloud smart model (complex reasoning, research, accuracy critical)`;
+  }
+
   async getLocalModels(): Promise<string[]> {
     try {
       const models = await getOllamaModels();
@@ -246,123 +274,81 @@ export class ModelMessageBus {
     localModels: string[];
   }> {
     const localModels = await this.getLocalModels();
-    const assessment = await this.assessComplexity(query, context || '');
+    const assessment = await this.selfAssess(query, context || '');
     const triageModel = await getFirstAvailableModel();
 
     return {
-      ...assessment,
+      complexity: assessment.canHandle ? 'low' : 'high',
+      requiresEscalation: !assessment.canHandle,
+      reason: assessment.reason,
       suggestedModel: triageModel,
       localModels,
     };
   }
 
-  private async assessComplexity(
-    query: string,
-    context: string
-  ): Promise<{
-    complexity: 'low' | 'medium' | 'high' | 'unknown';
-    requiresEscalation: boolean;
-    reason: string;
-  }> {
-    const routineKeywords = [
-      'what is',
-      'who is',
-      'when did',
-      'where is',
-      'tell me',
-      'remind me',
-      'remember',
-      'format',
-      'list',
-      'summarize',
-      'translate',
-      'check',
-      'simple',
-      'quick',
-      'just',
-      'calculate',
-      'convert',
-      'remind',
-    ];
+  private async selfAssess(query: string, context: string): Promise<SelfAssessment> {
+    const triageModel = await getFirstAvailableModel();
+    const fullPrompt = this.getSelfAssessmentPrompt();
+    const userMessage = query + (context ? `\n\nContext: ${context}` : '');
 
-    const intelligenceKeywords = [
-      'analyze',
-      'research',
-      'compare',
-      'evaluate',
-      'design',
-      'architect',
-      'comprehensive',
-      'detailed',
-      'thorough',
-      'complex',
-      'multi-step',
-      'explain why',
-      'justify',
-      'synthesize',
-      'meta',
-      'think',
-      'reason',
-      'solve',
-      'creative',
-      'innovative',
-      'imagine',
-      'hypothesize',
-      'investigate',
-    ];
+    try {
+      const result = await chatCompletion({
+        model: triageModel,
+        messages: [
+          { role: 'system', content: fullPrompt },
+          { role: 'user', content: userMessage },
+        ],
+        temperature: 0.3,
+        maxTokens: 200,
+      });
 
-    const queryLower = query.toLowerCase();
-    const contextLength = context.length;
+      const content =
+        typeof result.message === 'string' ? result.message : result.message?.content || '';
 
-    let routineScore = 0;
-    let intelligenceScore = 0;
-
-    for (const keyword of routineKeywords) {
-      if (queryLower.includes(keyword)) routineScore++;
-    }
-    for (const keyword of intelligenceKeywords) {
-      if (queryLower.includes(keyword)) intelligenceScore++;
+      const parsed = this.parseAssessmentResponse(content);
+      if (parsed) {
+        return parsed;
+      }
+    } catch (error) {
+      console.error('Self-assessment failed:', error);
     }
 
-    let complexity: 'low' | 'medium' | 'high' | 'unknown' = 'unknown';
-    let requiresEscalation = false;
-    let reason = '';
-
-    if (intelligenceScore >= 2 || (intelligenceScore >= 1 && contextLength > 2000)) {
-      complexity = 'high';
-      requiresEscalation = true;
-      reason = 'Complex intelligence task detected';
-    } else if (intelligenceScore === 1 || contextLength > 1500) {
-      complexity = 'medium';
-      requiresEscalation = contextLength > 2000 || intelligenceScore > 0;
-      reason = requiresEscalation
-        ? 'Medium complexity - benefits from smarter model'
-        : 'Medium complexity - local processing sufficient';
-    } else if (routineScore >= 1 && intelligenceScore === 0) {
-      complexity = 'low';
-      requiresEscalation = false;
-      reason = 'Routine task - using local model';
-    } else {
-      complexity = 'unknown';
-      requiresEscalation = contextLength > 1000;
-      reason = requiresEscalation
-        ? 'Defaulting to escalation for long context'
-        : 'Defaulting to local processing';
-    }
-
-    const budgetRemaining = this.tokenBudget.daily - this.tokenBudget.used;
-    if (budgetRemaining < 5000 && requiresEscalation) {
-      requiresEscalation = false;
-      reason += ' (Cloud budget low - using local only)';
-    }
-
-    return { complexity, requiresEscalation, reason };
+    return {
+      canHandle: context.length < 500,
+      reason: 'Self-assessment failed, defaulting based on context length',
+      suggestedTier: context.length < 500 ? 2 : 4,
+    };
   }
 
-  private async selectCloudModel(preferredModel?: string): Promise<string> {
+  private parseAssessmentResponse(content: string): SelfAssessment | null {
+    try {
+      const jsonMatch = content.match(/\{[\s\S]*?\}/);
+      if (jsonMatch) {
+        const parsed = JSON.parse(jsonMatch[0]);
+        if (typeof parsed.canHandle === 'boolean') {
+          return {
+            canHandle: parsed.canHandle,
+            reason: parsed.reason || 'No reason provided',
+            suggestedTier: parsed.suggestedTier || 2,
+          };
+        }
+      }
+    } catch {
+      // JSON parse failed
+    }
+    return null;
+  }
+
+  private async selectCloudModel(preferredModel?: string, suggestedTier?: number): Promise<string> {
     if (preferredModel) {
       return preferredModel;
     }
+
+    if (suggestedTier === 3) {
+      const tier = MODEL_TIERS.find(t => t.name === 'cloud-fast');
+      return tier?.models[0] || 'groq/llama-3.1-8b-instant';
+    }
+
     return this.userPreferredCloudModel;
   }
 
@@ -382,15 +368,12 @@ export class ModelMessageBus {
   async process(request: DelegationRequest): Promise<DelegationResponse> {
     const messageId = this.generateId();
     const delegationPath: string[] = [];
-
     const triageStart = Date.now();
+
     const triageModel = await getFirstAvailableModel();
     delegationPath.push(`local-small:${triageModel.replace('ollama/', '')}`);
 
-    const { complexity, requiresEscalation, reason } = await this.assessComplexity(
-      request.originalQuery,
-      request.context
-    );
+    const selfAssessment = await this.selfAssess(request.originalQuery, request.context);
 
     let response: string;
     let finalModel = triageModel;
@@ -401,15 +384,18 @@ export class ModelMessageBus {
       source: 'local-small',
       task: request.originalQuery,
       context: request.context,
-      complexity,
-      requiresEscalation,
-      escalationReason: reason,
-      metadata: { triageTime: Date.now() - triageStart },
+      complexity: selfAssessment.canHandle ? 'low' : 'high',
+      requiresEscalation: !selfAssessment.canHandle,
+      escalationReason: selfAssessment.reason,
+      metadata: { triageTime: Date.now() - triageStart, selfAssessment },
     };
     this.messageLog.push(triageMessage);
 
-    if (requiresEscalation) {
-      const cloudModel = await this.selectCloudModel(request.preferredCloudModel);
+    if (!selfAssessment.canHandle) {
+      const cloudModel = await this.selectCloudModel(
+        request.preferredCloudModel,
+        selfAssessment.suggestedTier
+      );
       finalModel = cloudModel;
       delegationPath.push(`cloud:${cloudModel}`);
 
@@ -419,9 +405,9 @@ export class ModelMessageBus {
         source: 'cloud-smart',
         task: request.originalQuery,
         context: request.context,
-        complexity,
+        complexity: 'high',
         requiresEscalation: true,
-        escalationReason: reason,
+        escalationReason: selfAssessment.reason,
       };
       this.messageLog.push(escalationMessage);
 
@@ -450,11 +436,6 @@ export class ModelMessageBus {
             : result.message?.content || 'No response';
 
         escalationMessage.response = response;
-        escalationMessage.tokensUsed = 0;
-
-        this.tokenBudget.used += 0;
-        this.tokenBudget.localVsCloud.cloud += 0;
-        this.saveTokenBudget();
       } catch (error) {
         console.error('Cloud escalation failed, falling back to local:', error);
 
@@ -500,11 +481,6 @@ export class ModelMessageBus {
           ? result.message
           : result.message?.content || 'No response';
       triageMessage.response = response;
-      triageMessage.tokensUsed = 0;
-
-      this.tokenBudget.used += 0;
-      this.tokenBudget.localVsCloud.local += 0;
-      this.saveTokenBudget();
     }
 
     return {
@@ -513,6 +489,7 @@ export class ModelMessageBus {
       finalResponse: response,
       delegationPath,
       totalTokens: 0,
+      selfAssessment,
     };
   }
 
