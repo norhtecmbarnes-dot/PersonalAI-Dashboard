@@ -251,7 +251,7 @@ export default function Home() {
 
   const loadBrands = useCallback(async () => {
     try {
-      const response = await fetch('/api/brand-workspace?action=list');
+      const response = await fetch('/api/brand-workspace/brands');
       const data = await response.json();
       setAvailableBrands((data.brands || []).map((b: any) => ({ id: b.id, name: b.name })));
     } catch (error) {
