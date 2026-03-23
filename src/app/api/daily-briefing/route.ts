@@ -17,8 +17,14 @@ export interface DailyBriefing {
       url?: string;
     }>;
   };
-  tasks: {
-    pending: Array<{ title: string; dueDate?: string; priority: string; id?: string }>;
+  taskReports: {
+    recentReports: Array<{
+      taskName: string;
+      taskType: string;
+      result?: string;
+      success: boolean;
+      createdAt: string;
+    }>;
     completed: number;
   };
   calendar: {
@@ -39,28 +45,36 @@ export async function GET() {
       intelligenceReport = intelligenceService.getLastReport();
     }
 
-    // Get pending tasks from database
-    let tasks: {
-      pending: Array<{ title: string; dueDate?: string; priority: string; id?: string }>;
+    // Get scheduled task results (reports)
+    let taskReports: {
+      recentReports: Array<{
+        taskName: string;
+        taskType: string;
+        result?: string;
+        success: boolean;
+        createdAt: string;
+      }>;
       completed: number;
-    } = { pending: [], completed: 0 };
+    } = { recentReports: [], completed: 0 };
     try {
       const db = sqlDatabase;
       db.initialize();
-      const pendingTasks = db.getTasks('pending');
-      const completedTasks = db.getTasks('completed');
 
-      tasks = {
-        pending: (pendingTasks || []).map((t: any) => ({
-          id: t.id,
-          title: t.title,
-          dueDate: t.dueDate ? new Date(t.dueDate).toLocaleDateString() : undefined,
-          priority: t.priority || 'medium',
+      const recentResults = db.getAllRecentTaskResults(10);
+      const successfulResults = recentResults.filter(r => r.success);
+
+      taskReports = {
+        recentReports: recentResults.slice(0, 5).map(r => ({
+          taskName: r.task_name || r.task_id,
+          taskType: r.task_type || 'task',
+          result: r.result || (r.data ? JSON.stringify(r.data).slice(0, 100) : undefined),
+          success: !!r.success,
+          createdAt: new Date(r.created_at).toLocaleDateString(),
         })),
-        completed: (completedTasks || []).length,
+        completed: successfulResults.length,
       };
     } catch (e) {
-      console.error('Error loading tasks:', e);
+      console.error('Error loading task reports:', e);
     }
 
     // Get upcoming events from calendar
@@ -119,7 +133,7 @@ export async function GET() {
             url: opp.url,
           })),
       },
-      tasks,
+      taskReports,
       calendar,
       memory,
     };

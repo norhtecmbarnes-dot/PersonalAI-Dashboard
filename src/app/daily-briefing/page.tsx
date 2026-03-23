@@ -9,8 +9,14 @@ interface DailyBriefing {
     topNews: Array<{ title: string; summary: string; url: string }>;
     bidOpportunities: Array<{ title: string; agency: string; amount?: string; deadline?: string }>;
   };
-  tasks: {
-    pending: Array<{ title: string; dueDate?: string; priority: string }>;
+  taskReports: {
+    recentReports: Array<{
+      taskName: string;
+      taskType: string;
+      result?: string;
+      success: boolean;
+      createdAt: string;
+    }>;
     completed: number;
   };
   calendar: {
@@ -162,40 +168,34 @@ export default function DailyBriefingPage() {
             </div>
           </div>
 
-          {/* Tasks Section */}
+          {/* Task Reports Section */}
           <div className="bg-gray-800 rounded-lg p-6">
-            <h2 className="text-xl font-semibold text-white mb-4">✅ Tasks</h2>
+            <h2 className="text-xl font-semibold text-white mb-4">✅ Task Reports</h2>
 
             <div className="space-y-4">
               <div>
                 <div className="flex justify-between items-center mb-2">
-                  <h3 className="text-white font-medium">Pending Tasks</h3>
+                  <h3 className="text-white font-medium">Recent Reports</h3>
                   <span className="text-gray-500 text-sm">
-                    {briefing?.tasks?.completed || 0} completed
+                    {briefing?.taskReports?.completed || 0} completed
                   </span>
                 </div>
-                {briefing?.tasks?.pending?.length ? (
+                {briefing?.taskReports?.recentReports?.length ? (
                   <ul className="space-y-2">
-                    {briefing.tasks.pending.map((task, i) => (
+                    {briefing.taskReports.recentReports.map((report: any, i: number) => (
                       <li key={i} className="bg-gray-900 rounded p-3 flex items-center gap-2">
                         <span
                           className={`w-2 h-2 rounded-full ${
-                            task.priority === 'high'
-                              ? 'bg-red-500'
-                              : task.priority === 'medium'
-                                ? 'bg-yellow-500'
-                                : 'bg-green-500'
+                            report.success ? 'bg-green-500' : 'bg-red-500'
                           }`}
                         />
-                        <span className="text-white flex-1">{task.title}</span>
-                        {task.dueDate && (
-                          <span className="text-gray-500 text-xs">{task.dueDate}</span>
-                        )}
+                        <span className="text-white flex-1">{report.taskName}</span>
+                        <span className="text-gray-500 text-xs">{report.createdAt}</span>
                       </li>
                     ))}
                   </ul>
                 ) : (
-                  <p className="text-gray-500">No pending tasks</p>
+                  <p className="text-gray-500">No task reports yet</p>
                 )}
               </div>
             </div>

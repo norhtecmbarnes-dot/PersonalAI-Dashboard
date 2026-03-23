@@ -9,16 +9,15 @@ let dbPath: string = '';
 
 function initDb(): SqlJsDatabase {
   if (db) return db;
-  
+
   // Runtime detection
-  const isNodeRuntime = typeof process !== 'undefined' && 
-                        typeof process.cwd === 'function';
+  const isNodeRuntime = typeof process !== 'undefined' && typeof process.cwd === 'function';
 
   if (!isNodeRuntime) {
     throw new Error(
       'Database cannot be initialized in Edge Runtime. ' +
-      'Please use the Node.js runtime for database operations. ' +
-      'Add export const runtime = "nodejs"; to your API route.'
+        'Please use the Node.js runtime for database operations. ' +
+        'Add export const runtime = "nodejs"; to your API route.'
     );
   }
 
@@ -34,9 +33,9 @@ function initDb(): SqlJsDatabase {
   const sqliteDb = new SqliteWrapper(dbPath);
   sqliteDb.init();
   db = sqliteDb;
-  
+
   console.log('[SQLite] Loaded database from:', dbPath);
-  
+
   if (!db) {
     throw new Error('Database initialization failed');
   }
@@ -217,7 +216,7 @@ export class SQLDatabase {
 
   private createTables(): void {
     if (!db) return;
-    
+
     db.run(`
       CREATE TABLE IF NOT EXISTS contacts (
         id TEXT PRIMARY KEY,
@@ -587,15 +586,29 @@ export class SQLDatabase {
     db.run(`CREATE INDEX IF NOT EXISTS idx_projects_v2_status ON projects_v2(status)`);
     db.run(`CREATE INDEX IF NOT EXISTS idx_chat_sessions_project ON chat_sessions(project_id)`);
     db.run(`CREATE INDEX IF NOT EXISTS idx_chat_sessions_brand ON chat_sessions(brand_id)`);
-    db.run(`CREATE INDEX IF NOT EXISTS idx_generated_outputs_project ON generated_outputs(project_id)`);
+    db.run(
+      `CREATE INDEX IF NOT EXISTS idx_generated_outputs_project ON generated_outputs(project_id)`
+    );
     db.run(`CREATE INDEX IF NOT EXISTS idx_brand_knowledge_brand ON brand_knowledge(brand_id)`);
-    db.run(`CREATE INDEX IF NOT EXISTS idx_brand_knowledge_document ON brand_knowledge(document_id)`);
+    db.run(
+      `CREATE INDEX IF NOT EXISTS idx_brand_knowledge_document ON brand_knowledge(document_id)`
+    );
     db.run(`CREATE INDEX IF NOT EXISTS idx_brand_knowledge_category ON brand_knowledge(category)`);
-    db.run(`CREATE INDEX IF NOT EXISTS idx_capture_documents_project ON capture_documents(project_id)`);
-    db.run(`CREATE INDEX IF NOT EXISTS idx_capture_documents_opportunity ON capture_documents(opportunity_id)`);
-    db.run(`CREATE INDEX IF NOT EXISTS idx_compliance_matrix_items_project ON compliance_matrix_items(project_id)`);
-    db.run(`CREATE INDEX IF NOT EXISTS idx_compliance_matrix_items_status ON compliance_matrix_items(status)`);
-    db.run(`CREATE INDEX IF NOT EXISTS idx_compliance_matrices_project ON compliance_matrices(project_id)`);
+    db.run(
+      `CREATE INDEX IF NOT EXISTS idx_capture_documents_project ON capture_documents(project_id)`
+    );
+    db.run(
+      `CREATE INDEX IF NOT EXISTS idx_capture_documents_opportunity ON capture_documents(opportunity_id)`
+    );
+    db.run(
+      `CREATE INDEX IF NOT EXISTS idx_compliance_matrix_items_project ON compliance_matrix_items(project_id)`
+    );
+    db.run(
+      `CREATE INDEX IF NOT EXISTS idx_compliance_matrix_items_status ON compliance_matrix_items(status)`
+    );
+    db.run(
+      `CREATE INDEX IF NOT EXISTS idx_compliance_matrices_project ON compliance_matrices(project_id)`
+    );
     db.run(`CREATE INDEX IF NOT EXISTS idx_bid_workflows_project ON bid_workflows(project_id)`);
     db.run(`CREATE INDEX IF NOT EXISTS idx_bid_workflows_stage ON bid_workflows(stage)`);
 
@@ -647,8 +660,10 @@ export class SQLDatabase {
     `);
 
     db.run(`CREATE INDEX IF NOT EXISTS idx_sam_searches_status ON sam_searches(status)`);
-    db.run(`CREATE INDEX IF NOT EXISTS idx_sam_opportunities_search ON sam_opportunities(search_id)`);
-    
+    db.run(
+      `CREATE INDEX IF NOT EXISTS idx_sam_opportunities_search ON sam_opportunities(search_id)`
+    );
+
     // Tracked Opportunities table (user-added opportunities for monitoring)
     db.run(`
       CREATE TABLE IF NOT EXISTS tracked_opportunities (
@@ -677,11 +692,17 @@ export class SQLDatabase {
         updated_at INTEGER NOT NULL
       )
     `);
-    
-    db.run(`CREATE INDEX IF NOT EXISTS idx_tracked_opportunities_status ON tracked_opportunities(status)`);
-    db.run(`CREATE INDEX IF NOT EXISTS idx_tracked_opportunities_deadline ON tracked_opportunities(response_deadline)`);
-    db.run(`CREATE INDEX IF NOT EXISTS idx_tracked_opportunities_pipeline ON tracked_opportunities(pipeline_stage)`);
-    
+
+    db.run(
+      `CREATE INDEX IF NOT EXISTS idx_tracked_opportunities_status ON tracked_opportunities(status)`
+    );
+    db.run(
+      `CREATE INDEX IF NOT EXISTS idx_tracked_opportunities_deadline ON tracked_opportunities(response_deadline)`
+    );
+    db.run(
+      `CREATE INDEX IF NOT EXISTS idx_tracked_opportunities_pipeline ON tracked_opportunities(pipeline_stage)`
+    );
+
     // Opportunity Documents table (uploaded files for tracked opportunities)
     db.run(`
       CREATE TABLE IF NOT EXISTS opportunity_documents (
@@ -696,9 +717,11 @@ export class SQLDatabase {
         FOREIGN KEY (opportunity_id) REFERENCES tracked_opportunities(id)
       )
     `);
-    
-    db.run(`CREATE INDEX IF NOT EXISTS idx_opportunity_documents_opp ON opportunity_documents(opportunity_id)`);
-    
+
+    db.run(
+      `CREATE INDEX IF NOT EXISTS idx_opportunity_documents_opp ON opportunity_documents(opportunity_id)`
+    );
+
     // Opportunity News table (news/updates about tracked opportunities)
     db.run(`
       CREATE TABLE IF NOT EXISTS opportunity_news (
@@ -714,8 +737,10 @@ export class SQLDatabase {
         FOREIGN KEY (opportunity_id) REFERENCES tracked_opportunities(id)
       )
     `);
-    
-    db.run(`CREATE INDEX IF NOT EXISTS idx_opportunity_news_opp ON opportunity_news(opportunity_id)`);
+
+    db.run(
+      `CREATE INDEX IF NOT EXISTS idx_opportunity_news_opp ON opportunity_news(opportunity_id)`
+    );
     db.run(`CREATE INDEX IF NOT EXISTS idx_opportunity_news_date ON opportunity_news(news_date)`);
 
     // Documents table (replaces localStorage)
@@ -767,10 +792,14 @@ export class SQLDatabase {
     // Migration: Add permanent and expires_at columns if they don't exist
     try {
       db.run(`ALTER TABLE scheduled_tasks ADD COLUMN permanent INTEGER DEFAULT 0`);
-    } catch (e) { /* column already exists */ }
+    } catch (e) {
+      /* column already exists */
+    }
     try {
       db.run(`ALTER TABLE scheduled_tasks ADD COLUMN expires_at INTEGER`);
-    } catch (e) { /* column already exists */ }
+    } catch (e) {
+      /* column already exists */
+    }
 
     db.run(`CREATE INDEX IF NOT EXISTS idx_scheduled_tasks_enabled ON scheduled_tasks(enabled)`);
     db.run(`CREATE INDEX IF NOT EXISTS idx_scheduled_tasks_type ON scheduled_tasks(task_type)`);
@@ -896,7 +925,7 @@ export class SQLDatabase {
     `);
 
     db.run(`CREATE INDEX IF NOT EXISTS idx_settings_category ON settings(category)`);
-    
+
     // Custom Tools table (user-defined API tools)
     db.run(`
       CREATE TABLE IF NOT EXISTS custom_tools (
@@ -950,10 +979,10 @@ export class SQLDatabase {
 
     db.run(`CREATE INDEX IF NOT EXISTS idx_chat_messages_timestamp ON chat_messages(timestamp)`);
     db.run(`CREATE INDEX IF NOT EXISTS idx_chat_messages_session ON chat_messages(session_id)`);
-    
+
     db.run(`CREATE INDEX IF NOT EXISTS idx_custom_tools_name ON custom_tools(name)`);
     db.run(`CREATE INDEX IF NOT EXISTS idx_custom_tools_enabled ON custom_tools(enabled)`);
-    
+
     // Prompts table (saved user prompts)
     db.run(`
       CREATE TABLE IF NOT EXISTS prompts (
@@ -968,10 +997,10 @@ export class SQLDatabase {
         updated_at INTEGER NOT NULL
       )
     `);
-    
+
     db.run(`CREATE INDEX IF NOT EXISTS idx_prompts_category ON prompts(category)`);
     db.run(`CREATE INDEX IF NOT EXISTS idx_prompts_title ON prompts(title)`);
-    
+
     saveDb();
   }
 
@@ -988,16 +1017,26 @@ export class SQLDatabase {
   // Contacts
   addContact(contact: Omit<Contact, 'id' | 'createdAt' | 'updatedAt'>): Contact {
     if (!db) throw new Error('Database not initialized');
-    
+
     const id = generateId();
     const now = Date.now();
 
     db.run(
       `INSERT INTO contacts (id, name, email, phone, company, title, notes, tags, source, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, contact.name, contact.email || null, contact.phone || null, contact.company || null,
-       contact.title || null, contact.notes || null, JSON.stringify(contact.tags || []),
-       contact.source || null, now, now]
+      [
+        id,
+        contact.name,
+        contact.email || null,
+        contact.phone || null,
+        contact.company || null,
+        contact.title || null,
+        contact.notes || null,
+        JSON.stringify(contact.tags || []),
+        contact.source || null,
+        now,
+        now,
+      ]
     );
 
     saveDb();
@@ -1006,7 +1045,7 @@ export class SQLDatabase {
 
   updateContact(id: string, updates: Partial<Contact>): Contact | null {
     if (!db) throw new Error('Database not initialized');
-    
+
     const now = Date.now();
     const contact = this.getContactById(id);
     if (!contact) return null;
@@ -1016,9 +1055,18 @@ export class SQLDatabase {
     db.run(
       `UPDATE contacts SET name = ?, email = ?, phone = ?, company = ?, title = ?, notes = ?, tags = ?, source = ?, updated_at = ?
        WHERE id = ?`,
-      [updated.name, updated.email || null, updated.phone || null, updated.company || null,
-       updated.title || null, updated.notes || null, JSON.stringify(updated.tags),
-       updated.source || null, now, id]
+      [
+        updated.name,
+        updated.email || null,
+        updated.phone || null,
+        updated.company || null,
+        updated.title || null,
+        updated.notes || null,
+        JSON.stringify(updated.tags),
+        updated.source || null,
+        now,
+        id,
+      ]
     );
 
     saveDb();
@@ -1041,7 +1089,7 @@ export class SQLDatabase {
 
   getContacts(query?: string): Contact[] {
     if (!db) throw new Error('Database not initialized');
-    
+
     let result;
     if (query) {
       const searchTerm = `%${query}%`;
@@ -1052,16 +1100,19 @@ export class SQLDatabase {
     } else {
       result = db.exec('SELECT * FROM contacts ORDER BY name');
     }
-    
+
     if (result.length === 0) return [];
     return result[0].values.map(row => this.mapRowToContact(result[0].columns, row));
   }
 
   findOrCreateContact(name: string, email?: string): Contact {
     if (!db) throw new Error('Database not initialized');
-    
-    const result = db.exec('SELECT * FROM contacts WHERE email = ? OR LOWER(name) = LOWER(?)', [email || null, name.toLowerCase()]);
-    
+
+    const result = db.exec('SELECT * FROM contacts WHERE email = ? OR LOWER(name) = LOWER(?)', [
+      email || null,
+      name.toLowerCase(),
+    ]);
+
     if (result.length > 0 && result[0].values.length > 0) {
       return this.mapRowToContact(result[0].columns, result[0].values[0]);
     }
@@ -1071,7 +1122,7 @@ export class SQLDatabase {
 
   private mapRowToContact(columns: string[], values: any[]): Contact {
     const row: any = {};
-    columns.forEach((col, i) => row[col] = values[i]);
+    columns.forEach((col, i) => (row[col] = values[i]));
     return {
       id: row.id,
       name: row.name,
@@ -1090,16 +1141,27 @@ export class SQLDatabase {
   // Events
   addEvent(event: Omit<CalendarEvent, 'id' | 'createdAt' | 'updatedAt'>): CalendarEvent {
     if (!db) throw new Error('Database not initialized');
-    
+
     const id = generateId();
     const now = Date.now();
 
     db.run(
       `INSERT INTO events (id, title, description, start_date, end_date, location, attendees, reminder, status, source, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, event.title, event.description || null, event.startDate, event.endDate || null,
-       event.location || null, JSON.stringify(event.attendees || []), event.reminder || null,
-       event.status || 'pending', event.source || null, now, now]
+      [
+        id,
+        event.title,
+        event.description || null,
+        event.startDate,
+        event.endDate || null,
+        event.location || null,
+        JSON.stringify(event.attendees || []),
+        event.reminder || null,
+        event.status || 'pending',
+        event.source || null,
+        now,
+        now,
+      ]
     );
 
     saveDb();
@@ -1108,7 +1170,7 @@ export class SQLDatabase {
 
   updateEvent(id: string, updates: Partial<CalendarEvent>): CalendarEvent | null {
     if (!db) throw new Error('Database not initialized');
-    
+
     const now = Date.now();
     const event = this.getEventById(id);
     if (!event) return null;
@@ -1118,9 +1180,19 @@ export class SQLDatabase {
     db.run(
       `UPDATE events SET title = ?, description = ?, start_date = ?, end_date = ?, location = ?, attendees = ?, reminder = ?, status = ?, source = ?, updated_at = ?
        WHERE id = ?`,
-      [updated.title, updated.description || null, updated.startDate, updated.endDate || null,
-       updated.location || null, JSON.stringify(updated.attendees || []), updated.reminder || null,
-       updated.status, updated.source || null, now, id]
+      [
+        updated.title,
+        updated.description || null,
+        updated.startDate,
+        updated.endDate || null,
+        updated.location || null,
+        JSON.stringify(updated.attendees || []),
+        updated.reminder || null,
+        updated.status,
+        updated.source || null,
+        now,
+        id,
+      ]
     );
 
     saveDb();
@@ -1143,7 +1215,7 @@ export class SQLDatabase {
 
   getEvents(startDate?: number, endDate?: number): CalendarEvent[] {
     if (!db) throw new Error('Database not initialized');
-    
+
     let result;
     if (startDate && endDate) {
       result = db.exec(
@@ -1153,20 +1225,20 @@ export class SQLDatabase {
     } else {
       result = db.exec('SELECT * FROM events ORDER BY start_date');
     }
-    
+
     if (result.length === 0) return [];
     return result[0].values.map(row => this.mapRowToEvent(result[0].columns, row));
   }
 
   getUpcomingEvents(days: number = 7): CalendarEvent[] {
     const now = Date.now();
-    const future = now + (days * 24 * 60 * 60 * 1000);
+    const future = now + days * 24 * 60 * 60 * 1000;
     return this.getEvents(now, future);
   }
 
   private mapRowToEvent(columns: string[], values: any[]): CalendarEvent {
     const row: any = {};
-    columns.forEach((col, i) => row[col] = values[i]);
+    columns.forEach((col, i) => (row[col] = values[i]));
     return {
       id: row.id,
       title: row.title,
@@ -1186,16 +1258,26 @@ export class SQLDatabase {
   // Tasks
   addTask(task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>): Task {
     if (!db) throw new Error('Database not initialized');
-    
+
     const id = generateId();
     const now = Date.now();
 
     db.run(
       `INSERT INTO tasks (id, title, description, due_date, priority, status, assignee, tags, source, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, task.title, task.description || null, task.dueDate || null, task.priority || 'medium',
-       task.status || 'pending', task.assignee || null, JSON.stringify(task.tags || []),
-       task.source || null, now, now]
+      [
+        id,
+        task.title,
+        task.description || null,
+        task.dueDate || null,
+        task.priority || 'medium',
+        task.status || 'pending',
+        task.assignee || null,
+        JSON.stringify(task.tags || []),
+        task.source || null,
+        now,
+        now,
+      ]
     );
 
     saveDb();
@@ -1204,7 +1286,7 @@ export class SQLDatabase {
 
   updateTask(id: string, updates: Partial<Task>): Task | null {
     if (!db) throw new Error('Database not initialized');
-    
+
     const now = Date.now();
     const task = this.getTaskById(id);
     if (!task) return null;
@@ -1214,9 +1296,18 @@ export class SQLDatabase {
     db.run(
       `UPDATE tasks SET title = ?, description = ?, due_date = ?, priority = ?, status = ?, assignee = ?, tags = ?, source = ?, updated_at = ?
        WHERE id = ?`,
-      [updated.title, updated.description || null, updated.dueDate || null, updated.priority,
-       updated.status, updated.assignee || null, JSON.stringify(updated.tags),
-       updated.source || null, now, id]
+      [
+        updated.title,
+        updated.description || null,
+        updated.dueDate || null,
+        updated.priority,
+        updated.status,
+        updated.assignee || null,
+        JSON.stringify(updated.tags),
+        updated.source || null,
+        now,
+        id,
+      ]
     );
 
     saveDb();
@@ -1239,7 +1330,7 @@ export class SQLDatabase {
 
   getTasks(status?: Task['status'], priority?: Task['priority']): Task[] {
     if (!db) throw new Error('Database not initialized');
-    
+
     let query = 'SELECT * FROM tasks';
     const params: any[] = [];
 
@@ -1265,7 +1356,7 @@ export class SQLDatabase {
 
   private mapRowToTask(columns: string[], values: any[]): Task {
     const row: any = {};
-    columns.forEach((col, i) => row[col] = values[i]);
+    columns.forEach((col, i) => (row[col] = values[i]));
     return {
       id: row.id,
       title: row.title,
@@ -1284,18 +1375,30 @@ export class SQLDatabase {
   // Notes
   addNote(note: Omit<Note, 'id' | 'createdAt' | 'updatedAt'>): Note {
     if (!db) throw new Error('Database not initialized');
-    
+
     const id = generateId();
     const now = Date.now();
 
     db.run(
       `INSERT INTO notes (id, title, content, category, tags, linked_contacts, linked_events, linked_tasks, position_x, position_y, width, height, color, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, note.title, note.content || '', note.category || 'general',
-       JSON.stringify(note.tags || []), JSON.stringify(note.linkedContacts || []),
-       JSON.stringify(note.linkedEvents || []), JSON.stringify(note.linkedTasks || []),
-       note.positionX || 0, note.positionY || 0, note.width || 300, note.height || 200,
-       note.color || 'yellow', now, now]
+      [
+        id,
+        note.title,
+        note.content || '',
+        note.category || 'general',
+        JSON.stringify(note.tags || []),
+        JSON.stringify(note.linkedContacts || []),
+        JSON.stringify(note.linkedEvents || []),
+        JSON.stringify(note.linkedTasks || []),
+        note.positionX || 0,
+        note.positionY || 0,
+        note.width || 300,
+        note.height || 200,
+        note.color || 'yellow',
+        now,
+        now,
+      ]
     );
 
     saveDb();
@@ -1304,7 +1407,7 @@ export class SQLDatabase {
 
   updateNote(id: string, updates: Partial<Note>): Note | null {
     if (!db) throw new Error('Database not initialized');
-    
+
     const now = Date.now();
     const note = this.getNoteById(id);
     if (!note) return null;
@@ -1314,15 +1417,22 @@ export class SQLDatabase {
     db.run(
       `UPDATE notes SET title = ?, content = ?, category = ?, tags = ?, linked_contacts = ?, linked_events = ?, linked_tasks = ?, position_x = ?, position_y = ?, width = ?, height = ?, color = ?, updated_at = ?
        WHERE id = ?`,
-      [updated.title, updated.content || '', updated.category,
-       JSON.stringify(updated.tags), JSON.stringify(updated.linkedContacts || []),
-       JSON.stringify(updated.linkedEvents || []), JSON.stringify(updated.linkedTasks || []),
-       updated.positionX ?? note.positionX ?? 0, 
-       updated.positionY ?? note.positionY ?? 0, 
-       updated.width ?? note.width ?? 300, 
-       updated.height ?? note.height ?? 200,
-       updated.color ?? note.color ?? 'yellow', 
-       now, id]
+      [
+        updated.title,
+        updated.content || '',
+        updated.category,
+        JSON.stringify(updated.tags),
+        JSON.stringify(updated.linkedContacts || []),
+        JSON.stringify(updated.linkedEvents || []),
+        JSON.stringify(updated.linkedTasks || []),
+        updated.positionX ?? note.positionX ?? 0,
+        updated.positionY ?? note.positionY ?? 0,
+        updated.width ?? note.width ?? 300,
+        updated.height ?? note.height ?? 200,
+        updated.color ?? note.color ?? 'yellow',
+        now,
+        id,
+      ]
     );
 
     saveDb();
@@ -1345,21 +1455,23 @@ export class SQLDatabase {
 
   getNotes(category?: string): Note[] {
     if (!db) throw new Error('Database not initialized');
-    
+
     let result;
     if (category) {
-      result = db.exec('SELECT * FROM notes WHERE category = ? ORDER BY updated_at DESC', [category]);
+      result = db.exec('SELECT * FROM notes WHERE category = ? ORDER BY updated_at DESC', [
+        category,
+      ]);
     } else {
       result = db.exec('SELECT * FROM notes ORDER BY updated_at DESC');
     }
-    
+
     if (result.length === 0) return [];
     return result[0].values.map(row => this.mapRowToNote(result[0].columns, row));
   }
 
   private mapRowToNote(columns: string[], values: any[]): Note {
     const row: any = {};
-    columns.forEach((col, i) => row[col] = values[i]);
+    columns.forEach((col, i) => (row[col] = values[i]));
     return {
       id: row.id,
       title: row.title,
@@ -1382,17 +1494,27 @@ export class SQLDatabase {
   // Activities
   addActivity(activity: Omit<Activity, 'id' | 'createdAt'>): Activity {
     if (!db) throw new Error('Database not initialized');
-    
+
     const id = generateId();
     const now = Date.now();
 
     db.run(
       `INSERT INTO activities (id, type, title, description, participants, date, duration, outcome, tags, source, raw_data, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, activity.type, activity.title, activity.description || null,
-       JSON.stringify(activity.participants || []), activity.date, activity.duration || null,
-       activity.outcome || null, JSON.stringify(activity.tags || []),
-       activity.source || null, activity.rawData || null, now]
+      [
+        id,
+        activity.type,
+        activity.title,
+        activity.description || null,
+        JSON.stringify(activity.participants || []),
+        activity.date,
+        activity.duration || null,
+        activity.outcome || null,
+        JSON.stringify(activity.tags || []),
+        activity.source || null,
+        activity.rawData || null,
+        now,
+      ]
     );
 
     saveDb();
@@ -1401,7 +1523,7 @@ export class SQLDatabase {
 
   getActivities(type?: Activity['type'], days?: number): Activity[] {
     if (!db) throw new Error('Database not initialized');
-    
+
     let query = 'SELECT * FROM activities';
     const params: any[] = [];
 
@@ -1411,7 +1533,7 @@ export class SQLDatabase {
       params.push(type);
     }
     if (days) {
-      const cutoff = Date.now() - (days * 24 * 60 * 60 * 1000);
+      const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
       conditions.push('date >= ?');
       params.push(cutoff);
     }
@@ -1429,7 +1551,7 @@ export class SQLDatabase {
 
   private mapRowToActivity(columns: string[], values: any[]): Activity {
     const row: any = {};
-    columns.forEach((col, i) => row[col] = values[i]);
+    columns.forEach((col, i) => (row[col] = values[i]));
     return {
       id: row.id,
       type: row.type,
@@ -1449,15 +1571,25 @@ export class SQLDatabase {
   // Raw Data
   addRawData(raw: Omit<RawData, 'id' | 'processed' | 'createdAt'>): RawData {
     if (!db) throw new Error('Database not initialized');
-    
+
     const id = generateId();
     const now = Date.now();
 
     db.run(
       `INSERT INTO raw_data (id, type, content, sender, recipients, date, metadata, processed, processing_result, created_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, raw.type, raw.content, raw.sender || null, JSON.stringify(raw.recipients || []),
-       raw.date || null, raw.metadata ? JSON.stringify(raw.metadata) : null, 0, null, now]
+      [
+        id,
+        raw.type,
+        raw.content,
+        raw.sender || null,
+        JSON.stringify(raw.recipients || []),
+        raw.date || null,
+        raw.metadata ? JSON.stringify(raw.metadata) : null,
+        0,
+        null,
+        now,
+      ]
     );
 
     saveDb();
@@ -1480,7 +1612,7 @@ export class SQLDatabase {
 
   private mapRowToRawData(columns: string[], values: any[]): RawData {
     const row: any = {};
-    columns.forEach((col, i) => row[col] = values[i]);
+    columns.forEach((col, i) => (row[col] = values[i]));
     return {
       id: row.id,
       type: row.type,
@@ -1496,22 +1628,24 @@ export class SQLDatabase {
   }
 
   // Search
-  search(query: string): { contacts: Contact[]; events: CalendarEvent[]; tasks: Task[]; notes: Note[]; activities: Activity[] } {
+  search(query: string): {
+    contacts: Contact[];
+    events: CalendarEvent[];
+    tasks: Task[];
+    notes: Note[];
+    activities: Activity[];
+  } {
     const searchTerm = `%${query}%`;
 
     return {
       contacts: this.getContacts(query),
-      events: this.getEvents().filter(e =>
-        e.title.includes(query) || (e.description?.includes(query))
+      events: this.getEvents().filter(
+        e => e.title.includes(query) || e.description?.includes(query)
       ),
-      tasks: this.getTasks().filter(t =>
-        t.title.includes(query) || (t.description?.includes(query))
-      ),
-      notes: this.getNotes().filter(n =>
-        n.title.includes(query) || n.content.includes(query)
-      ),
-      activities: this.getActivities().filter(a =>
-        a.title.includes(query) || (a.description?.includes(query))
+      tasks: this.getTasks().filter(t => t.title.includes(query) || t.description?.includes(query)),
+      notes: this.getNotes().filter(n => n.title.includes(query) || n.content.includes(query)),
+      activities: this.getActivities().filter(
+        a => a.title.includes(query) || a.description?.includes(query)
       ),
     };
   }
@@ -1533,7 +1667,9 @@ export class SQLDatabase {
     const tasksCount = db.exec('SELECT COUNT(*) as count FROM tasks');
     const notesCount = db.exec('SELECT COUNT(*) as count FROM notes');
     const activitiesCount = db.exec('SELECT COUNT(*) as count FROM activities');
-    const pendingTasksCount = db.exec("SELECT COUNT(*) as count FROM tasks WHERE status != 'completed'");
+    const pendingTasksCount = db.exec(
+      "SELECT COUNT(*) as count FROM tasks WHERE status != 'completed'"
+    );
 
     return {
       contacts: (contactsCount[0]?.values[0]?.[0] as number) || 0,
@@ -1609,17 +1745,30 @@ export class SQLDatabase {
   }
 
   // Vector Lake Methods
-  addVectorLakeEntry(entry: Omit<VectorLakeEntry, 'id' | 'accessCount' | 'lastAccessed' | 'createdAt'>): VectorLakeEntry {
+  addVectorLakeEntry(
+    entry: Omit<VectorLakeEntry, 'id' | 'accessCount' | 'lastAccessed' | 'createdAt'>
+  ): VectorLakeEntry {
     if (!db) throw new Error('Database not initialized');
-    
+
     const id = generateId();
     const now = Date.now();
 
     db.run(
       `INSERT INTO vector_lake (id, query, search_terms, results, context, answer, embedding, access_count, last_accessed, created_at, expires_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, entry.query, JSON.stringify(entry.searchTerms), entry.results, entry.context,
-       entry.answer, entry.embedding, 1, now, now, entry.expiresAt || null]
+      [
+        id,
+        entry.query,
+        JSON.stringify(entry.searchTerms),
+        entry.results,
+        entry.context,
+        entry.answer,
+        entry.embedding,
+        1,
+        now,
+        now,
+        entry.expiresAt || null,
+      ]
     );
 
     saveDb();
@@ -1635,18 +1784,26 @@ export class SQLDatabase {
 
   findSimilarQueries(query: string, threshold: number = 0.7): VectorLakeEntry[] {
     if (!db) throw new Error('Database not initialized');
-    
+
     const queryEmbedding = this.generateEmbedding(query);
-    const result = db.exec('SELECT * FROM vector_lake WHERE expires_at IS NULL OR expires_at > ? ORDER BY last_accessed DESC LIMIT 20', [Date.now()]);
-    
+    const result = db.exec(
+      'SELECT * FROM vector_lake WHERE expires_at IS NULL OR expires_at > ? ORDER BY last_accessed DESC LIMIT 20',
+      [Date.now()]
+    );
+
     if (result.length === 0) return [];
-    
-    const entries = result[0].values.map(row => this.mapRowToVectorLakeEntry(result[0].columns, row));
-    
+
+    const entries = result[0].values.map(row =>
+      this.mapRowToVectorLakeEntry(result[0].columns, row)
+    );
+
     return entries
       .map(entry => ({
         ...entry,
-        similarity: this.cosineSimilarity(queryEmbedding, entry.embedding ? JSON.parse(entry.embedding) : []),
+        similarity: this.cosineSimilarity(
+          queryEmbedding,
+          entry.embedding ? JSON.parse(entry.embedding) : []
+        ),
       }))
       .filter(e => e.similarity >= threshold)
       .sort((a, b) => b.similarity - a.similarity)
@@ -1655,7 +1812,10 @@ export class SQLDatabase {
 
   incrementAccessCount(id: string): void {
     if (!db) throw new Error('Database not initialized');
-    db.run('UPDATE vector_lake SET access_count = access_count + 1, last_accessed = ? WHERE id = ?', [Date.now(), id]);
+    db.run(
+      'UPDATE vector_lake SET access_count = access_count + 1, last_accessed = ? WHERE id = ?',
+      [Date.now(), id]
+    );
     saveDb();
   }
 
@@ -1683,7 +1843,10 @@ export class SQLDatabase {
   clearExpiredEntries(): number {
     if (!db) throw new Error('Database not initialized');
     const now = Date.now();
-    const result = db.exec('DELETE FROM vector_lake WHERE expires_at IS NOT NULL AND expires_at < ?', [now]);
+    const result = db.exec(
+      'DELETE FROM vector_lake WHERE expires_at IS NOT NULL AND expires_at < ?',
+      [now]
+    );
     saveDb();
     return result.length;
   }
@@ -1703,12 +1866,12 @@ export class SQLDatabase {
     const hash = this.simpleHash(text);
     const embedding: number[] = [];
     const seed = hash;
-    
+
     for (let i = 0; i < 384; i++) {
       const x = Math.sin(seed * (i + 1) * 12.9898) * 43758.5453;
       embedding.push((x - Math.floor(x)) * 2 - 1);
     }
-    
+
     const magnitude = Math.sqrt(embedding.reduce((sum, val) => sum + val * val, 0));
     return embedding.map(val => val / magnitude);
   }
@@ -1717,7 +1880,7 @@ export class SQLDatabase {
     let hash = 0;
     for (let i = 0; i < text.length; i++) {
       const char = text.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
+      hash = (hash << 5) - hash + char;
       hash = hash & hash;
     }
     return Math.abs(hash);
@@ -1728,19 +1891,19 @@ export class SQLDatabase {
     let dotProduct = 0;
     let normA = 0;
     let normB = 0;
-    
+
     for (let i = 0; i < a.length; i++) {
       dotProduct += a[i] * b[i];
       normA += a[i] * a[i];
       normB += b[i] * b[i];
     }
-    
+
     return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
   }
 
   private mapRowToVectorLakeEntry(columns: string[], values: any[]): VectorLakeEntry {
     const row: any = {};
-    columns.forEach((col, i) => row[col] = values[i]);
+    columns.forEach((col, i) => (row[col] = values[i]));
     return {
       id: row.id,
       query: row.query,
@@ -1763,7 +1926,15 @@ export class SQLDatabase {
     const now = Date.now();
     db.run(
       `INSERT INTO folders (id, name, parent_id, description, color, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [id, folder.name, folder.parentId || null, folder.description || null, folder.color || null, now, now]
+      [
+        id,
+        folder.name,
+        folder.parentId || null,
+        folder.description || null,
+        folder.color || null,
+        now,
+        now,
+      ]
     );
     saveDb();
     return { ...folder, id, createdAt: now, updatedAt: now };
@@ -1775,7 +1946,9 @@ export class SQLDatabase {
     if (parentId === undefined) {
       result = db.exec('SELECT * FROM folders ORDER BY name');
     } else {
-      result = db.exec('SELECT * FROM folders WHERE parent_id IS ? ORDER BY name', [parentId || null]);
+      result = db.exec('SELECT * FROM folders WHERE parent_id IS ? ORDER BY name', [
+        parentId || null,
+      ]);
     }
     if (result.length === 0) return [];
     return result[0].values.map(row => this.mapRowToFolder(result[0].columns, row));
@@ -1795,7 +1968,14 @@ export class SQLDatabase {
     const updated = { ...folder, ...updates, updatedAt: Date.now() };
     db.run(
       `UPDATE folders SET name = ?, parent_id = ?, description = ?, color = ?, updated_at = ? WHERE id = ?`,
-      [updated.name, updated.parentId || null, updated.description || null, updated.color || null, updated.updatedAt, id]
+      [
+        updated.name,
+        updated.parentId || null,
+        updated.description || null,
+        updated.color || null,
+        updated.updatedAt,
+        id,
+      ]
     );
     saveDb();
     return updated;
@@ -1810,7 +1990,7 @@ export class SQLDatabase {
 
   private mapRowToFolder(columns: string[], values: any[]): Folder {
     const row: any = {};
-    columns.forEach((col, i) => row[col] = values[i]);
+    columns.forEach((col, i) => (row[col] = values[i]));
     return {
       id: row.id,
       name: row.name,
@@ -1829,8 +2009,18 @@ export class SQLDatabase {
     const now = Date.now();
     db.run(
       `INSERT INTO brands (id, name, description, website, contacts, notes, tags, documents, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, brand.name, brand.description || null, brand.website || null, JSON.stringify(brand.contacts || []),
-       brand.notes || null, JSON.stringify(brand.tags || []), JSON.stringify(brand.documents || []), now, now]
+      [
+        id,
+        brand.name,
+        brand.description || null,
+        brand.website || null,
+        JSON.stringify(brand.contacts || []),
+        brand.notes || null,
+        JSON.stringify(brand.tags || []),
+        JSON.stringify(brand.documents || []),
+        now,
+        now,
+      ]
     );
     saveDb();
     return { ...brand, id, createdAt: now, updatedAt: now };
@@ -1857,8 +2047,17 @@ export class SQLDatabase {
     const updated = { ...brand, ...updates, updatedAt: Date.now() };
     db.run(
       `UPDATE brands SET name = ?, description = ?, website = ?, contacts = ?, notes = ?, tags = ?, documents = ?, updated_at = ? WHERE id = ?`,
-      [updated.name, updated.description || null, updated.website || null, JSON.stringify(updated.contacts || []),
-       updated.notes || null, JSON.stringify(updated.tags || []), JSON.stringify(updated.documents || []), updated.updatedAt, id]
+      [
+        updated.name,
+        updated.description || null,
+        updated.website || null,
+        JSON.stringify(updated.contacts || []),
+        updated.notes || null,
+        JSON.stringify(updated.tags || []),
+        JSON.stringify(updated.documents || []),
+        updated.updatedAt,
+        id,
+      ]
     );
     saveDb();
     return updated;
@@ -1873,7 +2072,7 @@ export class SQLDatabase {
 
   private mapRowToBrand(columns: string[], values: any[]): Brand {
     const row: any = {};
-    columns.forEach((col, i) => row[col] = values[i]);
+    columns.forEach((col, i) => (row[col] = values[i]));
     return {
       id: row.id,
       name: row.name,
@@ -1895,8 +2094,17 @@ export class SQLDatabase {
     const now = Date.now();
     db.run(
       `INSERT INTO projects (id, name, description, folder_id, brand_id, status, tags, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, project.name, project.description || null, project.folderId || null, project.brandId || null,
-       project.status || 'active', JSON.stringify(project.tags || []), now, now]
+      [
+        id,
+        project.name,
+        project.description || null,
+        project.folderId || null,
+        project.brandId || null,
+        project.status || 'active',
+        JSON.stringify(project.tags || []),
+        now,
+        now,
+      ]
     );
     saveDb();
     return { ...project, id, createdAt: now, updatedAt: now };
@@ -1906,9 +2114,18 @@ export class SQLDatabase {
     if (!db) throw new Error('Database not initialized');
     let query = 'SELECT * FROM projects WHERE 1=1';
     const params: any[] = [];
-    if (folderId) { query += ' AND folder_id = ?'; params.push(folderId); }
-    if (brandId) { query += ' AND brand_id = ?'; params.push(brandId); }
-    if (status) { query += ' AND status = ?'; params.push(status); }
+    if (folderId) {
+      query += ' AND folder_id = ?';
+      params.push(folderId);
+    }
+    if (brandId) {
+      query += ' AND brand_id = ?';
+      params.push(brandId);
+    }
+    if (status) {
+      query += ' AND status = ?';
+      params.push(status);
+    }
     query += ' ORDER BY updated_at DESC';
     const result = db.exec(query, params);
     if (result.length === 0) return [];
@@ -1929,8 +2146,16 @@ export class SQLDatabase {
     const updated = { ...project, ...updates, updatedAt: Date.now() };
     db.run(
       `UPDATE projects SET name = ?, description = ?, folder_id = ?, brand_id = ?, status = ?, tags = ?, updated_at = ? WHERE id = ?`,
-      [updated.name, updated.description || null, updated.folderId || null, updated.brandId || null,
-       updated.status, JSON.stringify(updated.tags || []), updated.updatedAt, id]
+      [
+        updated.name,
+        updated.description || null,
+        updated.folderId || null,
+        updated.brandId || null,
+        updated.status,
+        JSON.stringify(updated.tags || []),
+        updated.updatedAt,
+        id,
+      ]
     );
     saveDb();
     return updated;
@@ -1945,7 +2170,7 @@ export class SQLDatabase {
 
   private mapRowToProject(columns: string[], values: any[]): Project {
     const row: any = {};
-    columns.forEach((col, i) => row[col] = values[i]);
+    columns.forEach((col, i) => (row[col] = values[i]));
     return {
       id: row.id,
       name: row.name,
@@ -1971,7 +2196,7 @@ export class SQLDatabase {
     const result = db.exec(sql, params);
     if (result.length === 0 || result[0].values.length === 0) return null;
     const row: any = {};
-    result[0].columns.forEach((col, i) => row[col] = result[0].values[0][i]);
+    result[0].columns.forEach((col, i) => (row[col] = result[0].values[0][i]));
     return row;
   }
 
@@ -1981,7 +2206,7 @@ export class SQLDatabase {
     if (result.length === 0) return [];
     return result[0].values.map(values => {
       const row: any = {};
-      result[0].columns.forEach((col, i) => row[col] = values[i]);
+      result[0].columns.forEach((col, i) => (row[col] = values[i]));
       return row;
     });
   }
@@ -2003,7 +2228,7 @@ export class SQLDatabase {
     if (result.length === 0) return [];
     return result[0].values.map(values => {
       const row: any = {};
-      result[0].columns.forEach((col, i) => row[col] = values[i]);
+      result[0].columns.forEach((col, i) => (row[col] = values[i]));
       return {
         ...row,
         keywords: JSON.parse(row.keywords || '[]'),
@@ -2012,11 +2237,14 @@ export class SQLDatabase {
     });
   }
 
-  updateSAMSearch(id: string, updates: { status?: string; resultsCount?: number; lastRun?: number }): void {
+  updateSAMSearch(
+    id: string,
+    updates: { status?: string; resultsCount?: number; lastRun?: number }
+  ): void {
     if (!db) throw new Error('Database not initialized');
     const parts: string[] = [];
     const params: any[] = [];
-    
+
     if (updates.status !== undefined) {
       parts.push('status = ?');
       params.push(updates.status);
@@ -2029,7 +2257,7 @@ export class SQLDatabase {
       parts.push('last_run = ?');
       params.push(updates.lastRun);
     }
-    
+
     if (parts.length > 0) {
       params.push(id);
       db.run(`UPDATE sam_searches SET ${parts.join(', ')} WHERE id = ?`, params);
@@ -2051,12 +2279,25 @@ export class SQLDatabase {
        (id, search_id, title, synopsis, solicitation_number, posted_date, response_deadline, 
         award_amount, naics_code, classification_code, agency, office, location, url, keywords, matched_keywords, captured_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [opp.id, searchId || null, opp.title, opp.synopsis || '', opp.solicitationNumber || '',
-       opp.postedDate || '', opp.responseDeadline || '', opp.awardAmount || null,
-       opp.naicsCode || null, opp.classificationCode || null, opp.agency || null,
-       opp.office || null, opp.location || null, opp.url || '',
-       JSON.stringify(opp.keywords || []), JSON.stringify(opp.matchedKeywords || []),
-       Date.now()]
+      [
+        opp.id,
+        searchId || null,
+        opp.title,
+        opp.synopsis || '',
+        opp.solicitationNumber || '',
+        opp.postedDate || '',
+        opp.responseDeadline || '',
+        opp.awardAmount || null,
+        opp.naicsCode || null,
+        opp.classificationCode || null,
+        opp.agency || null,
+        opp.office || null,
+        opp.location || null,
+        opp.url || '',
+        JSON.stringify(opp.keywords || []),
+        JSON.stringify(opp.matchedKeywords || []),
+        Date.now(),
+      ]
     );
     saveDb();
   }
@@ -2065,19 +2306,19 @@ export class SQLDatabase {
     if (!db) throw new Error('Database not initialized');
     let query = 'SELECT * FROM sam_opportunities';
     const params: any[] = [];
-    
+
     if (searchId) {
       query += ' WHERE search_id = ?';
       params.push(searchId);
     }
-    
+
     query += ' ORDER BY captured_at DESC';
-    
+
     const result = db.exec(query, params);
     if (result.length === 0) return [];
     return result[0].values.map(values => {
       const row: any = {};
-      result[0].columns.forEach((col, i) => row[col] = values[i]);
+      result[0].columns.forEach((col, i) => (row[col] = values[i]));
       return {
         ...row,
         keywords: JSON.parse(row.keywords || '[]'),
@@ -2112,7 +2353,7 @@ export class SQLDatabase {
     if (result.length === 0) return [];
     return result[0].values.map(values => {
       const row: any = {};
-      result[0].columns.forEach((col, i) => row[col] = values[i]);
+      result[0].columns.forEach((col, i) => (row[col] = values[i]));
       return row;
     });
   }
@@ -2125,7 +2366,7 @@ export class SQLDatabase {
       [now]
     );
     if (result.length === 0 || result[0].values.length === 0) return null;
-    
+
     const key = result[0].values[0][0] as string;
     db.run('UPDATE sam_api_keys SET last_used = ? WHERE key = ?', [now, key]);
     return key;
@@ -2163,32 +2404,51 @@ export class SQLDatabase {
     if (!db) throw new Error('Database not initialized');
     const id = generateId();
     const now = Date.now();
-    
+
     db.run(
       `INSERT INTO tracked_opportunities 
        (id, title, synopsis, solicitation_number, opportunity_type, posted_date, updated_date, 
         response_deadline, award_amount, naics_code, classification_code, agency, office, location, 
         url, status, pipeline_stage, award_date, notes, tags, user_priority, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, opp.title, opp.synopsis || '', opp.solicitationNumber, opp.type || 'Solicitation',
-       opp.postedDate || '', opp.updatedDate || '', opp.responseDeadline || '',
-       opp.awardAmount || '', opp.naicsCode || '', opp.classificationCode || '',
-       opp.agency || '', opp.office || '', opp.location || '', opp.url || '',
-       opp.status || 'active', opp.pipelineStage || 'interested', opp.awardDate || '', opp.notes || '',
-       JSON.stringify(opp.tags || []), opp.userPriority || 'medium', now, now]
+      [
+        id,
+        opp.title,
+        opp.synopsis || '',
+        opp.solicitationNumber,
+        opp.type || 'Solicitation',
+        opp.postedDate || '',
+        opp.updatedDate || '',
+        opp.responseDeadline || '',
+        opp.awardAmount || '',
+        opp.naicsCode || '',
+        opp.classificationCode || '',
+        opp.agency || '',
+        opp.office || '',
+        opp.location || '',
+        opp.url || '',
+        opp.status || 'active',
+        opp.pipelineStage || 'interested',
+        opp.awardDate || '',
+        opp.notes || '',
+        JSON.stringify(opp.tags || []),
+        opp.userPriority || 'medium',
+        now,
+        now,
+      ]
     );
-    
+
     saveDb();
     return { id, createdAt: now };
   }
 
   getTrackedOpportunities(status?: string, pipelineStage?: string): any[] {
     if (!db) throw new Error('Database not initialized');
-    
+
     let query = 'SELECT * FROM tracked_opportunities';
     const conditions: string[] = [];
     const params: any[] = [];
-    
+
     if (status) {
       conditions.push('status = ?');
       params.push(status);
@@ -2197,19 +2457,19 @@ export class SQLDatabase {
       conditions.push('pipeline_stage = ?');
       params.push(pipelineStage);
     }
-    
+
     if (conditions.length > 0) {
       query += ' WHERE ' + conditions.join(' AND ');
     }
-    
+
     query += ' ORDER BY response_deadline ASC, created_at DESC';
-    
+
     const result = db.exec(query, params);
     if (result.length === 0) return [];
-    
+
     return result[0].values.map(values => {
       const row: any = {};
-      result[0].columns.forEach((col, i) => row[col] = values[i]);
+      result[0].columns.forEach((col, i) => (row[col] = values[i]));
       return {
         ...row,
         tags: JSON.parse(row.tags || '[]'),
@@ -2221,9 +2481,9 @@ export class SQLDatabase {
     if (!db) throw new Error('Database not initialized');
     const result = db.exec('SELECT * FROM tracked_opportunities WHERE id = ?', [id]);
     if (result.length === 0 || result[0].values.length === 0) return null;
-    
+
     const row: any = {};
-    result[0].columns.forEach((col, i) => row[col] = result[0].values[0][i]);
+    result[0].columns.forEach((col, i) => (row[col] = result[0].values[0][i]));
     return {
       ...row,
       tags: JSON.parse(row.tags || '[]'),
@@ -2232,57 +2492,101 @@ export class SQLDatabase {
 
   getTrackedOpportunityBySolicitationNumber(solNum: string): any | null {
     if (!db) throw new Error('Database not initialized');
-    const result = db.exec('SELECT * FROM tracked_opportunities WHERE solicitation_number = ?', [solNum]);
+    const result = db.exec('SELECT * FROM tracked_opportunities WHERE solicitation_number = ?', [
+      solNum,
+    ]);
     if (result.length === 0 || result[0].values.length === 0) return null;
-    
+
     const row: any = {};
-    result[0].columns.forEach((col, i) => row[col] = result[0].values[0][i]);
+    result[0].columns.forEach((col, i) => (row[col] = result[0].values[0][i]));
     return {
       ...row,
       tags: JSON.parse(row.tags || '[]'),
     };
   }
 
-  updateTrackedOpportunity(id: string, updates: {
-    title?: string;
-    synopsis?: string;
-    type?: string;
-    postedDate?: string;
-    updatedDate?: string;
-    responseDeadline?: string;
-    awardAmount?: string;
-    status?: string;
-    pipelineStage?: string;
-    awardDate?: string;
-    notes?: string;
-    tags?: string[];
-    userPriority?: 'low' | 'medium' | 'high' | 'critical';
-  }): boolean {
+  updateTrackedOpportunity(
+    id: string,
+    updates: {
+      title?: string;
+      synopsis?: string;
+      type?: string;
+      postedDate?: string;
+      updatedDate?: string;
+      responseDeadline?: string;
+      awardAmount?: string;
+      status?: string;
+      pipelineStage?: string;
+      awardDate?: string;
+      notes?: string;
+      tags?: string[];
+      userPriority?: 'low' | 'medium' | 'high' | 'critical';
+    }
+  ): boolean {
     if (!db) throw new Error('Database not initialized');
-    
+
     const fields: string[] = [];
     const values: any[] = [];
-    
-    if (updates.title !== undefined) { fields.push('title = ?'); values.push(updates.title); }
-    if (updates.synopsis !== undefined) { fields.push('synopsis = ?'); values.push(updates.synopsis); }
-    if (updates.type !== undefined) { fields.push('opportunity_type = ?'); values.push(updates.type); }
-    if (updates.postedDate !== undefined) { fields.push('posted_date = ?'); values.push(updates.postedDate); }
-    if (updates.updatedDate !== undefined) { fields.push('updated_date = ?'); values.push(updates.updatedDate); }
-    if (updates.responseDeadline !== undefined) { fields.push('response_deadline = ?'); values.push(updates.responseDeadline); }
-    if (updates.awardAmount !== undefined) { fields.push('award_amount = ?'); values.push(updates.awardAmount); }
-    if (updates.status !== undefined) { fields.push('status = ?'); values.push(updates.status); }
-    if (updates.pipelineStage !== undefined) { fields.push('pipeline_stage = ?'); values.push(updates.pipelineStage); }
-    if (updates.awardDate !== undefined) { fields.push('award_date = ?'); values.push(updates.awardDate); }
-    if (updates.notes !== undefined) { fields.push('notes = ?'); values.push(updates.notes); }
-    if (updates.tags !== undefined) { fields.push('tags = ?'); values.push(JSON.stringify(updates.tags)); }
-    if (updates.userPriority !== undefined) { fields.push('user_priority = ?'); values.push(updates.userPriority); }
-    
+
+    if (updates.title !== undefined) {
+      fields.push('title = ?');
+      values.push(updates.title);
+    }
+    if (updates.synopsis !== undefined) {
+      fields.push('synopsis = ?');
+      values.push(updates.synopsis);
+    }
+    if (updates.type !== undefined) {
+      fields.push('opportunity_type = ?');
+      values.push(updates.type);
+    }
+    if (updates.postedDate !== undefined) {
+      fields.push('posted_date = ?');
+      values.push(updates.postedDate);
+    }
+    if (updates.updatedDate !== undefined) {
+      fields.push('updated_date = ?');
+      values.push(updates.updatedDate);
+    }
+    if (updates.responseDeadline !== undefined) {
+      fields.push('response_deadline = ?');
+      values.push(updates.responseDeadline);
+    }
+    if (updates.awardAmount !== undefined) {
+      fields.push('award_amount = ?');
+      values.push(updates.awardAmount);
+    }
+    if (updates.status !== undefined) {
+      fields.push('status = ?');
+      values.push(updates.status);
+    }
+    if (updates.pipelineStage !== undefined) {
+      fields.push('pipeline_stage = ?');
+      values.push(updates.pipelineStage);
+    }
+    if (updates.awardDate !== undefined) {
+      fields.push('award_date = ?');
+      values.push(updates.awardDate);
+    }
+    if (updates.notes !== undefined) {
+      fields.push('notes = ?');
+      values.push(updates.notes);
+    }
+    if (updates.tags !== undefined) {
+      fields.push('tags = ?');
+      values.push(JSON.stringify(updates.tags));
+    }
+    if (updates.userPriority !== undefined) {
+      fields.push('user_priority = ?');
+      values.push(updates.userPriority);
+    }
+
     if (fields.length === 0) return false;
-    
+
     fields.push('updated_at = ?');
     values.push(Date.now());
     values.push(id);
-    
+
     db.run(`UPDATE tracked_opportunities SET ${fields.join(', ')} WHERE id = ?`, values);
     saveDb();
     return true;
@@ -2310,24 +2614,36 @@ export class SQLDatabase {
     if (!db) throw new Error('Database not initialized');
     const id = generateId();
     const now = Date.now();
-    
+
     db.run(
       `INSERT INTO opportunity_documents (id, opportunity_id, filename, original_name, content, type, size, uploaded_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, doc.opportunityId, doc.filename, doc.originalName || doc.filename, doc.content, doc.type || 'text', doc.size || 0, now]
+      [
+        id,
+        doc.opportunityId,
+        doc.filename,
+        doc.originalName || doc.filename,
+        doc.content,
+        doc.type || 'text',
+        doc.size || 0,
+        now,
+      ]
     );
-    
+
     saveDb();
     return { id, uploadedAt: now };
   }
 
   getOpportunityDocuments(opportunityId: string): any[] {
     if (!db) throw new Error('Database not initialized');
-    const result = db.exec('SELECT id, opportunity_id, filename, original_name, type, size, uploaded_at FROM opportunity_documents WHERE opportunity_id = ? ORDER BY uploaded_at DESC', [opportunityId]);
+    const result = db.exec(
+      'SELECT id, opportunity_id, filename, original_name, type, size, uploaded_at FROM opportunity_documents WHERE opportunity_id = ? ORDER BY uploaded_at DESC',
+      [opportunityId]
+    );
     if (result.length === 0) return [];
     return result[0].values.map(values => {
       const row: any = {};
-      result[0].columns.forEach((col, i) => row[col] = values[i]);
+      result[0].columns.forEach((col, i) => (row[col] = values[i]));
       return row;
     });
   }
@@ -2359,13 +2675,23 @@ export class SQLDatabase {
     if (!db) throw new Error('Database not initialized');
     const id = generateId();
     const now = Date.now();
-    
+
     db.run(
       `INSERT INTO opportunity_news (id, opportunity_id, solicitation_number, title, summary, source, url, news_date, captured_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, news.opportunityId || null, news.solicitationNumber || '', news.title, news.summary || '', news.source || '', news.url || '', news.newsDate || '', now]
+      [
+        id,
+        news.opportunityId || null,
+        news.solicitationNumber || '',
+        news.title,
+        news.summary || '',
+        news.source || '',
+        news.url || '',
+        news.newsDate || '',
+        now,
+      ]
     );
-    
+
     saveDb();
     return { id, capturedAt: now };
   }
@@ -2374,27 +2700,27 @@ export class SQLDatabase {
     if (!db) throw new Error('Database not initialized');
     let query = 'SELECT * FROM opportunity_news';
     const params: any[] = [];
-    
+
     if (opportunityId) {
       query += ' WHERE opportunity_id = ?';
       params.push(opportunityId);
     }
-    
+
     query += ' ORDER BY news_date DESC, captured_at DESC LIMIT ?';
     params.push(limit);
-    
+
     const result = db.exec(query, params);
     if (result.length === 0) return [];
     return result[0].values.map(values => {
       const row: any = {};
-      result[0].columns.forEach((col, i) => row[col] = values[i]);
+      result[0].columns.forEach((col, i) => (row[col] = values[i]));
       return row;
     });
   }
 
   getRecentNewsForPipelineStages(stages: string[], limit: number = 20): any[] {
     if (!db) throw new Error('Database not initialized');
-    
+
     const placeholders = stages.map(() => '?').join(',');
     const result = db.exec(
       `SELECT n.*, o.title as opportunity_title, o.agency 
@@ -2404,11 +2730,11 @@ export class SQLDatabase {
        ORDER BY n.captured_at DESC LIMIT ?`,
       [...stages, limit]
     );
-    
+
     if (result.length === 0) return [];
     return result[0].values.map(values => {
       const row: any = {};
-      result[0].columns.forEach((col, i) => row[col] = values[i]);
+      result[0].columns.forEach((col, i) => (row[col] = values[i]));
       return row;
     });
   }
@@ -2416,25 +2742,28 @@ export class SQLDatabase {
   // Pipeline Statistics
   getOpportunityPipelineStats(): any {
     if (!db) throw new Error('Database not initialized');
-    
+
     const stages = ['interested', 'pursuing', 'bidding', 'submitted', 'won', 'lost'];
     const stats: Record<string, number> = {};
-    
+
     for (const stage of stages) {
-      const result = db.exec('SELECT COUNT(*) FROM tracked_opportunities WHERE pipeline_stage = ?', [stage]);
+      const result = db.exec(
+        'SELECT COUNT(*) FROM tracked_opportunities WHERE pipeline_stage = ?',
+        [stage]
+      );
       stats[stage] = result.length > 0 ? (result[0].values[0][0] as number) : 0;
     }
-    
+
     const totalResult = db.exec('SELECT COUNT(*) FROM tracked_opportunities');
     stats.total = totalResult.length > 0 ? (totalResult[0].values[0][0] as number) : 0;
-    
+
     return stats;
   }
 
   // Get opportunities report data
   getOpportunitiesReport(): any[] {
     if (!db) throw new Error('Database not initialized');
-    
+
     const result = db.exec(`
       SELECT 
         o.id, o.title, o.solicitation_number, o.agency, o.office, o.response_deadline,
@@ -2444,40 +2773,56 @@ export class SQLDatabase {
       FROM tracked_opportunities o
       ORDER BY o.pipeline_stage, o.response_deadline ASC, o.created_at DESC
     `);
-    
+
     if (result.length === 0) return [];
     return result[0].values.map(values => {
       const row: any = {};
-      result[0].columns.forEach((col, i) => row[col] = values[i]);
+      result[0].columns.forEach((col, i) => (row[col] = values[i]));
       return row;
     });
   }
 
   // Document Methods
-  addDocument(doc: { title: string; content: string; type?: string; category?: string; tags?: string[]; metadata?: any }): { id: string; createdAt: number } {
+  addDocument(doc: {
+    title: string;
+    content: string;
+    type?: string;
+    category?: string;
+    tags?: string[];
+    metadata?: any;
+  }): { id: string; createdAt: number } {
     if (!db) throw new Error('Database not initialized');
     const id = generateId();
     const now = Date.now();
-    
+
     db.run(
       `INSERT INTO documents (id, title, content, type, category, tags, metadata, size, vectorized, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, ?, ?)`,
-      [id, doc.title, doc.content, doc.type || 'text', doc.category || null,
-       JSON.stringify(doc.tags || []), JSON.stringify(doc.metadata || {}),
-       doc.content.length, now, now]
+      [
+        id,
+        doc.title,
+        doc.content,
+        doc.type || 'text',
+        doc.category || null,
+        JSON.stringify(doc.tags || []),
+        JSON.stringify(doc.metadata || {}),
+        doc.content.length,
+        now,
+        now,
+      ]
     );
-    
+
     saveDb();
     return { id, createdAt: now };
   }
 
   getDocuments(type?: string, category?: string): any[] {
     if (!db) throw new Error('Database not initialized');
-    
+
     let query = 'SELECT * FROM documents';
     const conditions: string[] = [];
     const params: any[] = [];
-    
+
     if (type) {
       conditions.push('type = ?');
       params.push(type);
@@ -2486,18 +2831,18 @@ export class SQLDatabase {
       conditions.push('category = ?');
       params.push(category);
     }
-    
+
     if (conditions.length > 0) {
       query += ' WHERE ' + conditions.join(' AND ');
     }
     query += ' ORDER BY created_at DESC';
-    
+
     const result = db.exec(query, params);
     if (result.length === 0) return [];
-    
+
     return result[0].values.map(values => {
       const row: any = {};
-      result[0].columns.forEach((col, i) => row[col] = values[i]);
+      result[0].columns.forEach((col, i) => (row[col] = values[i]));
       return {
         ...row,
         tags: JSON.parse(row.tags || '[]'),
@@ -2510,9 +2855,9 @@ export class SQLDatabase {
     if (!db) throw new Error('Database not initialized');
     const result = db.exec('SELECT * FROM documents WHERE id = ?', [id]);
     if (result.length === 0 || result[0].values.length === 0) return null;
-    
+
     const row: any = {};
-    result[0].columns.forEach((col, i) => row[col] = result[0].values[0][i]);
+    result[0].columns.forEach((col, i) => (row[col] = result[0].values[0][i]));
     return {
       ...row,
       tags: JSON.parse(row.tags || '[]'),
@@ -2520,12 +2865,22 @@ export class SQLDatabase {
     };
   }
 
-  updateDocument(id: string, updates: { title?: string; content?: string; type?: string; category?: string; tags?: string[]; metadata?: any }): boolean {
+  updateDocument(
+    id: string,
+    updates: {
+      title?: string;
+      content?: string;
+      type?: string;
+      category?: string;
+      tags?: string[];
+      metadata?: any;
+    }
+  ): boolean {
     if (!db) throw new Error('Database not initialized');
-    
+
     const doc = this.getDocumentById(id);
     if (!doc) return false;
-    
+
     const title = updates.title ?? doc.title;
     const content = updates.content ?? doc.content;
     const type = updates.type ?? doc.type;
@@ -2533,12 +2888,22 @@ export class SQLDatabase {
     const tags = updates.tags ?? doc.tags;
     const metadata = updates.metadata ?? doc.metadata;
     const size = updates.content !== undefined ? updates.content.length : doc.size;
-    
+
     db.run(
       `UPDATE documents SET title = ?, content = ?, type = ?, category = ?, tags = ?, metadata = ?, size = ?, updated_at = ? WHERE id = ?`,
-      [title, content, type, category, JSON.stringify(tags), JSON.stringify(metadata), size, Date.now(), id]
+      [
+        title,
+        content,
+        type,
+        category,
+        JSON.stringify(tags),
+        JSON.stringify(metadata),
+        size,
+        Date.now(),
+        id,
+      ]
     );
-    
+
     saveDb();
     return true;
   }
@@ -2557,12 +2922,12 @@ export class SQLDatabase {
       `SELECT * FROM documents WHERE title LIKE ? OR content LIKE ? ORDER BY created_at DESC`,
       [searchTerm, searchTerm]
     );
-    
+
     if (result.length === 0) return [];
-    
+
     return result[0].values.map(values => {
       const row: any = {};
-      result[0].columns.forEach((col, i) => row[col] = values[i]);
+      result[0].columns.forEach((col, i) => (row[col] = values[i]));
       return {
         ...row,
         tags: JSON.parse(row.tags || '[]'),
@@ -2589,40 +2954,53 @@ export class SQLDatabase {
     const id = generateId();
     const now = Date.now();
     const enabledValue = task.enabled !== false ? 1 : 0; // Default to enabled if not specified
-    
+
     db.run(
       `INSERT INTO scheduled_tasks (id, name, description, prompt, task_type, schedule, brand_id, project_id, enabled, permanent, expires_at, last_run, last_result, last_error, run_count, success_count, fail_count, config, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, NULL, NULL, 0, 0, 0, ?, ?, ?)`,
-      [id, task.name, task.description || null, task.prompt || null, task.taskType, task.schedule,
-       task.brandId || null, task.projectId || null, enabledValue, task.permanent ? 1 : 0, task.expiresAt || null,
-       JSON.stringify(task.config || {}), now, now]
+      [
+        id,
+        task.name,
+        task.description || null,
+        task.prompt || null,
+        task.taskType,
+        task.schedule,
+        task.brandId || null,
+        task.projectId || null,
+        enabledValue,
+        task.permanent ? 1 : 0,
+        task.expiresAt || null,
+        JSON.stringify(task.config || {}),
+        now,
+        now,
+      ]
     );
-    
+
     saveDb();
     return { id, createdAt: now };
   }
 
   getScheduledTasks(enabledOnly: boolean = false): any[] {
     if (!db) throw new Error('Database not initialized');
-    
+
     let query = 'SELECT * FROM scheduled_tasks';
     if (enabledOnly) {
       query += ' WHERE enabled = 1';
     }
     query += ' ORDER BY created_at DESC';
-    
+
     const result = db.exec(query);
     if (result.length === 0) return [];
-    
+
     return result[0].values.map(values => {
       const row: any = {};
-      result[0].columns.forEach((col, i) => row[col] = values[i]);
+      result[0].columns.forEach((col, i) => (row[col] = values[i]));
       return {
         id: row.id,
         name: row.name,
         description: row.description,
         prompt: row.prompt,
-        taskType: row.task_type,  // Map snake_case to camelCase
+        taskType: row.task_type, // Map snake_case to camelCase
         schedule: row.schedule,
         brandId: row.brand_id,
         projectId: row.project_id,
@@ -2644,15 +3022,15 @@ export class SQLDatabase {
     if (!db) throw new Error('Database not initialized');
     const result = db.exec('SELECT * FROM scheduled_tasks WHERE id = ?', [id]);
     if (result.length === 0 || result[0].values.length === 0) return null;
-    
+
     const row: any = {};
-    result[0].columns.forEach((col, i) => row[col] = result[0].values[0][i]);
+    result[0].columns.forEach((col, i) => (row[col] = result[0].values[0][i]));
     return {
       id: row.id,
       name: row.name,
       description: row.description,
       prompt: row.prompt,
-      taskType: row.task_type,  // Map snake_case to camelCase
+      taskType: row.task_type, // Map snake_case to camelCase
       schedule: row.schedule,
       brandId: row.brand_id,
       projectId: row.project_id,
@@ -2673,12 +3051,12 @@ export class SQLDatabase {
     if (!db) throw new Error('Database not initialized');
     const now = Date.now();
     const tasks = this.getScheduledTasks(true);
-    
+
     return tasks.filter(task => {
       if (!task.schedule) return false;
-      
+
       const lastRun = task.last_run || 0;
-      
+
       // If never run, stagger tasks to prevent all running at once
       // Use task creation time or ID hash to stagger
       if (lastRun === 0) {
@@ -2688,26 +3066,34 @@ export class SQLDatabase {
         const staggerMs = (taskIdHash % 60) * 60 * 1000; // 0-60 minutes stagger
         return now >= createdAt + staggerMs;
       }
-      
+
       // Parse schedule - supports: "every:N:unit" or "cron:expression"
       if (task.schedule.startsWith('every:')) {
         const parts = task.schedule.split(':');
         if (parts.length >= 3) {
           const interval = parseInt(parts[1]);
           const unit = parts[2];
-          
+
           let ms = 0;
           switch (unit) {
-            case 'minutes': ms = interval * 60 * 1000; break;
-            case 'hours': ms = interval * 60 * 60 * 1000; break;
-            case 'days': ms = interval * 24 * 60 * 60 * 1000; break;
-            case 'weeks': ms = interval * 7 * 24 * 60 * 60 * 1000; break;
+            case 'minutes':
+              ms = interval * 60 * 1000;
+              break;
+            case 'hours':
+              ms = interval * 60 * 60 * 1000;
+              break;
+            case 'days':
+              ms = interval * 24 * 60 * 60 * 1000;
+              break;
+            case 'weeks':
+              ms = interval * 7 * 24 * 60 * 60 * 1000;
+              break;
           }
-          
+
           return now - lastRun >= ms;
         }
       }
-      
+
       // Specific time: "at:HH:MM"
       if (task.schedule.startsWith('at:')) {
         const parts = task.schedule.split(':');
@@ -2716,66 +3102,73 @@ export class SQLDatabase {
           const minute = parseInt(parts[2]);
           const nowDate = new Date(now);
           const lastRunDate = new Date(lastRun);
-          
+
           // Check if it's the right time (within 5 minutes)
           const targetMinute = hour * 60 + minute;
           const currentMinute = nowDate.getHours() * 60 + nowDate.getMinutes();
-          
+
           // Check if we already ran today
           const sameDay = lastRunDate.toDateString() === nowDate.toDateString();
-          
+
           return !sameDay && Math.abs(currentMinute - targetMinute) <= 5;
         }
       }
-      
+
       // Daily: "daily"
       if (task.schedule === 'daily') {
         const lastRunDate = new Date(lastRun);
         const today = new Date(now);
         return lastRunDate.toDateString() !== today.toDateString();
       }
-      
+
       // Weekly: "weekly" or "weekly:day"
       if (task.schedule.startsWith('weekly')) {
         const parts = task.schedule.split(':');
-        const targetDay = parts[1] ? ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'].indexOf(parts[1].toLowerCase()) : -1;
-        
+        const targetDay = parts[1]
+          ? ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'].indexOf(
+              parts[1].toLowerCase()
+            )
+          : -1;
+
         const nowDate = new Date(now);
         const lastRunDate = new Date(lastRun);
         const daysSinceLastRun = Math.floor((now - lastRun) / (24 * 60 * 60 * 1000));
-        
+
         if (targetDay >= 0) {
           return nowDate.getDay() === targetDay && daysSinceLastRun >= 1;
         }
-        
+
         return daysSinceLastRun >= 7;
       }
-      
+
       // Manual: "manual" - never auto-run
       if (task.schedule === 'manual') {
         return false;
       }
-      
+
       // Default to hourly if unrecognized
       return now - lastRun >= 60 * 60 * 1000;
     });
   }
 
-  updateScheduledTask(id: string, updates: {
-    name?: string;
-    description?: string;
-    prompt?: string;
-    schedule?: string;
-    enabled?: boolean;
-    permanent?: boolean;
-    expiresAt?: number;
-    config?: any;
-  }): boolean {
+  updateScheduledTask(
+    id: string,
+    updates: {
+      name?: string;
+      description?: string;
+      prompt?: string;
+      schedule?: string;
+      enabled?: boolean;
+      permanent?: boolean;
+      expiresAt?: number;
+      config?: any;
+    }
+  ): boolean {
     if (!db) throw new Error('Database not initialized');
-    
+
     const task = this.getScheduledTaskById(id);
     if (!task) return false;
-    
+
     db.run(
       `UPDATE scheduled_tasks SET name = ?, description = ?, prompt = ?, schedule = ?, enabled = ?, permanent = ?, expires_at = ?, config = ?, updated_at = ? WHERE id = ?`,
       [
@@ -2788,24 +3181,27 @@ export class SQLDatabase {
         updates.expiresAt ?? task.expires_at,
         JSON.stringify(updates.config ?? task.config),
         Date.now(),
-        id
+        id,
       ]
     );
-    
+
     saveDb();
     return true;
   }
 
   // Task results storage for viewing reports
-  addTaskResult(taskId: string, result: {
-    result?: string;
-    data?: any;
-    success: boolean;
-  }): { id: string; createdAt: number } {
+  addTaskResult(
+    taskId: string,
+    result: {
+      result?: string;
+      data?: any;
+      success: boolean;
+    }
+  ): { id: string; createdAt: number } {
     if (!db) throw new Error('Database not initialized');
     const id = generateId();
     const now = Date.now();
-    
+
     db.run(
       `CREATE TABLE IF NOT EXISTS task_results (
         id TEXT PRIMARY KEY,
@@ -2817,32 +3213,41 @@ export class SQLDatabase {
         FOREIGN KEY (task_id) REFERENCES scheduled_tasks(id)
       )`
     );
-    
+
     db.run(
       `INSERT INTO task_results (id, task_id, result, data, success, created_at)
        VALUES (?, ?, ?, ?, ?, ?)`,
-      [id, taskId, result.result || null, JSON.stringify(result.data || {}), result.success ? 1 : 0, now]
+      [
+        id,
+        taskId,
+        result.result || null,
+        JSON.stringify(result.data || {}),
+        result.success ? 1 : 0,
+        now,
+      ]
     );
-    
+
     saveDb();
     return { id, createdAt: now };
   }
 
   getTaskResults(taskId: string, limit: number = 10): any[] {
     if (!db) throw new Error('Database not initialized');
-    
+
     const result = db.exec(
       `SELECT * FROM task_results WHERE task_id = ? ORDER BY created_at DESC LIMIT ?`,
       [taskId, limit]
     );
-    
+
     if (result.length === 0) return [];
-    
+
     return result[0].values.map(values => {
       const row: any = {};
-      result[0].columns.forEach((col, i) => row[col] = values[i]);
+      result[0].columns.forEach((col, i) => (row[col] = values[i]));
       if (row.data) {
-        try { row.data = JSON.parse(row.data); } catch (e) {}
+        try {
+          row.data = JSON.parse(row.data);
+        } catch (e) {}
       }
       return row;
     });
@@ -2853,32 +3258,58 @@ export class SQLDatabase {
     return results.length > 0 ? results[0] : null;
   }
 
+  getAllRecentTaskResults(limit: number = 20): any[] {
+    if (!db) throw new Error('Database not initialized');
+
+    const result = db.exec(
+      `SELECT tr.*, st.name as task_name, st.task_type, st.schedule 
+       FROM task_results tr
+       JOIN scheduled_tasks st ON tr.task_id = st.id
+       ORDER BY tr.created_at DESC 
+       LIMIT ?`,
+      [limit]
+    );
+
+    if (result.length === 0) return [];
+
+    return result[0].values.map(values => {
+      const row: any = {};
+      result[0].columns.forEach((col, i) => (row[col] = values[i]));
+      if (row.data) {
+        try {
+          row.data = JSON.parse(row.data);
+        } catch (e) {}
+      }
+      return row;
+    });
+  }
+
   cleanupOldTaskResults(daysToKeep: number = 30): void {
     if (!db) throw new Error('Database not initialized');
-    
-    const cutoff = Date.now() - (daysToKeep * 24 * 60 * 60 * 1000);
-    
+
+    const cutoff = Date.now() - daysToKeep * 24 * 60 * 60 * 1000;
+
     db.run(`DELETE FROM task_results WHERE created_at < ?`, [cutoff]);
-    
+
     saveDb();
   }
 
   recordTaskRun(id: string, success: boolean, result?: string, error?: string): void {
     if (!db) throw new Error('Database not initialized');
     const now = Date.now();
-    
+
     const task = this.getScheduledTaskById(id);
     if (!task) return;
-    
+
     const runCount = (task.run_count || 0) + 1;
     const successCount = (task.success_count || 0) + (success ? 1 : 0);
     const failCount = (task.fail_count || 0) + (success ? 0 : 1);
-    
+
     db.run(
       `UPDATE scheduled_tasks SET last_run = ?, last_result = ?, last_error = ?, run_count = ?, success_count = ?, fail_count = ?, updated_at = ? WHERE id = ?`,
       [now, result || null, error || null, runCount, successCount, failCount, now, id]
     );
-    
+
     saveDb();
   }
 
@@ -2914,36 +3345,48 @@ export class SQLDatabase {
     if (!db) throw new Error('Database not initialized');
     const id = chat.id || generateId();
     const now = Date.now();
-    
+
     // Compact messages into markdown
     const markdownContent = this.compactMessagesToMarkdown(chat.messages);
     const summary = chat.summary || this.generateSummary(chat.messages);
     const wordCount = markdownContent.split(/\s+/).filter(Boolean).length;
-    
+
     db.run(
       `INSERT OR REPLACE INTO chat_history 
        (id, title, summary, markdown_content, messages, model, expert, tags, word_count, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, chat.title, summary, markdownContent, JSON.stringify(chat.messages), 
-       chat.model || null, chat.expert || null, JSON.stringify(chat.tags || []), 
-       wordCount, now, now]
+      [
+        id,
+        chat.title,
+        summary,
+        markdownContent,
+        JSON.stringify(chat.messages),
+        chat.model || null,
+        chat.expert || null,
+        JSON.stringify(chat.tags || []),
+        wordCount,
+        now,
+        now,
+      ]
     );
-    
+
     saveDb();
     return { id, createdAt: now };
   }
 
-  private compactMessagesToMarkdown(messages: Array<{ role: string; content: string; timestamp?: number }>): string {
+  private compactMessagesToMarkdown(
+    messages: Array<{ role: string; content: string; timestamp?: number }>
+  ): string {
     const lines: string[] = [];
     lines.push(`# Chat Session`);
     lines.push(``);
     lines.push(`**Date:** ${new Date().toISOString()}`);
     lines.push(``);
-    
+
     for (const msg of messages) {
       const timestamp = msg.timestamp ? new Date(msg.timestamp).toLocaleTimeString() : '';
       const roleLabel = msg.role === 'user' ? '### 👤 User' : '### 🤖 Assistant';
-      
+
       lines.push(roleLabel + (timestamp ? ` (${timestamp})` : ''));
       lines.push(``);
       lines.push(msg.content);
@@ -2951,47 +3394,47 @@ export class SQLDatabase {
       lines.push('---');
       lines.push(``);
     }
-    
+
     return lines.join('\n');
   }
 
   private generateSummary(messages: Array<{ role: string; content: string }>): string {
     if (messages.length === 0) return 'Empty conversation';
-    
+
     // Get first user message as summary basis
     const firstUserMsg = messages.find(m => m.role === 'user');
     const lastAssistantMsg = [...messages].reverse().find(m => m.role === 'assistant');
-    
+
     let summary = '';
     if (firstUserMsg) {
       summary = firstUserMsg.content.slice(0, 100);
       if (firstUserMsg.content.length > 100) summary += '...';
     }
-    
+
     return summary || 'Conversation';
   }
 
   getChatHistory(id?: string): any[] {
     if (!db) throw new Error('Database not initialized');
-    
+
     let query = 'SELECT * FROM chat_history';
     const params: any[] = [];
-    
+
     if (id) {
       query += ' WHERE id = ?';
       params.push(id);
     }
-    
+
     query += ' ORDER BY updated_at DESC';
-    
+
     const result = db.exec(query, params);
     if (result.length === 0) return [];
-    
+
     return result[0].values.map(values => {
       const cols = result[0].columns;
       const row: any = {};
-      cols.forEach((col, i) => row[col] = values[i]);
-      
+      cols.forEach((col, i) => (row[col] = values[i]));
+
       try {
         row.messages = JSON.parse(row.messages || '[]');
         row.tags = JSON.parse(row.tags || '[]');
@@ -2999,16 +3442,16 @@ export class SQLDatabase {
         row.messages = [];
         row.tags = [];
       }
-      
+
       return row;
     });
   }
 
   searchChatHistory(query: string): any[] {
     if (!db) throw new Error('Database not initialized');
-    
+
     const searchTerm = `%${query.toLowerCase()}%`;
-    
+
     const result = db.exec(
       `SELECT * FROM chat_history 
        WHERE LOWER(title) LIKE ? 
@@ -3019,28 +3462,31 @@ export class SQLDatabase {
        LIMIT 50`,
       [searchTerm, searchTerm, searchTerm, searchTerm]
     );
-    
+
     if (result.length === 0) return [];
-    
+
     return result[0].values.map(values => {
       const cols = result[0].columns;
       const row: any = {};
-      cols.forEach((col, i) => row[col] = values[i]);
-      
+      cols.forEach((col, i) => (row[col] = values[i]));
+
       // Return a snippet with context
       const content = row.markdown_content || '';
       const lowerContent = content.toLowerCase();
       const queryLower = query.toLowerCase();
       const idx = lowerContent.indexOf(queryLower);
-      
+
       if (idx !== -1) {
         const start = Math.max(0, idx - 50);
         const end = Math.min(content.length, idx + query.length + 100);
-        row.snippet = (start > 0 ? '...' : '') + content.slice(start, end) + (end < content.length ? '...' : '');
+        row.snippet =
+          (start > 0 ? '...' : '') +
+          content.slice(start, end) +
+          (end < content.length ? '...' : '');
       } else {
         row.snippet = content.slice(0, 150) + (content.length > 150 ? '...' : '');
       }
-      
+
       try {
         row.messages = JSON.parse(row.messages || '[]');
         row.tags = JSON.parse(row.tags || '[]');
@@ -3048,7 +3494,7 @@ export class SQLDatabase {
         row.messages = [];
         row.tags = [];
       }
-      
+
       return row;
     });
   }
@@ -3067,15 +3513,15 @@ export class SQLDatabase {
   // Expert Management Methods
   getExperts(): any[] {
     if (!db) throw new Error('Database not initialized');
-    
+
     const result = db.exec('SELECT * FROM experts ORDER BY created_at ASC');
     if (result.length === 0) return [];
-    
+
     return result[0].values.map(values => {
       const cols = result[0].columns;
       const row: any = {};
-      cols.forEach((col, i) => row[col] = values[i]);
-      
+      cols.forEach((col, i) => (row[col] = values[i]));
+
       try {
         row.capabilities = JSON.parse(row.capabilities || '[]');
         row.contact = JSON.parse(row.contact || '{}');
@@ -3083,21 +3529,21 @@ export class SQLDatabase {
         row.capabilities = [];
         row.contact = {};
       }
-      
+
       return row;
     });
   }
 
   getExpertById(id: string): any | null {
     if (!db) throw new Error('Database not initialized');
-    
+
     const result = db.exec('SELECT * FROM experts WHERE id = ?', [id]);
     if (result.length === 0 || result[0].values.length === 0) return null;
-    
+
     const cols = result[0].columns;
     const row: any = {};
-    cols.forEach((col, i) => row[col] = result[0].values[0][i]);
-    
+    cols.forEach((col, i) => (row[col] = result[0].values[0][i]));
+
     try {
       row.capabilities = JSON.parse(row.capabilities || '[]');
       row.contact = JSON.parse(row.contact || '{}');
@@ -3105,7 +3551,7 @@ export class SQLDatabase {
       row.capabilities = [];
       row.contact = {};
     }
-    
+
     return row;
   }
 
@@ -3121,55 +3567,95 @@ export class SQLDatabase {
     contact?: { email?: string; phone?: string; location?: string };
   }): { id: string; createdAt: number } {
     if (!db) throw new Error('Database not initialized');
-    
+
     const id = generateId();
     const now = Date.now();
-    
+
     db.run(
       `INSERT INTO experts (id, name, title, specialization, description, expertise_level, specialization_type, capabilities, language, contact, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [id, expert.name, expert.title || null, expert.specialization, expert.description || null,
-       expert.expertiseLevel || 'advanced', expert.specializationType || null,
-       JSON.stringify(expert.capabilities || []), expert.language || 'en',
-       JSON.stringify(expert.contact || {}), now, now]
+      [
+        id,
+        expert.name,
+        expert.title || null,
+        expert.specialization,
+        expert.description || null,
+        expert.expertiseLevel || 'advanced',
+        expert.specializationType || null,
+        JSON.stringify(expert.capabilities || []),
+        expert.language || 'en',
+        JSON.stringify(expert.contact || {}),
+        now,
+        now,
+      ]
     );
-    
+
     saveDb();
     return { id, createdAt: now };
   }
 
-  updateExpert(id: string, updates: {
-    name?: string;
-    title?: string;
-    specialization?: string;
-    description?: string;
-    expertiseLevel?: string;
-    specializationType?: string;
-    capabilities?: string[];
-    language?: string;
-    contact?: { email?: string; phone?: string; location?: string };
-  }): boolean {
+  updateExpert(
+    id: string,
+    updates: {
+      name?: string;
+      title?: string;
+      specialization?: string;
+      description?: string;
+      expertiseLevel?: string;
+      specializationType?: string;
+      capabilities?: string[];
+      language?: string;
+      contact?: { email?: string; phone?: string; location?: string };
+    }
+  ): boolean {
     if (!db) throw new Error('Database not initialized');
-    
+
     const fields: string[] = [];
     const values: any[] = [];
-    
-    if (updates.name !== undefined) { fields.push('name = ?'); values.push(updates.name); }
-    if (updates.title !== undefined) { fields.push('title = ?'); values.push(updates.title); }
-    if (updates.specialization !== undefined) { fields.push('specialization = ?'); values.push(updates.specialization); }
-    if (updates.description !== undefined) { fields.push('description = ?'); values.push(updates.description); }
-    if (updates.expertiseLevel !== undefined) { fields.push('expertise_level = ?'); values.push(updates.expertiseLevel); }
-    if (updates.specializationType !== undefined) { fields.push('specialization_type = ?'); values.push(updates.specializationType); }
-    if (updates.capabilities !== undefined) { fields.push('capabilities = ?'); values.push(JSON.stringify(updates.capabilities)); }
-    if (updates.language !== undefined) { fields.push('language = ?'); values.push(updates.language); }
-    if (updates.contact !== undefined) { fields.push('contact = ?'); values.push(JSON.stringify(updates.contact)); }
-    
+
+    if (updates.name !== undefined) {
+      fields.push('name = ?');
+      values.push(updates.name);
+    }
+    if (updates.title !== undefined) {
+      fields.push('title = ?');
+      values.push(updates.title);
+    }
+    if (updates.specialization !== undefined) {
+      fields.push('specialization = ?');
+      values.push(updates.specialization);
+    }
+    if (updates.description !== undefined) {
+      fields.push('description = ?');
+      values.push(updates.description);
+    }
+    if (updates.expertiseLevel !== undefined) {
+      fields.push('expertise_level = ?');
+      values.push(updates.expertiseLevel);
+    }
+    if (updates.specializationType !== undefined) {
+      fields.push('specialization_type = ?');
+      values.push(updates.specializationType);
+    }
+    if (updates.capabilities !== undefined) {
+      fields.push('capabilities = ?');
+      values.push(JSON.stringify(updates.capabilities));
+    }
+    if (updates.language !== undefined) {
+      fields.push('language = ?');
+      values.push(updates.language);
+    }
+    if (updates.contact !== undefined) {
+      fields.push('contact = ?');
+      values.push(JSON.stringify(updates.contact));
+    }
+
     if (fields.length === 0) return false;
-    
+
     fields.push('updated_at = ?');
     values.push(Date.now());
     values.push(id);
-    
+
     db.run(`UPDATE experts SET ${fields.join(', ')} WHERE id = ?`, values);
     saveDb();
     return true;
@@ -3184,20 +3670,73 @@ export class SQLDatabase {
 
   ensureDefaultExperts(): void {
     if (!db) throw new Error('Database not initialized');
-    
+
     const existing = db.exec('SELECT COUNT(*) as count FROM experts');
-    if (existing.length > 0 && existing[0].values[0][0] != null && (existing[0].values[0][0] as number) > 0) return;
-    
+    if (
+      existing.length > 0 &&
+      existing[0].values[0][0] != null &&
+      (existing[0].values[0][0] as number) > 0
+    )
+      return;
+
     // Add default experts
     const defaultExperts = [
-      { name: 'Dr. Sarah Chen', title: 'Chief Technology Officer', specialization: 'Cloud Architecture & Enterprise Systems', description: 'Expert in distributed systems and cloud migrations.', expertiseLevel: 'principal', specializationType: 'cloud', capabilities: ['System Architecture', 'Cloud Migration', 'AI Implementation'] },
-      { name: 'Marcus Rivera', title: 'Senior Security Consultant', specialization: 'Cybersecurity & Compliance', description: 'Expert in enterprise security and threat mitigation.', expertiseLevel: 'advanced', specializationType: 'security', capabilities: ['Security Architecture', 'Compliance', 'Threat Assessment'] },
-      { name: 'Dr. Emily Watson', title: 'Machine Learning Specialist', specialization: 'AI & Data Science', description: 'Expert in machine learning and predictive analytics.', expertiseLevel: 'principal', specializationType: 'ai', capabilities: ['ML Models', 'Data Pipelines', 'AI Ethics'] },
-      { name: 'James Liu', title: 'DevOps Engineering Lead', specialization: 'DevOps & Platform Engineering', description: 'Expert in CI/CD and infrastructure automation.', expertiseLevel: 'advanced', specializationType: 'devops', capabilities: ['CI/CD', 'Infrastructure', 'Monitoring'] },
-      { name: 'Dr. Maria Santos', title: 'Product Strategy Consultant', specialization: 'Digital Transformation & Product Design', description: 'Expert in product strategy and UX design.', expertiseLevel: 'advanced', specializationType: 'product', capabilities: ['Product Strategy', 'UX Design', 'Digital Transformation'] },
-      { name: 'David Park', title: 'Blockchain Technology Lead', specialization: 'Blockchain & Web3 Solutions', description: 'Expert in smart contracts and Web3 applications.', expertiseLevel: 'intermediate', specializationType: 'blockchain', capabilities: ['Smart Contracts', 'Web3', 'Distributed Systems'] },
+      {
+        name: 'Dr. Sarah Chen',
+        title: 'Chief Technology Officer',
+        specialization: 'Cloud Architecture & Enterprise Systems',
+        description: 'Expert in distributed systems and cloud migrations.',
+        expertiseLevel: 'principal',
+        specializationType: 'cloud',
+        capabilities: ['System Architecture', 'Cloud Migration', 'AI Implementation'],
+      },
+      {
+        name: 'Marcus Rivera',
+        title: 'Senior Security Consultant',
+        specialization: 'Cybersecurity & Compliance',
+        description: 'Expert in enterprise security and threat mitigation.',
+        expertiseLevel: 'advanced',
+        specializationType: 'security',
+        capabilities: ['Security Architecture', 'Compliance', 'Threat Assessment'],
+      },
+      {
+        name: 'Dr. Emily Watson',
+        title: 'Machine Learning Specialist',
+        specialization: 'AI & Data Science',
+        description: 'Expert in machine learning and predictive analytics.',
+        expertiseLevel: 'principal',
+        specializationType: 'ai',
+        capabilities: ['ML Models', 'Data Pipelines', 'AI Ethics'],
+      },
+      {
+        name: 'James Liu',
+        title: 'DevOps Engineering Lead',
+        specialization: 'DevOps & Platform Engineering',
+        description: 'Expert in CI/CD and infrastructure automation.',
+        expertiseLevel: 'advanced',
+        specializationType: 'devops',
+        capabilities: ['CI/CD', 'Infrastructure', 'Monitoring'],
+      },
+      {
+        name: 'Dr. Maria Santos',
+        title: 'Product Strategy Consultant',
+        specialization: 'Digital Transformation & Product Design',
+        description: 'Expert in product strategy and UX design.',
+        expertiseLevel: 'advanced',
+        specializationType: 'product',
+        capabilities: ['Product Strategy', 'UX Design', 'Digital Transformation'],
+      },
+      {
+        name: 'David Park',
+        title: 'Blockchain Technology Lead',
+        specialization: 'Blockchain & Web3 Solutions',
+        description: 'Expert in smart contracts and Web3 applications.',
+        expertiseLevel: 'intermediate',
+        specializationType: 'blockchain',
+        capabilities: ['Smart Contracts', 'Web3', 'Distributed Systems'],
+      },
     ];
-    
+
     for (const expert of defaultExperts) {
       this.addExpert(expert);
     }
@@ -3232,7 +3771,7 @@ export class SQLDatabase {
     if (!db) throw new Error('Database not initialized');
     const result = db.exec('SELECT key, value FROM settings WHERE category = ?', [category]);
     if (result.length === 0) return {};
-    
+
     const settings: Record<string, string> = {};
     for (const row of result[0].values) {
       settings[row[0] as string] = row[1] as string;
@@ -3244,7 +3783,7 @@ export class SQLDatabase {
     if (!db) throw new Error('Database not initialized');
     const result = db.exec('SELECT key, value, category FROM settings');
     if (result.length === 0) return {};
-    
+
     const settings: Record<string, { value: string; category: string }> = {};
     for (const row of result[0].values) {
       settings[row[0] as string] = {
@@ -3269,7 +3808,21 @@ export class SQLDatabase {
   }
 
   getAllApiKeys(): { provider: string; hasKey: boolean }[] {
-    const providers = ['ollama', 'openrouter', 'tavily', 'brave', 'serpapi', 'glm', 'deepseek', 'sam', 'openai', 'anthropic', 'gemini', 'groq', 'mistral'];
+    const providers = [
+      'ollama',
+      'openrouter',
+      'tavily',
+      'brave',
+      'serpapi',
+      'glm',
+      'deepseek',
+      'sam',
+      'openai',
+      'anthropic',
+      'gemini',
+      'groq',
+      'mistral',
+    ];
     return providers.map(provider => ({
       provider,
       hasKey: !!this.getApiKey(provider),
@@ -3288,10 +3841,10 @@ export class SQLDatabase {
     responsePath?: string;
   }): { id: string; createdAt: number } {
     if (!db) throw new Error('Database not initialized');
-    
+
     const id = generateId();
     const now = Date.now();
-    
+
     db.run(
       `INSERT INTO custom_tools (id, name, description, endpoint, method, headers, body_template, parameters, response_path, enabled, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?)`,
@@ -3309,23 +3862,23 @@ export class SQLDatabase {
         now,
       ]
     );
-    
+
     saveDb();
     return { id, createdAt: now };
   }
 
   getCustomTools(enabledOnly: boolean = false): any[] {
     if (!db) throw new Error('Database not initialized');
-    
+
     let query = 'SELECT * FROM custom_tools';
     if (enabledOnly) {
       query += ' WHERE enabled = 1';
     }
     query += ' ORDER BY name';
-    
+
     const result = db.exec(query);
     if (result.length === 0) return [];
-    
+
     return result[0].values.map(row => {
       const cols = result[0].columns;
       const obj: any = {};
@@ -3359,7 +3912,7 @@ export class SQLDatabase {
     if (!db) throw new Error('Database not initialized');
     const result = db.exec('SELECT * FROM custom_tools WHERE name = ?', [name]);
     if (result.length === 0 || result[0].values.length === 0) return null;
-    
+
     const cols = result[0].columns;
     const row = result[0].values[0];
     const obj: any = {};
@@ -3372,7 +3925,7 @@ export class SQLDatabase {
         obj[col] = row[i];
       }
     });
-    
+
     return {
       id: obj.id,
       name: obj.name,
@@ -3389,38 +3942,68 @@ export class SQLDatabase {
     };
   }
 
-  updateCustomTool(id: string, updates: {
-    name?: string;
-    description?: string;
-    endpoint?: string;
-    method?: string;
-    headers?: Record<string, string>;
-    bodyTemplate?: string;
-    parameters?: { name: string; type: string; description: string; required: boolean }[];
-    responsePath?: string;
-    enabled?: boolean;
-  }): boolean {
+  updateCustomTool(
+    id: string,
+    updates: {
+      name?: string;
+      description?: string;
+      endpoint?: string;
+      method?: string;
+      headers?: Record<string, string>;
+      bodyTemplate?: string;
+      parameters?: { name: string; type: string; description: string; required: boolean }[];
+      responsePath?: string;
+      enabled?: boolean;
+    }
+  ): boolean {
     if (!db) throw new Error('Database not initialized');
-    
+
     const fields: string[] = [];
     const values: any[] = [];
-    
-    if (updates.name !== undefined) { fields.push('name = ?'); values.push(updates.name); }
-    if (updates.description !== undefined) { fields.push('description = ?'); values.push(updates.description); }
-    if (updates.endpoint !== undefined) { fields.push('endpoint = ?'); values.push(updates.endpoint); }
-    if (updates.method !== undefined) { fields.push('method = ?'); values.push(updates.method); }
-    if (updates.headers !== undefined) { fields.push('headers = ?'); values.push(JSON.stringify(updates.headers)); }
-    if (updates.bodyTemplate !== undefined) { fields.push('body_template = ?'); values.push(updates.bodyTemplate); }
-    if (updates.parameters !== undefined) { fields.push('parameters = ?'); values.push(JSON.stringify(updates.parameters)); }
-    if (updates.responsePath !== undefined) { fields.push('response_path = ?'); values.push(updates.responsePath); }
-    if (updates.enabled !== undefined) { fields.push('enabled = ?'); values.push(updates.enabled ? 1 : 0); }
-    
+
+    if (updates.name !== undefined) {
+      fields.push('name = ?');
+      values.push(updates.name);
+    }
+    if (updates.description !== undefined) {
+      fields.push('description = ?');
+      values.push(updates.description);
+    }
+    if (updates.endpoint !== undefined) {
+      fields.push('endpoint = ?');
+      values.push(updates.endpoint);
+    }
+    if (updates.method !== undefined) {
+      fields.push('method = ?');
+      values.push(updates.method);
+    }
+    if (updates.headers !== undefined) {
+      fields.push('headers = ?');
+      values.push(JSON.stringify(updates.headers));
+    }
+    if (updates.bodyTemplate !== undefined) {
+      fields.push('body_template = ?');
+      values.push(updates.bodyTemplate);
+    }
+    if (updates.parameters !== undefined) {
+      fields.push('parameters = ?');
+      values.push(JSON.stringify(updates.parameters));
+    }
+    if (updates.responsePath !== undefined) {
+      fields.push('response_path = ?');
+      values.push(updates.responsePath);
+    }
+    if (updates.enabled !== undefined) {
+      fields.push('enabled = ?');
+      values.push(updates.enabled ? 1 : 0);
+    }
+
     if (fields.length === 0) return false;
-    
+
     fields.push('updated_at = ?');
     values.push(Date.now());
     values.push(id);
-    
+
     db.run(`UPDATE custom_tools SET ${fields.join(', ')} WHERE id = ?`, values);
     saveDb();
     return true;
@@ -3496,37 +4079,45 @@ export class SQLDatabase {
     if (!db) throw new Error('Database not initialized');
     const id = generateId();
     const now = Date.now();
-    
+
     db.run(
       `INSERT INTO prompts (id, title, content, category, tags, variables, use_count, created_at, updated_at)
        VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?)`,
-      [id, prompt.title, prompt.content, prompt.category || 'general',
-        JSON.stringify(prompt.tags || []), JSON.stringify(prompt.variables || []), now, now]
+      [
+        id,
+        prompt.title,
+        prompt.content,
+        prompt.category || 'general',
+        JSON.stringify(prompt.tags || []),
+        JSON.stringify(prompt.variables || []),
+        now,
+        now,
+      ]
     );
-    
+
     saveDb();
     return { id, createdAt: now };
   }
 
   getPrompts(category?: string): any[] {
     if (!db) throw new Error('Database not initialized');
-    
+
     let query = 'SELECT * FROM prompts';
     const params: any[] = [];
-    
+
     if (category) {
       query += ' WHERE category = ?';
       params.push(category);
     }
-    
+
     query += ' ORDER BY use_count DESC, updated_at DESC';
-    
+
     const result = db.exec(query, params);
     if (result.length === 0) return [];
-    
+
     return result[0].values.map(values => {
       const row: any = {};
-      result[0].columns.forEach((col, i) => row[col] = values[i]);
+      result[0].columns.forEach((col, i) => (row[col] = values[i]));
       return {
         ...row,
         tags: JSON.parse(row.tags || '[]'),
@@ -3539,9 +4130,9 @@ export class SQLDatabase {
     if (!db) throw new Error('Database not initialized');
     const result = db.exec('SELECT * FROM prompts WHERE id = ?', [id]);
     if (result.length === 0 || result[0].values.length === 0) return null;
-    
+
     const row: any = {};
-    result[0].columns.forEach((col, i) => row[col] = result[0].values[0][i]);
+    result[0].columns.forEach((col, i) => (row[col] = result[0].values[0][i]));
     return {
       ...row,
       tags: JSON.parse(row.tags || '[]'),
@@ -3549,30 +4140,48 @@ export class SQLDatabase {
     };
   }
 
-  updatePrompt(id: string, updates: {
-    title?: string;
-    content?: string;
-    category?: string;
-    tags?: string[];
-    variables?: { name: string; description: string; default?: string }[];
-  }): boolean {
+  updatePrompt(
+    id: string,
+    updates: {
+      title?: string;
+      content?: string;
+      category?: string;
+      tags?: string[];
+      variables?: { name: string; description: string; default?: string }[];
+    }
+  ): boolean {
     if (!db) throw new Error('Database not initialized');
-    
+
     const fields: string[] = [];
     const values: any[] = [];
-    
-    if (updates.title !== undefined) { fields.push('title = ?'); values.push(updates.title); }
-    if (updates.content !== undefined) { fields.push('content = ?'); values.push(updates.content); }
-    if (updates.category !== undefined) { fields.push('category = ?'); values.push(updates.category); }
-    if (updates.tags !== undefined) { fields.push('tags = ?'); values.push(JSON.stringify(updates.tags)); }
-    if (updates.variables !== undefined) { fields.push('variables = ?'); values.push(JSON.stringify(updates.variables)); }
-    
+
+    if (updates.title !== undefined) {
+      fields.push('title = ?');
+      values.push(updates.title);
+    }
+    if (updates.content !== undefined) {
+      fields.push('content = ?');
+      values.push(updates.content);
+    }
+    if (updates.category !== undefined) {
+      fields.push('category = ?');
+      values.push(updates.category);
+    }
+    if (updates.tags !== undefined) {
+      fields.push('tags = ?');
+      values.push(JSON.stringify(updates.tags));
+    }
+    if (updates.variables !== undefined) {
+      fields.push('variables = ?');
+      values.push(JSON.stringify(updates.variables));
+    }
+
     if (fields.length === 0) return false;
-    
+
     fields.push('updated_at = ?');
     values.push(Date.now());
     values.push(id);
-    
+
     db.run(`UPDATE prompts SET ${fields.join(', ')} WHERE id = ?`, values);
     saveDb();
     return true;
@@ -3580,7 +4189,10 @@ export class SQLDatabase {
 
   incrementPromptUse(id: string): void {
     if (!db) throw new Error('Database not initialized');
-    db.run('UPDATE prompts SET use_count = use_count + 1, updated_at = ? WHERE id = ?', [Date.now(), id]);
+    db.run('UPDATE prompts SET use_count = use_count + 1, updated_at = ? WHERE id = ?', [
+      Date.now(),
+      id,
+    ]);
     saveDb();
   }
 
@@ -3594,17 +4206,17 @@ export class SQLDatabase {
   searchPrompts(query: string): any[] {
     if (!db) throw new Error('Database not initialized');
     const searchTerm = `%${query}%`;
-    
+
     const result = db.exec(
       `SELECT * FROM prompts WHERE title LIKE ? OR content LIKE ? OR tags LIKE ? ORDER BY use_count DESC, updated_at DESC`,
       [searchTerm, searchTerm, searchTerm]
     );
-    
+
     if (result.length === 0) return [];
-    
+
     return result[0].values.map(values => {
       const row: any = {};
-      result[0].columns.forEach((col, i) => row[col] = values[i]);
+      result[0].columns.forEach((col, i) => (row[col] = values[i]));
       return {
         ...row,
         tags: JSON.parse(row.tags || '[]'),
