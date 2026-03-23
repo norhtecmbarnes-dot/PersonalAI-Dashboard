@@ -933,6 +933,33 @@ Generate appropriate chart type (line, bar, pie, doughnut, etc.) based on the re
               },
             },
           },
+          {
+            type: 'function',
+            function: {
+              name: 'create_task',
+              description: 'Create a new task in the task management system',
+              parameters: {
+                type: 'object',
+                properties: {
+                  title: {
+                    type: 'string',
+                    description: 'The task title/description - what needs to be done',
+                  },
+                  dueDate: {
+                    type: 'string',
+                    description: 'Optional due date in YYYY-MM-DD format',
+                  },
+                  priority: {
+                    type: 'string',
+                    enum: ['low', 'medium', 'high'],
+                    description: 'Task priority level',
+                    default: 'medium',
+                  },
+                },
+                required: ['title'],
+              },
+            },
+          },
         ];
 
     // Tool call execution loop - limit to 2 iterations for speed, or skip entirely
@@ -1051,6 +1078,24 @@ Generate appropriate chart type (line, bar, pie, doughnut, etc.) based on the re
                   : 'No memories found matching query.';
             } catch (e) {
               toolResult = `Failed to search memory: ${e instanceof Error ? sanitizePrompt(e.message) : 'Unknown error'}`;
+            }
+          } else if (functionName === 'create_task') {
+            toolCallsExecuted.push('create_task');
+            try {
+              sqlDatabase.initialize();
+              const newTask = sqlDatabase.addTask({
+                title: functionArgs.title,
+                description: functionArgs.description || '',
+                dueDate: functionArgs.dueDate
+                  ? new Date(functionArgs.dueDate).getTime()
+                  : undefined,
+                priority: functionArgs.priority || 'medium',
+                status: 'pending',
+                tags: ['chat-created'],
+              });
+              toolResult = `Task created successfully: "${sanitizePrompt(functionArgs.title)}" (Priority: ${functionArgs.priority || 'medium'})`;
+            } catch (e) {
+              toolResult = `Failed to create task: ${e instanceof Error ? sanitizePrompt(e.message) : 'Unknown error'}`;
             }
           } else if (functionName === 'browser_automate') {
             toolCallsExecuted.push('browser_automate');
