@@ -497,11 +497,20 @@ export function ManuscriptEditor({
         </button>
         <div className={`w-px h-6 ${isDarkTheme ? 'bg-slate-600' : 'bg-gray-300'}`} />
 
-        {/* Clear */}
+        {/* Clear - removes formatting AND deletes horizontal rules */}
         <button
-          onClick={() => execCmd('removeFormat')}
+          onClick={() => {
+            // Delete all horizontal rules first
+            const editor = editorRef.current;
+            if (editor) {
+              const hrs = editor.querySelectorAll('hr');
+              hrs.forEach(hr => hr.remove());
+            }
+            // Then remove text formatting
+            execCmd('removeFormat');
+          }}
           className={`p-2 rounded ${btnBg}`}
-          title="Clear Formatting - Remove bold, italic, etc"
+          title="Clear Formatting - Remove bold, italic, etc AND delete lines"
         >
           Clear
         </button>
