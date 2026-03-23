@@ -11,7 +11,7 @@
  * 4. Results flow back through the bus
  */
 
-import { chatCompletion } from '@/lib/models/sdk.server';
+import { chatCompletion, getFirstAvailableModel } from '@/lib/models/sdk.server';
 
 export interface ModelMessage {
   id: string;
@@ -261,7 +261,7 @@ export class ModelMessageBus {
     }
 
     // For now, select the first model in each tier
-    // In production, this could轮询 based on load or availability
+    // In production, this could poll based on load or availability
     return {
       model: selectedTier.models[0],
       tier: selectedTier,
@@ -275,9 +275,9 @@ export class ModelMessageBus {
     const messageId = this.generateId();
     const delegationPath: string[] = [];
 
-    // Step 1: Triage with small local model
+    // Step 1: Get best available model for triage (checks for GPU, falls back to CPU-friendly)
     const triageStart = Date.now();
-    const triageModel = 'ollama/qwen3.5:2b'; // Smallest, fastest
+    const triageModel = await getFirstAvailableModel();
 
     delegationPath.push('local-small:triage');
 
@@ -357,13 +357,14 @@ export class ModelMessageBus {
       } catch (error) {
         console.error('Escalation failed, falling back to local:', error);
 
-        // Fallback to local large model
-        const { model, tier } = this.selectModel('medium', 'local');
-        finalModel = model;
-        delegationPath[delegationPath.length - 1] = `${tier.name}:${model}`;
+        // Fallback to best available local model (checks for GPU)
+        const fallbackModel = await getFirstAvailableModel();
+        finalModel = fallbackModel;
+        delegationPath[delegationPath.length - 1] =
+          `local-large:${fallbackModel.replace('ollama/', '')}`;
 
         const result = await chatCompletion({
-          model: `ollama/${model}`,
+          model: fallbackModel,
           messages: [
             { role: 'system', content: 'You are a helpful AI assistant.' },
             { role: 'user', content: request.originalQuery },
@@ -376,17 +377,17 @@ export class ModelMessageBus {
           typeof result.message === 'string'
             ? result.message
             : result.message?.content || 'Fallback response';
-        escalationMessage.source = tier.name as any;
+        escalationMessage.source = 'local-large';
         escalationMessage.response = response;
       }
     } else {
-      // Process locally with small model
-      const { model, tier } = this.selectModel(complexity);
-      finalModel = model;
-      delegationPath[delegationPath.length - 1] = `${tier.name}:${model}`;
+      // Process locally with best available model (already validated for GPU/CPU)
+      finalModel = triageModel;
+      delegationPath[delegationPath.length - 1] =
+        `local-small:${triageModel.replace('ollama/', '')}`;
 
       const result = await chatCompletion({
-        model: `ollama/${model}`,
+        model: triageModel,
         messages: [
           { role: 'system', content: 'You are a helpful AI assistant. Be concise and efficient.' },
           { role: 'user', content: request.originalQuery },
