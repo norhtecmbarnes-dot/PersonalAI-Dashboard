@@ -1,17 +1,17 @@
 /**
  * Model Message Bus - Hierarchical LLM Communication
  *
- * Allows small local models to delegate complex tasks to cloud models
- * when they feel overwhelmed or when token budgets are tight.
+ * Routes tasks between local and cloud models based on complexity.
+ * Local models handle routine tasks; cloud models handle intelligence tasks.
  *
  * Architecture:
- * 1. Small model acts as triage/preprocessor
- * 2. Determines if task needs escalation
- * 3. Routes to appropriate model (local large, cloud fast, cloud smart)
- * 4. Results flow back through the bus
+ * 1. Local triage model assesses query complexity
+ * 2. Simple tasks stay local (Angel Slim, Qwen, Llama)
+ * 3. Complex tasks escalate to user's preferred cloud model
+ * 4. Token budget tracking minimizes cloud costs
  */
 
-import { chatCompletion, getFirstAvailableModel } from '@/lib/models/sdk.server';
+import { chatCompletion, getFirstAvailableModel, getOllamaModels } from '@/lib/models/sdk.server';
 
 export interface ModelMessage {
   id: string;
@@ -34,6 +34,7 @@ export interface DelegationRequest {
   userId?: string;
   brandId?: string;
   preferredTier?: 'local' | 'cloud-fast' | 'cloud-smart';
+  preferredCloudModel?: string;
 }
 
 export interface DelegationResponse {
@@ -54,14 +55,16 @@ interface ModelTier {
   models: string[];
   provider: 'local' | 'cloud';
   preferredFor: string[];
+  isCPUFriendly?: boolean;
 }
 
 const MODEL_TIERS: ModelTier[] = [
   {
     name: 'local-small',
-    models: ['qwen3.5:2b', 'glm-4.7-flash'],
+    models: ['angglam.slim', 'qwen3.5:2b', 'glm-4.7-flash', 'llama3.2:3b'],
     provider: 'local',
-    preferredFor: [' triage', 'preprocessing', 'simple queries', 'formatting'],
+    preferredFor: ['triage', 'preprocessing', 'simple queries', 'formatting', 'routine tasks'],
+    isCPUFriendly: true,
   },
   {
     name: 'local-large',
@@ -71,15 +74,92 @@ const MODEL_TIERS: ModelTier[] = [
   },
   {
     name: 'cloud-fast',
-    models: ['groq/llama-3.1-8b-instant', 'groq/mixtral-8x7b-32768', 'openrouter/quick'],
+    models: ['groq/llama-3.1-8b-instant', 'groq/mixtral-8x7b-32768'],
     provider: 'cloud',
     preferredFor: ['fast responses', 'simple escalations', 'speed-critical'],
   },
   {
     name: 'cloud-smart',
-    models: ['gpt-4o', 'claude-3.5-sonnet', 'gemini-pro', 'deepseek-v3'],
+    models: [
+      'openai/gpt-4o',
+      'anthropic/claude-3.5-sonnet',
+      'gemini/gemini-pro',
+      'deepseek/deepseek-v3',
+      'minimax/minimax-2.7',
+      'moonshot/kimi-2.5',
+    ],
     provider: 'cloud',
-    preferredFor: ['complex reasoning', 'research', 'high accuracy', 'writing'],
+    preferredFor: [
+      'complex reasoning',
+      'research',
+      'high accuracy',
+      'writing',
+      'intelligence tasks',
+    ],
+  },
+];
+
+export interface CloudModelOption {
+  id: string;
+  name: string;
+  provider: string;
+  description: string;
+}
+
+export const CLOUD_MODEL_OPTIONS: CloudModelOption[] = [
+  {
+    id: 'openai/gpt-4o',
+    name: 'GPT-4o',
+    provider: 'OpenAI',
+    description: 'Most capable, use when you have API key',
+  },
+  {
+    id: 'anthropic/claude-3.5-sonnet',
+    name: 'Claude 3.5 Sonnet',
+    provider: 'Anthropic',
+    description: 'Best for long context and analysis',
+  },
+  {
+    id: 'gemini/gemini-pro',
+    name: 'Gemini Pro',
+    provider: 'Google',
+    description: 'Good balance of speed and capability',
+  },
+  {
+    id: 'deepseek/deepseek-v3',
+    name: 'DeepSeek V3',
+    provider: 'DeepSeek',
+    description: 'Strong reasoning, cost effective',
+  },
+  {
+    id: 'minimax/minimax-2.7',
+    name: 'MiniMax 2.7',
+    provider: 'MiniMax',
+    description: 'Fast Chinese-language support',
+  },
+  {
+    id: 'moonshot/kimi-2.5',
+    name: 'Kimi 2.5',
+    provider: 'Moonshot',
+    description: 'Excellent for long context windows',
+  },
+  {
+    id: 'glm/glm-5',
+    name: 'GLM-5',
+    provider: 'Zhipu',
+    description: 'Strong Chinese language performance',
+  },
+  {
+    id: 'groq/llama-3.1-8b-instant',
+    name: 'Llama 3.1 8B (Groq)',
+    provider: 'Groq',
+    description: 'Fast inference speed',
+  },
+  {
+    id: 'groq/mixtral-8x7b-32768',
+    name: 'Mixtral 8x7B (Groq)',
+    provider: 'Groq',
+    description: 'Fast, good for complex tasks',
   },
 ];
 
@@ -90,6 +170,7 @@ export class ModelMessageBus {
     used: 0,
     localVsCloud: { local: 0, cloud: 0 },
   };
+  private userPreferredCloudModel: string = 'deepseek/deepseek-v3';
 
   constructor() {
     this.loadTokenBudget();
@@ -105,8 +186,12 @@ export class ModelMessageBus {
             this.tokenBudget = parsed;
           }
         }
+        const prefSaved = localStorage.getItem('modelBusPreferredCloud');
+        if (prefSaved) {
+          this.userPreferredCloudModel = prefSaved;
+        }
       } catch (e) {
-        console.error('Error loading token budget:', e);
+        console.error('Error loading model bus state:', e);
       }
     }
   }
@@ -127,16 +212,29 @@ export class ModelMessageBus {
     }
   }
 
-  /**
-   * Generate unique message ID
-   */
+  private savePreferredCloudModel() {
+    if (typeof window === 'undefined') {
+      try {
+        localStorage.setItem('modelBusPreferredCloud', this.userPreferredCloudModel);
+      } catch (e) {
+        console.error('Error saving preferred cloud model:', e);
+      }
+    }
+  }
+
   private generateId(): string {
     return `msg_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
   }
 
-  /**
-   * Triage a query - assess complexity without processing
-   */
+  async getLocalModels(): Promise<string[]> {
+    try {
+      const models = await getOllamaModels();
+      return models.map(m => m.name);
+    } catch {
+      return [];
+    }
+  }
+
   async triageQuery(
     query: string,
     context?: string
@@ -145,19 +243,19 @@ export class ModelMessageBus {
     requiresEscalation: boolean;
     reason: string;
     suggestedModel: string;
+    localModels: string[];
   }> {
+    const localModels = await this.getLocalModels();
     const assessment = await this.assessComplexity(query, context || '');
-    const { model, tier } = this.selectModel(assessment.complexity);
+    const triageModel = await getFirstAvailableModel();
 
     return {
       ...assessment,
-      suggestedModel: model,
+      suggestedModel: triageModel,
+      localModels,
     };
   }
 
-  /**
-   * Determine task complexity based on query analysis
-   */
   private async assessComplexity(
     query: string,
     context: string
@@ -166,122 +264,129 @@ export class ModelMessageBus {
     requiresEscalation: boolean;
     reason: string;
   }> {
-    const complexityIndicators = {
-      high: [
-        'analyze',
-        'research',
-        'compare',
-        'evaluate',
-        'design',
-        'architect',
-        'comprehensive',
-        'detailed',
-        'thorough',
-        'complex',
-        'multi-step',
-        'explain why',
-        'justify',
-        'synthesize',
-        'meta',
-      ],
-      low: [
-        'what is',
-        'who is',
-        'when did',
-        'simple',
-        'quick',
-        'just',
-        'tell me',
-        'remind me',
-        'remember',
-        'format',
-        'list',
-      ],
-    };
+    const routineKeywords = [
+      'what is',
+      'who is',
+      'when did',
+      'where is',
+      'tell me',
+      'remind me',
+      'remember',
+      'format',
+      'list',
+      'summarize',
+      'translate',
+      'check',
+      'simple',
+      'quick',
+      'just',
+      'calculate',
+      'convert',
+      'remind',
+    ];
+
+    const intelligenceKeywords = [
+      'analyze',
+      'research',
+      'compare',
+      'evaluate',
+      'design',
+      'architect',
+      'comprehensive',
+      'detailed',
+      'thorough',
+      'complex',
+      'multi-step',
+      'explain why',
+      'justify',
+      'synthesize',
+      'meta',
+      'think',
+      'reason',
+      'solve',
+      'creative',
+      'innovative',
+      'imagine',
+      'hypothesize',
+      'investigate',
+    ];
 
     const queryLower = query.toLowerCase();
     const contextLength = context.length;
 
-    let highIndicators = 0;
-    let lowIndicators = 0;
+    let routineScore = 0;
+    let intelligenceScore = 0;
 
-    for (const indicator of complexityIndicators.high) {
-      if (queryLower.includes(indicator)) highIndicators++;
+    for (const keyword of routineKeywords) {
+      if (queryLower.includes(keyword)) routineScore++;
     }
-    for (const indicator of complexityIndicators.low) {
-      if (queryLower.includes(indicator)) lowIndicators++;
+    for (const keyword of intelligenceKeywords) {
+      if (queryLower.includes(keyword)) intelligenceScore++;
     }
 
-    // Determine complexity
     let complexity: 'low' | 'medium' | 'high' | 'unknown' = 'unknown';
     let requiresEscalation = false;
     let reason = '';
 
-    if (highIndicators >= 2 || (highIndicators >= 1 && contextLength > 2000)) {
+    if (intelligenceScore >= 2 || (intelligenceScore >= 1 && contextLength > 2000)) {
       complexity = 'high';
       requiresEscalation = true;
-      reason = 'High complexity indicators detected';
-    } else if (highIndicators === 1 || contextLength > 1000) {
+      reason = 'Complex intelligence task detected';
+    } else if (intelligenceScore === 1 || contextLength > 1500) {
       complexity = 'medium';
-      requiresEscalation = contextLength > 2000;
-      reason = 'Medium complexity - escalation based on context length';
-    } else if (lowIndicators >= 1 && highIndicators === 0) {
+      requiresEscalation = contextLength > 2000 || intelligenceScore > 0;
+      reason = requiresEscalation
+        ? 'Medium complexity - benefits from smarter model'
+        : 'Medium complexity - local processing sufficient';
+    } else if (routineScore >= 1 && intelligenceScore === 0) {
       complexity = 'low';
       requiresEscalation = false;
-      reason = 'Simple query - no escalation needed';
+      reason = 'Routine task - using local model';
+    } else {
+      complexity = 'unknown';
+      requiresEscalation = contextLength > 1000;
+      reason = requiresEscalation
+        ? 'Defaulting to escalation for long context'
+        : 'Defaulting to local processing';
     }
 
-    // Check token budget
     const budgetRemaining = this.tokenBudget.daily - this.tokenBudget.used;
-    if (budgetRemaining < 5000) {
-      requiresEscalation = false; // Force local processing when budget low
+    if (budgetRemaining < 5000 && requiresEscalation) {
+      requiresEscalation = false;
       reason += ' (Cloud budget low - using local only)';
     }
 
     return { complexity, requiresEscalation, reason };
   }
 
-  /**
-   * Select appropriate model based on complexity and availability
-   */
-  private selectModel(
-    complexity: 'low' | 'medium' | 'high' | 'unknown',
-    preferredTier?: 'local' | 'cloud-fast' | 'cloud-smart'
-  ): { model: string; tier: ModelTier } {
-    let selectedTier: ModelTier;
-
-    if (preferredTier === 'cloud-smart' || complexity === 'high') {
-      selectedTier = MODEL_TIERS.find(t => t.name === 'cloud-smart')!;
-    } else if (preferredTier === 'cloud-fast' || complexity === 'medium') {
-      selectedTier = MODEL_TIERS.find(t => t.name === 'cloud-fast')!;
-    } else if (complexity === 'low') {
-      selectedTier = MODEL_TIERS.find(t => t.name === 'local-small')!;
-    } else {
-      selectedTier = MODEL_TIERS.find(t => t.name === 'local-large')!;
+  private async selectCloudModel(preferredModel?: string): Promise<string> {
+    if (preferredModel) {
+      return preferredModel;
     }
-
-    // For now, select the first model in each tier
-    // In production, this could poll based on load or availability
-    return {
-      model: selectedTier.models[0],
-      tier: selectedTier,
-    };
+    return this.userPreferredCloudModel;
   }
 
-  /**
-   * Process a message through the bus
-   */
+  setPreferredCloudModel(model: string) {
+    this.userPreferredCloudModel = model;
+    this.savePreferredCloudModel();
+  }
+
+  getPreferredCloudModel(): string {
+    return this.userPreferredCloudModel;
+  }
+
+  getCloudModelOptions(): CloudModelOption[] {
+    return CLOUD_MODEL_OPTIONS;
+  }
+
   async process(request: DelegationRequest): Promise<DelegationResponse> {
     const messageId = this.generateId();
     const delegationPath: string[] = [];
 
-    // Step 1: Get best available model for triage (checks for GPU, falls back to CPU-friendly)
     const triageStart = Date.now();
     const triageModel = await getFirstAvailableModel();
+    delegationPath.push(`local-small:${triageModel.replace('ollama/', '')}`);
 
-    delegationPath.push('local-small:triage');
-
-    // Step 2: Assess complexity
     const { complexity, requiresEscalation, reason } = await this.assessComplexity(
       request.originalQuery,
       request.context
@@ -290,7 +395,6 @@ export class ModelMessageBus {
     let response: string;
     let finalModel = triageModel;
 
-    // Create initial message log
     const triageMessage: ModelMessage = {
       id: messageId,
       timestamp: Date.now(),
@@ -305,15 +409,14 @@ export class ModelMessageBus {
     this.messageLog.push(triageMessage);
 
     if (requiresEscalation) {
-      // Step 3: Escalate to appropriate cloud model
-      const { model, tier } = this.selectModel(complexity, request.preferredTier);
-      finalModel = model;
-      delegationPath.push(`${tier.name}:${model}`);
+      const cloudModel = await this.selectCloudModel(request.preferredCloudModel);
+      finalModel = cloudModel;
+      delegationPath.push(`cloud:${cloudModel}`);
 
       const escalationMessage: ModelMessage = {
         id: messageId,
         timestamp: Date.now(),
-        source: tier.name as any,
+        source: 'cloud-smart',
         task: request.originalQuery,
         context: request.context,
         complexity,
@@ -322,14 +425,14 @@ export class ModelMessageBus {
       };
       this.messageLog.push(escalationMessage);
 
-      // Execute with escalated model
       try {
         const result = await chatCompletion({
-          model: `ollama/${model}`,
+          model: cloudModel,
           messages: [
             {
               role: 'system',
-              content: 'You are a helpful AI assistant. Provide clear, concise responses.',
+              content:
+                'You are a helpful AI assistant. Provide clear, concise, and accurate responses.',
             },
             {
               role: 'user',
@@ -338,7 +441,7 @@ export class ModelMessageBus {
             },
           ],
           temperature: 0.7,
-          maxTokens: 2048,
+          maxTokens: 4096,
         });
 
         response =
@@ -346,18 +449,15 @@ export class ModelMessageBus {
             ? result.message
             : result.message?.content || 'No response';
 
-        // Update message with response
         escalationMessage.response = response;
-        escalationMessage.tokensUsed = 0; // Ollama doesn't return usage
+        escalationMessage.tokensUsed = 0;
 
-        // Track token usage
-        this.tokenBudget.used += escalationMessage.tokensUsed || 0;
-        this.tokenBudget.localVsCloud.cloud += escalationMessage.tokensUsed || 0;
+        this.tokenBudget.used += 0;
+        this.tokenBudget.localVsCloud.cloud += 0;
         this.saveTokenBudget();
       } catch (error) {
-        console.error('Escalation failed, falling back to local:', error);
+        console.error('Cloud escalation failed, falling back to local:', error);
 
-        // Fallback to best available local model (checks for GPU)
         const fallbackModel = await getFirstAvailableModel();
         finalModel = fallbackModel;
         delegationPath[delegationPath.length - 1] =
@@ -381,7 +481,6 @@ export class ModelMessageBus {
         escalationMessage.response = response;
       }
     } else {
-      // Process locally with best available model (already validated for GPU/CPU)
       finalModel = triageModel;
       delegationPath[delegationPath.length - 1] =
         `local-small:${triageModel.replace('ollama/', '')}`;
@@ -403,47 +502,27 @@ export class ModelMessageBus {
       triageMessage.response = response;
       triageMessage.tokensUsed = 0;
 
-      this.tokenBudget.used += triageMessage.tokensUsed || 0;
-      this.tokenBudget.localVsCloud.local += triageMessage.tokensUsed || 0;
+      this.tokenBudget.used += 0;
+      this.tokenBudget.localVsCloud.local += 0;
       this.saveTokenBudget();
     }
-
-    // Calculate cost savings (rough estimate)
-    const localCostPerToken = 0;
-    const cloudCostPerToken = 0.00001; // Rough estimate
-    const totalTokens = this.messageLog.reduce((sum, m) => sum + (m.tokensUsed || 0), 0);
-    const cloudTokens = this.messageLog
-      .filter(m => m.source.startsWith('cloud'))
-      .reduce((sum, m) => sum + (m.tokensUsed || 0), 0);
-    const localTokens = totalTokens - cloudTokens;
 
     return {
       success: true,
       messageId,
       finalResponse: response,
       delegationPath,
-      totalTokens,
-      costSavings: {
-        localTokens,
-        cloudTokens,
-        estimatedSaved: localTokens * localCostPerToken - cloudTokens * cloudCostPerToken,
-      },
+      totalTokens: 0,
     };
   }
 
-  /**
-   * Direct delegation to cloud model (bypasses triage)
-   */
   async delegateDirect(
     query: string,
     context: string,
-    targetModel: 'cloud-fast' | 'cloud-smart',
+    targetModel?: string,
     apiKey?: string
   ): Promise<{ success: boolean; response: string; tokens: number }> {
-    const tier = MODEL_TIERS.find(
-      t => t.name === `cloud-${targetModel === 'cloud-fast' ? 'fast' : 'smart'}`
-    );
-    const model = tier?.models[0] || 'groq/llama-3.1-8b-instant';
+    const model = targetModel || this.userPreferredCloudModel;
 
     const result = await chatCompletion({
       model: model,
@@ -452,7 +531,7 @@ export class ModelMessageBus {
         { role: 'user', content: query + (context ? `\n\nContext:\n${context}` : '') },
       ],
       temperature: 0.7,
-      maxTokens: 2048,
+      maxTokens: 4096,
     });
 
     const responseText =
@@ -463,16 +542,10 @@ export class ModelMessageBus {
     return { success: true, response: responseText, tokens: 0 };
   }
 
-  /**
-   * Get message history
-   */
   getHistory(limit = 50): ModelMessage[] {
     return this.messageLog.slice(-limit);
   }
 
-  /**
-   * Get current token budget status
-   */
   getBudgetStatus() {
     return {
       ...this.tokenBudget,
@@ -481,24 +554,17 @@ export class ModelMessageBus {
     };
   }
 
-  /**
-   * Reset daily budget
-   */
   resetBudget() {
     this.tokenBudget.used = 0;
     this.tokenBudget.localVsCloud = { local: 0, cloud: 0 };
     this.saveTokenBudget();
   }
 
-  /**
-   * Get available models in the bus
-   */
   getAvailableModels(): ModelTier[] {
     return MODEL_TIERS;
   }
 }
 
-// Singleton instance
 let busInstance: ModelMessageBus | null = null;
 
 export function getModelBus(): ModelMessageBus {

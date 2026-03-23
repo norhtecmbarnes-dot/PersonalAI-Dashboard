@@ -19,9 +19,41 @@ export async function GET(request: Request) {
     return NextResponse.json({ models: bus.getAvailableModels() });
   }
 
+  if (action === 'cloud-models') {
+    return NextResponse.json({ cloudModels: bus.getCloudModelOptions() });
+  }
+
+  if (action === 'preferred-cloud') {
+    return NextResponse.json({ preferredCloudModel: bus.getPreferredCloudModel() });
+  }
+
+  if (action === 'local-models') {
+    const localModels = await bus.getLocalModels();
+    return NextResponse.json({ localModels });
+  }
+
+  if (action === 'triage') {
+    const query = searchParams.get('query') || '';
+    const context = searchParams.get('context') || '';
+    const result = await bus.triageQuery(query, context);
+    return NextResponse.json(result);
+  }
+
   return NextResponse.json({
     message: 'Model Message Bus API',
-    availableActions: ['history', 'budget', 'models', 'triage', 'process'],
+    availableActions: [
+      'history',
+      'budget',
+      'models',
+      'cloud-models',
+      'preferred-cloud',
+      'local-models',
+      'triage',
+      'process',
+      'delegate',
+      'reset-budget',
+      'set-preferred-cloud',
+    ],
   });
 }
 
@@ -31,11 +63,10 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-
     const bus = getModelBus();
 
     if (action === 'triage') {
-      const result = await bus.triageQuery(body.query);
+      const result = await bus.triageQuery(body.query, body.context);
       return NextResponse.json(result);
     }
 
@@ -47,6 +78,7 @@ export async function POST(request: Request) {
         userId: body.userId,
         brandId: body.brandId,
         preferredTier: body.preferredTier,
+        preferredCloudModel: body.preferredCloudModel,
       });
       return NextResponse.json(result);
     }
@@ -55,7 +87,8 @@ export async function POST(request: Request) {
       const result = await bus.delegateDirect(
         body.query || body.message,
         body.context || '',
-        body.targetModel || 'cloud-smart'
+        body.targetModel,
+        body.apiKey
       );
       return NextResponse.json(result);
     }
@@ -63,6 +96,14 @@ export async function POST(request: Request) {
     if (action === 'reset-budget') {
       bus.resetBudget();
       return NextResponse.json({ success: true, message: 'Budget reset' });
+    }
+
+    if (action === 'set-preferred-cloud') {
+      if (body.model) {
+        bus.setPreferredCloudModel(body.model);
+        return NextResponse.json({ success: true, preferredCloudModel: body.model });
+      }
+      return NextResponse.json({ error: 'No model provided' }, { status: 400 });
     }
 
     return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
