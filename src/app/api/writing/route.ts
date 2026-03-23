@@ -18,7 +18,7 @@ Provide ONLY the expanded text, no explanations or meta-commentary.`;
 
 const OUTLINE_PROMPT = `You are an expert at organizing information. Create a detailed, comprehensive outline from the following topic or content.
 
-Topic/Content:
+Topic:
 """
 {text}
 """
@@ -49,7 +49,7 @@ Requirements:
 - Make it comprehensive enough to guide full content creation
 - DO NOT use Roman numerals (I, II, III) or letters (A, B, C) - only markdown headings
 
-Provide ONLY the outline, no explanations or meta-commentary.`;
+IMPORTANT: If the topic already contains specific requirements (like detail level or outline type), follow those requirements. If just a topic is provided, create a standard comprehensive outline.`;
 
 const CONTINUE_PROMPT = `You are an expert writer. Continue the following text naturally, maintaining the same style, tone, and context. Write approximately the same length as the original.
 

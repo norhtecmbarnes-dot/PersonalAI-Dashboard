@@ -67,7 +67,8 @@ export default function OutlineCreatorPage() {
     const modelToUse = model || 'ollama/qwen3.5:2b';
 
     try {
-      const prompt = `Create a ${detailLevel} ${outlineType} outline for: "${topic}"
+      // Build topic with requirements included
+      const fullTopic = `Create a ${detailLevel} ${outlineType} outline for: "${topic}"
 
 Requirements:
 - Use Markdown formatting (# for title, ## for sections, ### for subsections)
@@ -91,16 +92,14 @@ Requirements:
               : outlineType === 'business'
                 ? 'Include: Executive Summary, Market Analysis, Strategy, Financials, Implementation'
                 : 'Adapt structure to topic naturally'
-      }
-
-Provide ONLY the outline, no explanations.`;
+      }`;
 
       const response = await fetch('/api/writing', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           action: 'outline',
-          text: prompt,
+          text: fullTopic,
           model: modelToUse,
           stream: false,
         }),
