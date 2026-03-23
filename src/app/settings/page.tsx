@@ -63,10 +63,22 @@ export default function SettingsPage() {
   } | null>(null);
   const [checkingBitnet, setCheckingBitnet] = useState(false);
 
+  // Task-specific model preferences
+  const [taskModels, setTaskModels] = useState({
+    local_light: 'ollama/angglam.slim',
+    local_write: 'ollama/qwen3.5:9b',
+    local_code: 'ollama/qwen3.5:9b',
+    cloud_light: 'ollama/kimi-k2.5',
+    cloud_write: 'ollama/kimi-k2.5',
+    cloud_code: 'ollama/deepseek-coder-v2',
+  });
+  const [availableModels, setAvailableModels] = useState<string[]>([]);
+
   useEffect(() => {
     loadApiKeys();
     loadCustomTools();
     loadBitnetConfig();
+    loadTaskModels();
   }, []);
 
   const loadBitnetConfig = async () => {
@@ -85,6 +97,49 @@ export default function SettingsPage() {
       }
     } catch (error) {
       console.error('Error loading BitNet config:', error);
+    }
+  };
+
+  const loadTaskModels = async () => {
+    try {
+      const response = await fetch('/api/settings');
+      if (response.ok) {
+        const data = await response.json();
+        if (data.modelPreferences?.taskModels) {
+          setTaskModels(data.modelPreferences.taskModels);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading task models:', error);
+    }
+  };
+
+  const loadAvailableModels = async () => {
+    try {
+      const response = await fetch('/api/models');
+      if (response.ok) {
+        const data = await response.json();
+        setAvailableModels(data.allModels?.map((m: any) => m.id || m.name) || []);
+      }
+    } catch (error) {
+      console.error('Error loading available models:', error);
+    }
+  };
+
+  const saveTaskModels = async () => {
+    try {
+      const response = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          modelPreferences: { taskModels },
+        }),
+      });
+      if (response.ok) {
+        setMessage({ type: 'success', text: 'Task models saved!' });
+      }
+    } catch (error) {
+      setMessage({ type: 'error', text: 'Failed to save' });
     }
   };
 
@@ -828,6 +883,132 @@ export default function SettingsPage() {
                   <code className="bg-gray-800 px-1 rounded">moondream</code> - Fast vision model
                 </li>
               </ul>
+            </div>
+
+            {/* Task-Specific Model Settings */}
+            <div className="mt-4 bg-gray-900 rounded-lg p-4 border border-green-500/30">
+              <h3 className="text-white font-medium mb-2 flex items-center gap-2">
+                <span className="text-green-400">🎯</span>
+                Task-Specific Model Selection
+              </h3>
+              <p className="text-gray-400 text-sm mb-4">
+                Configure default models for different task types. Ollama handles local models,
+                cloud models use your API keys.
+              </p>
+
+              <div className="space-y-4">
+                {/* Local Light */}
+                <div className="flex items-center gap-4">
+                  <div className="w-32">
+                    <span className="text-gray-300 text-sm">Local Light</span>
+                    <p className="text-gray-500 text-xs">Routine tasks</p>
+                  </div>
+                  <select
+                    value={taskModels.local_light}
+                    onChange={e => setTaskModels({ ...taskModels, local_light: e.target.value })}
+                    className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm"
+                  >
+                    <option value="ollama/angglam.slim">angglam.slim (CPU-friendly)</option>
+                    <option value="ollama/qwen3.5:2b">qwen3.5:2b</option>
+                    <option value="ollama/llama3.2:3b">llama3.2:3b</option>
+                  </select>
+                </div>
+
+                {/* Local Write */}
+                <div className="flex items-center gap-4">
+                  <div className="w-32">
+                    <span className="text-gray-300 text-sm">Local Write</span>
+                    <p className="text-gray-500 text-xs">Writing tasks</p>
+                  </div>
+                  <select
+                    value={taskModels.local_write}
+                    onChange={e => setTaskModels({ ...taskModels, local_write: e.target.value })}
+                    className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm"
+                  >
+                    <option value="ollama/qwen3.5:9b">qwen3.5:9b</option>
+                    <option value="ollama/qwen3.5:27b">qwen3.5:27b</option>
+                    <option value="ollama/llama3.1:8b">llama3.1:8b</option>
+                  </select>
+                </div>
+
+                {/* Local Code */}
+                <div className="flex items-center gap-4">
+                  <div className="w-32">
+                    <span className="text-gray-300 text-sm">Local Code</span>
+                    <p className="text-gray-500 text-xs">Code tasks</p>
+                  </div>
+                  <select
+                    value={taskModels.local_code}
+                    onChange={e => setTaskModels({ ...taskModels, local_code: e.target.value })}
+                    className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm"
+                  >
+                    <option value="ollama/qwen3.5:9b">qwen3.5:9b</option>
+                    <option value="ollama/deepseek-coder-v2">deepseek-coder-v2</option>
+                    <option value="ollama/codellama">codellama</option>
+                  </select>
+                </div>
+
+                <hr className="border-gray-700" />
+
+                {/* Cloud Light */}
+                <div className="flex items-center gap-4">
+                  <div className="w-32">
+                    <span className="text-gray-300 text-sm">Cloud Light</span>
+                    <p className="text-gray-500 text-xs">Quick cloud tasks</p>
+                  </div>
+                  <select
+                    value={taskModels.cloud_light}
+                    onChange={e => setTaskModels({ ...taskModels, cloud_light: e.target.value })}
+                    className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm"
+                  >
+                    <option value="ollama/kimi-k2.5">kimi-k2.5 (Free)</option>
+                    <option value="ollama/glm-4.7-flash">glm-4.7-flash (Free)</option>
+                    <option value="openai/gpt-4o-mini">GPT-4o mini (API key)</option>
+                  </select>
+                </div>
+
+                {/* Cloud Write */}
+                <div className="flex items-center gap-4">
+                  <div className="w-32">
+                    <span className="text-gray-300 text-sm">Cloud Write</span>
+                    <p className="text-gray-500 text-xs">Writing tasks</p>
+                  </div>
+                  <select
+                    value={taskModels.cloud_write}
+                    onChange={e => setTaskModels({ ...taskModels, cloud_write: e.target.value })}
+                    className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm"
+                  >
+                    <option value="ollama/kimi-k2.5">kimi-k2.5 (Free)</option>
+                    <option value="ollama/glm-5">glm-5 (Free)</option>
+                    <option value="openai/gpt-4o">GPT-4o (API key)</option>
+                    <option value="anthropic/claude-3.5-sonnet">Claude 3.5 (API key)</option>
+                  </select>
+                </div>
+
+                {/* Cloud Code */}
+                <div className="flex items-center gap-4">
+                  <div className="w-32">
+                    <span className="text-gray-300 text-sm">Cloud Code</span>
+                    <p className="text-gray-500 text-xs">Code tasks</p>
+                  </div>
+                  <select
+                    value={taskModels.cloud_code}
+                    onChange={e => setTaskModels({ ...taskModels, cloud_code: e.target.value })}
+                    className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm"
+                  >
+                    <option value="ollama/deepseek-coder-v2">deepseek-coder-v2 (Free)</option>
+                    <option value="openai/gpt-4o">GPT-4o (API key)</option>
+                    <option value="anthropic/claude-3.5-sonnet">Claude 3.5 (API key)</option>
+                  </select>
+                </div>
+              </div>
+
+              <button
+                onClick={saveTaskModels}
+                className="mt-4 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded text-sm"
+              >
+                Save Task Models
+              </button>
             </div>
 
             <div className="mt-6 bg-gray-900 rounded-lg p-4 border border-purple-500/30">

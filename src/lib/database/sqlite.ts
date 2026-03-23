@@ -4030,12 +4030,28 @@ export class SQLDatabase {
     autoRoute: boolean;
     preferLocal: boolean;
     cloudForChat: boolean;
+    taskModels: {
+      local_light: string;
+      local_write: string;
+      local_code: string;
+      cloud_light: string;
+      cloud_write: string;
+      cloud_code: string;
+    };
   } {
     return {
       defaultModel: this.getSetting('default_model') || 'ollama/qwen3.5:9b',
       autoRoute: this.getSetting('auto_route_models') === 'true',
       preferLocal: this.getSetting('prefer_local_models') !== 'false',
       cloudForChat: this.getSetting('cloud_for_chat') === 'true',
+      taskModels: {
+        local_light: this.getSetting('model_local_light') || 'ollama/angglam.slim',
+        local_write: this.getSetting('model_local_write') || 'ollama/qwen3.5:9b',
+        local_code: this.getSetting('model_local_code') || 'ollama/qwen3.5:9b',
+        cloud_light: this.getSetting('model_cloud_light') || 'ollama/kimi-k2.5',
+        cloud_write: this.getSetting('model_cloud_write') || 'ollama/kimi-k2.5',
+        cloud_code: this.getSetting('model_cloud_code') || 'ollama/deepseek-coder-v2',
+      },
     };
   }
 
@@ -4044,6 +4060,14 @@ export class SQLDatabase {
     autoRoute?: boolean;
     preferLocal?: boolean;
     cloudForChat?: boolean;
+    taskModels?: {
+      local_light?: string;
+      local_write?: string;
+      local_code?: string;
+      cloud_light?: string;
+      cloud_write?: string;
+      cloud_code?: string;
+    };
   }): void {
     if (prefs.defaultModel !== undefined) {
       this.setSetting('default_model', prefs.defaultModel, 'model');
@@ -4057,6 +4081,43 @@ export class SQLDatabase {
     if (prefs.cloudForChat !== undefined) {
       this.setSetting('cloud_for_chat', String(prefs.cloudForChat), 'model');
     }
+    if (prefs.taskModels) {
+      if (prefs.taskModels.local_light !== undefined) {
+        this.setSetting('model_local_light', prefs.taskModels.local_light, 'model');
+      }
+      if (prefs.taskModels.local_write !== undefined) {
+        this.setSetting('model_local_write', prefs.taskModels.local_write, 'model');
+      }
+      if (prefs.taskModels.local_code !== undefined) {
+        this.setSetting('model_local_code', prefs.taskModels.local_code, 'model');
+      }
+      if (prefs.taskModels.cloud_light !== undefined) {
+        this.setSetting('model_cloud_light', prefs.taskModels.cloud_light, 'model');
+      }
+      if (prefs.taskModels.cloud_write !== undefined) {
+        this.setSetting('model_cloud_write', prefs.taskModels.cloud_write, 'model');
+      }
+      if (prefs.taskModels.cloud_code !== undefined) {
+        this.setSetting('model_cloud_code', prefs.taskModels.cloud_code, 'model');
+      }
+    }
+  }
+
+  // Get model for a specific task type
+  getModelForTask(taskType: 'light' | 'write' | 'code', preferCloud: boolean = false): string {
+    const prefs = this.getModelPreferences();
+
+    if (preferCloud) {
+      if (taskType === 'light') return prefs.taskModels.cloud_light;
+      if (taskType === 'write') return prefs.taskModels.cloud_write;
+      if (taskType === 'code') return prefs.taskModels.cloud_code;
+    }
+
+    if (taskType === 'light') return prefs.taskModels.local_light;
+    if (taskType === 'write') return prefs.taskModels.local_write;
+    if (taskType === 'code') return prefs.taskModels.local_code;
+
+    return prefs.defaultModel;
   }
 
   // Search mode preference (persisted per user)
