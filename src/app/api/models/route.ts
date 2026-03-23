@@ -1,18 +1,17 @@
 export const runtime = 'nodejs';
 
 import { NextResponse } from 'next/server';
-import {
-  listModels,
-  checkOllamaHealth,
-  getOllamaModels,
-  getExternalModels,
-} from '@/lib/models/sdk.server';
+import { checkOllamaHealth, getOllamaModels, getExternalModels } from '@/lib/models/sdk.server';
 
 export async function GET() {
   try {
-    const ollamaModels = await getOllamaModels();
+    // Run Ollama checks in parallel with quick fallbacks
+    const [ollamaModels, ollamaHealthy] = await Promise.all([
+      getOllamaModels().catch(() => [] as any[]),
+      checkOllamaHealth().catch(() => false),
+    ]);
+
     const externalModels = getExternalModels();
-    const ollamaHealthy = await checkOllamaHealth();
 
     // Default model preferences (since database may not be available)
     const modelPrefs = {
@@ -42,8 +41,7 @@ export async function GET() {
     });
 
     // IMPORTANT: Include ALL Ollama models (local) - these don't need API keys
-    // The ollamaModels from getOllamaModels() already contains only actually installed models
-    const allOllamaModels = ollamaModels.map(m => ({
+    const allOllamaModels = (ollamaModels || []).map(m => ({
       ...m,
       provider: 'ollama' as const,
     }));
@@ -66,9 +64,9 @@ export async function GET() {
       defaultModel = filteredExternalModels[0].id;
     }
 
-    // If no models at all, provide helpful defaults based on what might work
+    // If no models at all, provide helpful defaults
     if (allOllamaModels.length === 0 && filteredExternalModels.length === 0) {
-      defaultModel = 'glm-4.7-flash'; // Most commonly available
+      defaultModel = 'glm-4.7-flash';
     }
 
     return NextResponse.json({
@@ -84,13 +82,12 @@ export async function GET() {
       defaultModel,
       preferences: modelPrefs,
       timestamp: Date.now(),
-      // Add hint about what's available/no keys
       availableProviders: Object.entries(availableApiKeys)
-        .filter(([_, has]) => has)
+        .filter(([, has]) => has)
         .map(([provider]) => provider),
     });
   } catch (error) {
-    console.error('Models API error:', error, error instanceof Error ? error.stack : undefined);
+    console.error('Models API error:', error);
     return NextResponse.json(
       {
         error: 'Failed to fetch models',
