@@ -578,9 +578,15 @@ export default function WritingStudioPage() {
       return;
     }
     const sel = window.getSelection();
-    const selectedText = sel?.toString() || '';
+    let selectedText = sel?.toString() || '';
+
+    // For outline action, use document content if nothing selected
+    if (!selectedText && action === 'outline') {
+      selectedText = content;
+    }
+
     if (!selectedText) {
-      alert('Select text first');
+      alert('Select text first or enter content in the editor');
       return;
     }
     setIsLoading(true);
