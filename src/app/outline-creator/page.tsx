@@ -115,7 +115,9 @@ Requirements:
       if (data.success) {
         const content = data.result;
         localStorage.setItem('outline-content', content);
-        window.location.href = '/writing';
+        setTimeout(() => {
+          window.location.href = '/writing';
+        }, 150);
       } else {
         setError(data.error || 'Failed to generate outline');
       }
