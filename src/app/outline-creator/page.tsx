@@ -114,6 +114,15 @@ Requirements:
 
       if (data.success) {
         const content = data.result;
+        const titleMatch = content.match(/^#\s+(.+)/m);
+        const title = titleMatch ? titleMatch[1] : topic;
+        setResult({
+          title,
+          content,
+          model: data.model || modelToUse,
+          levels: (content.match(/^#{1,4}\s+/gm) || []).length,
+          sections: (content.match(/^##\s+/gm) || []).length,
+        });
         localStorage.setItem('outline-content', content);
         const encoded = encodeURIComponent(content);
         window.location.href = `/writing?outline=${encoded}`;
@@ -422,24 +431,60 @@ Requirements:
             </button>
           </div>
 
-          {/* Output Section - Simplified for direct-to-editor flow */}
+          {/* Output Section */}
           <div className="lg:col-span-2">
-            <div
-              className={`${cardClasses} rounded-xl p-4 h-full flex items-center justify-center`}
-            >
+            <div className={`${cardClasses} rounded-xl p-4 h-full`}>
               {loading ? (
-                <div className="text-center">
+                <div className="text-center py-8">
                   <div className="text-4xl animate-pulse mb-3">🤖</div>
                   <p className={theme === 'dark' ? 'text-slate-400' : 'text-gray-500'}>
                     Generating outline and opening editor...
                   </p>
                 </div>
+              ) : result ? (
+                <div>
+                  <div className="flex justify-between items-center mb-3">
+                    <h3
+                      className={`font-semibold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}
+                    >
+                      {result.title}
+                    </h3>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={copyOutline}
+                        className={`px-3 py-1 rounded text-sm ${
+                          theme === 'dark'
+                            ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                        }`}
+                      >
+                        Copy
+                      </button>
+                      <button
+                        onClick={() => exportOutline('md')}
+                        className={`px-3 py-1 rounded text-sm ${
+                          theme === 'dark'
+                            ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                            : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                        }`}
+                      >
+                        Export
+                      </button>
+                    </div>
+                  </div>
+                  <div
+                    className={`p-4 rounded-lg overflow-auto max-h-96 ${
+                      theme === 'dark' ? 'bg-slate-900' : 'bg-gray-50'
+                    }`}
+                  >
+                    <MarkdownRenderer content={result.content} />
+                  </div>
+                </div>
               ) : (
-                <div className="text-center">
+                <div className="text-center py-8">
                   <div className="text-4xl mb-3">✨</div>
                   <p className={theme === 'dark' ? 'text-slate-500' : 'text-gray-500'}>
-                    Enter a topic, select options, and click Generate to create your outline in the
-                    editor
+                    Enter a topic, select options, and click Generate to create your outline
                   </p>
                 </div>
               )}
