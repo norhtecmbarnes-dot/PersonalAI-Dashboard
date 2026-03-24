@@ -82,6 +82,9 @@ export default function WritingAssistantPage() {
   const [mermaidCode, setMermaidCode] = useState('');
   const [showMermaidPreview, setShowMermaidPreview] = useState(false);
 
+  // Preview state for outline content
+  const [showPreview, setShowPreview] = useState(false);
+
   // Load saved model, theme, and outline content on mount
   useEffect(() => {
     // Give React time to hydrate
@@ -97,6 +100,7 @@ export default function WritingAssistantPage() {
         const outlineContent = localStorage.getItem('outline-content');
         if (outlineContent) {
           setInput(outlineContent);
+          setShowPreview(true);
           localStorage.removeItem('outline-content');
         }
       }
@@ -753,12 +757,54 @@ export default function WritingAssistantPage() {
               >
                 Input Text
               </h2>
-              <textarea
-                value={input}
-                onChange={e => setInput(e.target.value)}
-                placeholder="Enter your text here..."
-                className={`w-full h-64 p-4 rounded-lg border focus:outline-none resize-none ${inputClasses}`}
-              />
+              <div className="flex gap-2 mb-2">
+                <button
+                  onClick={() => setShowPreview(false)}
+                  className={`px-3 py-1 rounded text-sm ${
+                    !showPreview
+                      ? theme === 'dark'
+                        ? 'bg-purple-600 text-white'
+                        : 'bg-purple-500 text-white'
+                      : theme === 'dark'
+                        ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => setShowPreview(true)}
+                  className={`px-3 py-1 rounded text-sm ${
+                    showPreview
+                      ? theme === 'dark'
+                        ? 'bg-purple-600 text-white'
+                        : 'bg-purple-500 text-white'
+                      : theme === 'dark'
+                        ? 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                  }`}
+                >
+                  Preview
+                </button>
+              </div>
+              {showPreview ? (
+                <div
+                  className={`h-64 p-4 rounded-lg border overflow-auto ${
+                    theme === 'dark'
+                      ? 'bg-slate-900 border-slate-700'
+                      : 'bg-gray-50 border-gray-300'
+                  }`}
+                >
+                  <MarkdownRenderer content={input} />
+                </div>
+              ) : (
+                <textarea
+                  value={input}
+                  onChange={e => setInput(e.target.value)}
+                  placeholder="Enter your text here..."
+                  className={`w-full h-64 p-4 rounded-lg border focus:outline-none resize-none ${inputClasses}`}
+                />
+              )}
               <div className="flex justify-between items-center mt-3">
                 <span
                   className={`${theme === 'dark' ? 'text-slate-500' : 'text-gray-500'} text-sm`}
