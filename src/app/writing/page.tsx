@@ -100,12 +100,9 @@ export default function WritingAssistantPage() {
         const urlParams = new URLSearchParams(window.location.search);
         const outlineParam = urlParams.get('outline');
         console.log('[Writing] URL search:', window.location.search);
-        console.log(
-          '[Writing] outlineParam exists:',
-          !!outlineParam,
-          outlineParam?.substring(0, 50)
-        );
+        console.log('[Writing] outlineParam exists:', !!outlineParam);
         if (outlineParam) {
+          console.log('[Writing] outlineParam length:', outlineParam.length);
           try {
             const decoded = decodeURIComponent(outlineParam);
             console.log('[Writing] Decoded content length:', decoded.length);
