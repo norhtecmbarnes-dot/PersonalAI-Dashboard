@@ -123,10 +123,6 @@ Requirements:
           levels: (content.match(/^#{1,4}\s+/gm) || []).length,
           sections: (content.match(/^##\s+/gm) || []).length,
         });
-        localStorage.setItem('outline-content', content);
-        const encoded = encodeURIComponent(content);
-        window.location.href = `/writing?outline=${encoded}`;
-        return;
       } else {
         setError(data.error || 'Failed to generate outline');
       }
