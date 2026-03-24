@@ -115,12 +115,8 @@ Requirements:
       if (data.success) {
         const content = data.result;
         localStorage.setItem('outline-content', content);
-        const encoded = encodeURIComponent(content);
-        if (encoded.length < 4000) {
-          window.location.href = `/writing?outline=${encoded}`;
-        } else {
-          window.location.href = '/writing';
-        }
+        window.location.href = '/writing';
+        return;
       } else {
         setError(data.error || 'Failed to generate outline');
       }
