@@ -96,12 +96,29 @@ export default function WritingAssistantPage() {
         const savedTheme = localStorage.getItem('writing-theme');
         if (savedTheme) setTheme(savedTheme as 'dark' | 'light');
 
-        // Check for outline content from outline-creator via localStorage
-        const outlineContent = localStorage.getItem('outline-content');
-        if (outlineContent) {
-          setInput(outlineContent);
-          setShowPreview(true);
-          localStorage.removeItem('outline-content');
+        // Check for outline content from outline-creator via URL param or localStorage
+        const urlParams = new URLSearchParams(window.location.search);
+        const outlineParam = urlParams.get('outline');
+        if (outlineParam) {
+          try {
+            const decoded = decodeURIComponent(outlineParam);
+            setInput(decoded);
+            setShowPreview(true);
+          } catch {
+            const outlineContent = localStorage.getItem('outline-content');
+            if (outlineContent) {
+              setInput(outlineContent);
+              setShowPreview(true);
+              localStorage.removeItem('outline-content');
+            }
+          }
+        } else {
+          const outlineContent = localStorage.getItem('outline-content');
+          if (outlineContent) {
+            setInput(outlineContent);
+            setShowPreview(true);
+            localStorage.removeItem('outline-content');
+          }
         }
       }
     }, 100);
