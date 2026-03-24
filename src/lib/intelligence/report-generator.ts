@@ -1,5 +1,6 @@
 import { usaSpendingService, USASpendingAward } from '@/lib/integrations/usaspending';
 import { sqlDatabase } from '@/lib/database/sqlite';
+import { performWebSearch } from '@/lib/websearch';
 
 export interface IntelligenceReport {
   id: string;
@@ -65,6 +66,12 @@ export interface FederalSpendingReport {
   generatedAt: number;
 }
 
+const NEWS_TOPICS = [
+  'AI agent self-improving autonomous',
+  'space aerospace defense technology',
+  'government contracting opportunity',
+];
+
 export class IntelligenceService {
   private static instance: IntelligenceService;
   private lastReport: IntelligenceReport | null = null;
@@ -76,29 +83,34 @@ export class IntelligenceService {
     return IntelligenceService.instance;
   }
 
-  async generateReport(options: {
-    keywords?: string[];
-    agencies?: string[];
-    naicsCodes?: string[];
-  } = {}): Promise<IntelligenceReport> {
+  async generateReport(
+    options: {
+      keywords?: string[];
+      agencies?: string[];
+      naicsCodes?: string[];
+    } = {}
+  ): Promise<IntelligenceReport> {
     const {
       keywords = ['space', 'satellite', 'aerospace', 'defense', 'technology'],
       agencies = [],
       naicsCodes = [],
     } = options;
 
-    const [samOpportunities, usaspendingAwards, spendingByAgency] = await Promise.all([
-      this.getSAMOpportunities(keywords),
-      this.getUSASpendingAwards(keywords, agencies, naicsCodes),
-      this.getFederalSpending(),
-    ]);
+    const [samOpportunities, usaspendingAwards, spendingByAgency, newsArticles] = await Promise.all(
+      [
+        this.getSAMOpportunities(keywords),
+        this.getUSASpendingAwards(keywords, agencies, naicsCodes),
+        this.getFederalSpending(),
+        this.fetchNews(),
+      ]
+    );
 
     const report: IntelligenceReport = {
       id: `report_${Date.now()}`,
       createdAt: Date.now(),
       period: this.getReportPeriod(),
       newsSummary: {
-        spaceDomainAwareness: [],
+        spaceDomainAwareness: newsArticles,
         commercialSpace: [],
         noaaCommercialSpace: [],
         jointCommercialOffice: [],
@@ -119,11 +131,35 @@ export class IntelligenceService {
     return report;
   }
 
+  private async fetchNews(): Promise<Article[]> {
+    const articles: Article[] = [];
+
+    for (const topic of NEWS_TOPICS) {
+      try {
+        const results = await performWebSearch(topic);
+        for (const result of results.slice(0, 5)) {
+          articles.push({
+            title: result.title,
+            source: result.source || new URL(result.url).hostname,
+            url: result.url,
+            publishedDate: new Date().toISOString(),
+            summary: result.excerpt,
+            keyPoints: [],
+          });
+        }
+      } catch (error) {
+        console.error(`[Intelligence] Error fetching news for ${topic}:`, error);
+      }
+    }
+
+    return articles.slice(0, 20);
+  }
+
   private async getSAMOpportunities(keywords: string[]): Promise<SAMOpportunity[]> {
     try {
       sqlDatabase.initialize();
       const opportunities = await sqlDatabase.getSAMOpportunities();
-      
+
       if (opportunities && opportunities.length > 0) {
         return opportunities.slice(0, 10).map((opp: any) => ({
           id: opp.id || opp.notice_id,
@@ -152,14 +188,14 @@ export class IntelligenceService {
   ): Promise<USASpendingAward[]> {
     try {
       const allAwards: USASpendingAward[] = [];
-      
+
       for (const keyword of keywords.slice(0, 3)) {
         const result = await usaSpendingService.searchAwards({
           keyword,
           limit: 5,
           awardType: 'contracts',
         });
-        
+
         if (result.success && result.awards.length > 0) {
           allAwards.push(...result.awards);
         }
@@ -171,7 +207,7 @@ export class IntelligenceService {
           limit: 5,
           awardType: 'contracts',
         });
-        
+
         if (result.success && result.awards.length > 0) {
           allAwards.push(...result.awards);
         }
@@ -183,22 +219,20 @@ export class IntelligenceService {
           limit: 5,
           awardType: 'contracts',
         });
-        
+
         if (result.success && result.awards.length > 0) {
           allAwards.push(...result.awards);
         }
       }
 
       const seen = new Set<string>();
-      const unique = allAwards.filter((award) => {
+      const unique = allAwards.filter(award => {
         if (seen.has(award.id)) return false;
         seen.add(award.id);
         return true;
       });
 
-      return unique
-        .sort((a, b) => b.awardAmount - a.awardAmount)
-        .slice(0, 20);
+      return unique.sort((a, b) => b.awardAmount - a.awardAmount).slice(0, 20);
     } catch (error) {
       console.error('[Intelligence] Error fetching USASpending awards:', error);
       return [];
@@ -251,7 +285,7 @@ export class IntelligenceService {
 
       const reports: IntelligenceReport[] = JSON.parse(reportsJson);
       const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
-      return reports.filter((r) => r.createdAt > cutoff);
+      return reports.filter(r => r.createdAt > cutoff);
     } catch {
       return [];
     }
@@ -272,7 +306,7 @@ export class IntelligenceService {
       reports.unshift(report);
 
       const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
-      const filtered = reports.filter((r) => r.createdAt > thirtyDaysAgo);
+      const filtered = reports.filter(r => r.createdAt > thirtyDaysAgo);
 
       localStorage.setItem('intelligence_reports', JSON.stringify(filtered.slice(0, 30)));
     } catch (error) {
