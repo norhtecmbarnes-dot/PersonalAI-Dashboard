@@ -620,7 +620,7 @@ Return ONLY the JSON array, no other text.`;
         '\n\nYou are a skilled writing assistant. Follow instructions precisely and provide only the requested output.',
     };
 
-    const useModel = model || 'ollama/qwen3.5:2b';
+    const useModel = model || 'ollama/llama3.2:latest';
 
     // Handle track_changes action separately - it returns JSON
     if (action === 'track_changes') {

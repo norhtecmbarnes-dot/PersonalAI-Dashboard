@@ -64,7 +64,7 @@ export default function OutlineCreatorPage() {
     setError(null);
     setResult(null);
 
-    const modelToUse = model || 'ollama/qwen3.5:2b';
+    const modelToUse = model || 'ollama/llama3.2:latest';
 
     try {
       // Build topic with requirements included
