@@ -64,10 +64,9 @@ export default function OutlineCreatorPage() {
     setError(null);
     setResult(null);
 
-    const modelToUse = model || 'ollama/llama3.2:latest';
+    const modelToUse = 'ollama/llama3.2:latest';
 
     try {
-      // Build topic with requirements included
       const fullTopic = `Create a ${detailLevel} ${outlineType} outline for: "${topic}"
 
 Requirements:
@@ -94,6 +93,9 @@ Requirements:
                 : 'Adapt structure to topic naturally'
       }`;
 
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000);
+
       const response = await fetch('/api/writing', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -103,7 +105,10 @@ Requirements:
           model: modelToUse,
           stream: false,
         }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       const data = await response.json();
 
@@ -116,7 +121,11 @@ Requirements:
       }
     } catch (err) {
       console.error('[Outline] Error:', err);
-      setError(err instanceof Error ? err.message : 'Unknown error');
+      if (err instanceof Error && err.name === 'AbortError') {
+        setError('Request timed out. Try a shorter topic or a faster model.');
+      } else {
+        setError(err instanceof Error ? err.message : 'Unknown error');
+      }
     }
 
     setLoading(false);
