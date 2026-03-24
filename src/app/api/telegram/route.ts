@@ -1,11 +1,60 @@
 export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
-import { telegramService, TelegramUpdate, TelegramMessage, DEFAULT_COMMANDS, TelegramConfig } from '@/lib/integrations/telegram';
+import {
+  telegramService,
+  TelegramUpdate,
+  TelegramMessage,
+  DEFAULT_COMMANDS,
+  TelegramConfig,
+} from '@/lib/integrations/telegram';
 import { streamChatCompletion, getOllamaModels } from '@/lib/models/sdk.server';
 import { performWebSearch } from '@/lib/websearch';
-import { loadTelegramConfig as loadTelegramConfigFromFile } from '@/lib/storage/telegram-config';
+import {
+  loadTelegramConfig as loadTelegramConfigFromFile,
+  saveTelegramConfig,
+} from '@/lib/storage/telegram-config';
 import { sqlDatabase } from '@/lib/database/sqlite';
+import { intelligenceService } from '@/lib/intelligence/report-generator';
+
+async function saveUserChatId(chatId: number): Promise<void> {
+  try {
+    const config = await loadTelegramConfigFromFile();
+    if (config) {
+      await saveTelegramConfig({
+        ...config,
+        chatId,
+      });
+      console.log('[Telegram] Saved user chatId:', chatId);
+    }
+  } catch (error) {
+    console.error('[Telegram] Error saving chatId:', error);
+  }
+}
+
+async function getDailyBriefing(): Promise<string> {
+  try {
+    const report = await intelligenceService.generateReport();
+    const articles = report.newsSummary?.spaceDomainAwareness || [];
+
+    if (articles.length === 0) {
+      return '📰 *Daily Briefing*\n\nNo news articles available today.';
+    }
+
+    const newsList = articles
+      .slice(0, 5)
+      .map(
+        (a, i) =>
+          `${i + 1}. *${a.title}*\n   ${a.url || ''}\n   ${a.summary?.slice(0, 100) || ''}...`
+      )
+      .join('\n\n');
+
+    return `📰 *Daily Briefing - ${new Date().toLocaleDateString()}*\n\n${newsList}`;
+  } catch (error) {
+    console.error('[Telegram] Error getting briefing:', error);
+    return '❌ Could not generate briefing. Please try again later.';
+  }
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,15 +78,19 @@ export async function POST(request: NextRequest) {
     if (!fileConfig || !fileConfig.enabled) {
       return NextResponse.json({ ok: true });
     }
-    
+
+    // Save user's chatId when they first message
+    await saveUserChatId(chatId);
+
     const config: TelegramConfig = {
       botToken: fileConfig.botToken,
       enabled: fileConfig.enabled,
       webhookUrl: fileConfig.webhookUrl,
       chatWithAI: true,
       allowedUsers: [],
+      chatId,
     };
-    
+
     telegramService.setConfig(config);
 
     if (!telegramService.isUserAllowed(user.id)) {
@@ -52,11 +105,18 @@ export async function POST(request: NextRequest) {
 
 I'm your AI-powered assistant that can help you with:
 • 💬 Chat with AI
-• 🔍 Web Search
+• 🔍 Web Search  
 • 📊 Research & Analysis
+• 📰 Daily Briefing
 
 Just send me a message and I'll respond using AI!`;
       await telegramService.sendMessage(chatId, welcomeMessage, 'Markdown');
+      return NextResponse.json({ ok: true });
+    }
+
+    if (text.startsWith('/briefing')) {
+      const briefing = await getDailyBriefing();
+      await telegramService.sendMessage(chatId, briefing, 'Markdown');
       return NextResponse.json({ ok: true });
     }
 
@@ -67,6 +127,7 @@ Just send me a message and I'll respond using AI!`;
 /help - Show this help
 /search <query> - Search the web
 /status - Check system status
+/briefing - Get your daily briefing
 
 You can also just send me a message and I'll respond using AI!`;
       await telegramService.sendMessage(chatId, helpMessage, 'Markdown');
@@ -86,10 +147,11 @@ You can also just send me a message and I'll respond using AI!`;
     if (text.startsWith('/search ')) {
       const query = text.replace('/search ', '').trim();
       const results = await performWebSearch(query);
-      
-      const formattedResults = results.slice(0, 5).map((r, i) => 
-        `${i + 1}. *${r.title}*\n   ${r.url}\n   ${r.excerpt?.slice(0, 100)}...`
-      ).join('\n\n');
+
+      const formattedResults = results
+        .slice(0, 5)
+        .map((r, i) => `${i + 1}. *${r.title}*\n   ${r.url}\n   ${r.excerpt?.slice(0, 100)}...`)
+        .join('\n\n');
 
       const response = `*Search Results for:* "${query}"\n\n${formattedResults}`;
       await telegramService.sendMessage(chatId, response, 'Markdown');
@@ -111,26 +173,27 @@ async function getAIResponse(message: string): Promise<string> {
     // Get user's default model preference
     sqlDatabase.initialize();
     const modelPrefs = sqlDatabase.getModelPreferences();
-    
+
     // Use the user's configured default model, or let the system choose
     let model = modelPrefs.defaultModel;
-    
+
     // If no default model is set, let the SDK choose the best available
     if (!model) {
       const ollamaModels = await getOllamaModels();
       if (ollamaModels.length > 0) {
         // Prefer qwen3.5:9b if available, otherwise use first available
-        const preferredModel = ollamaModels.find(m => m.name.includes('qwen3.5:9b')) || ollamaModels[0];
-        model = preferredModel.name.startsWith('ollama/') ? preferredModel.name : `ollama/${preferredModel.name}`;
+        const preferredModel =
+          ollamaModels.find(m => m.name.includes('qwen3.5:9b')) || ollamaModels[0];
+        model = preferredModel.name.startsWith('ollama/')
+          ? preferredModel.name
+          : `ollama/${preferredModel.name}`;
       }
     }
-    
+
     // The SDK will handle routing to the appropriate provider (Ollama, GLM, OpenRouter, etc.)
     const result = await streamChatCompletion({
       model: model || 'ollama/qwen3.5:9b', // Final fallback
-      messages: [
-        { role: 'user', content: message }
-      ],
+      messages: [{ role: 'user', content: message }],
     });
 
     let content = result.message?.content || 'Sorry, I could not generate a response.';
@@ -156,7 +219,7 @@ export async function GET(request: NextRequest) {
     if (!fileConfig?.botToken) {
       return false;
     }
-    
+
     const config: TelegramConfig = {
       botToken: fileConfig.botToken,
       enabled: fileConfig.enabled,
@@ -164,7 +227,7 @@ export async function GET(request: NextRequest) {
       chatWithAI: true,
       allowedUsers: [],
     };
-    
+
     telegramService.setConfig(config);
     return true;
   };
@@ -175,7 +238,7 @@ export async function GET(request: NextRequest) {
       if (!webhookUrl) {
         return NextResponse.json({ error: 'Webhook URL required' }, { status: 400 });
       }
-      if (!await loadConfigForAction()) {
+      if (!(await loadConfigForAction())) {
         return NextResponse.json({ error: 'Bot not configured' }, { status: 400 });
       }
       const success = await telegramService.setWebhook(webhookUrl);
@@ -183,7 +246,7 @@ export async function GET(request: NextRequest) {
     }
 
     case 'deleteWebhook': {
-      if (!await loadConfigForAction()) {
+      if (!(await loadConfigForAction())) {
         return NextResponse.json({ error: 'Bot not configured' }, { status: 400 });
       }
       const success = await telegramService.deleteWebhook();
@@ -191,7 +254,7 @@ export async function GET(request: NextRequest) {
     }
 
     case 'webhookInfo': {
-      if (!await loadConfigForAction()) {
+      if (!(await loadConfigForAction())) {
         return NextResponse.json({ error: 'Bot not configured' }, { status: 400 });
       }
       const info = await telegramService.getWebhookInfo();
@@ -199,7 +262,7 @@ export async function GET(request: NextRequest) {
     }
 
     case 'botInfo': {
-      if (!await loadConfigForAction()) {
+      if (!(await loadConfigForAction())) {
         return NextResponse.json({ error: 'Bot not configured' }, { status: 400 });
       }
       const info = await telegramService.getMe();
@@ -207,7 +270,7 @@ export async function GET(request: NextRequest) {
     }
 
     case 'setup': {
-      if (!await loadConfigForAction()) {
+      if (!(await loadConfigForAction())) {
         return NextResponse.json({ error: 'Bot not configured' }, { status: 400 });
       }
       await telegramService.setCommands(DEFAULT_COMMANDS);
@@ -217,7 +280,7 @@ export async function GET(request: NextRequest) {
     default:
       return NextResponse.json({
         endpoints: {
-          'POST': 'Handle incoming Telegram updates (webhook)',
+          POST: 'Handle incoming Telegram updates (webhook)',
           '?action=setWebhook&url=...': 'Set webhook URL',
           '?action=deleteWebhook': 'Delete webhook',
           '?action=webhookInfo': 'Get webhook info',

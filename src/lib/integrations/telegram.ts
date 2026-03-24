@@ -3,7 +3,8 @@ export interface TelegramConfig {
   enabled: boolean;
   webhookUrl?: string;
   allowedUsers?: string[];
-  chatWithAI: boolean;
+  chatWithAI?: boolean;
+  chatId?: number;
 }
 
 export interface TelegramUpdate {
@@ -109,7 +110,7 @@ class TelegramService {
       });
 
       const data = await response.json();
-      
+
       if (data.ok && data.result.length > 0) {
         const updates = data.result as TelegramUpdate[];
         this.lastUpdateId = updates[updates.length - 1].update_id;
@@ -130,7 +131,7 @@ class TelegramService {
     }
 
     console.log('[Telegram] Starting polling...');
-    
+
     const poll = async () => {
       if (!this.config?.enabled || this.isProcessing) {
         return;
@@ -139,25 +140,25 @@ class TelegramService {
       this.isProcessing = true;
       try {
         const updates = await this.getUpdates(5);
-        
+
         for (const update of updates) {
           if (update.message && this.onMessageHandler) {
             const messageId = update.message.message_id;
-            
+
             // Skip already processed messages
             if (this.processedMessages.has(messageId)) {
               // Silently skip duplicates - no logging in production
               continue;
             }
-            
+
             this.processedMessages.add(messageId);
-            
+
             // Keep processed messages set from growing too large
             if (this.processedMessages.size > 100) {
               const arr = Array.from(this.processedMessages);
               this.processedMessages = new Set(arr.slice(-50));
             }
-            
+
             try {
               // Only log errors, not successful processing
               await this.onMessageHandler(update.message);
@@ -196,7 +197,12 @@ class TelegramService {
     return `${this.baseUrl}/bot${this.config.botToken}/${method}`;
   }
 
-  async sendMessage(chatId: number, text: string, parseMode?: 'Markdown' | 'HTML', replyMarkup?: any): Promise<boolean> {
+  async sendMessage(
+    chatId: number,
+    text: string,
+    parseMode?: 'Markdown' | 'HTML',
+    replyMarkup?: any
+  ): Promise<boolean> {
     try {
       const response = await fetch(this.getApiUrl('sendMessage'), {
         method: 'POST',
@@ -235,7 +241,17 @@ class TelegramService {
     }
   }
 
-  async sendChatAction(chatId: number, action: 'typing' | 'upload_photo' | 'upload_document' | 'record_video' | 'record_voice' | 'upload_voice' | 'choose_sticker'): Promise<boolean> {
+  async sendChatAction(
+    chatId: number,
+    action:
+      | 'typing'
+      | 'upload_photo'
+      | 'upload_document'
+      | 'record_video'
+      | 'record_voice'
+      | 'upload_voice'
+      | 'choose_sticker'
+  ): Promise<boolean> {
     try {
       const response = await fetch(this.getApiUrl('sendChatAction'), {
         method: 'POST',
@@ -287,7 +303,11 @@ class TelegramService {
     }
   }
 
-  async getWebhookInfo(): Promise<{ url: string; has_custom_certificate: boolean; pending_update_count: number } | null> {
+  async getWebhookInfo(): Promise<{
+    url: string;
+    has_custom_certificate: boolean;
+    pending_update_count: number;
+  } | null> {
     try {
       const response = await fetch(this.getApiUrl('getWebhookInfo'), {
         method: 'POST',
