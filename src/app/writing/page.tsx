@@ -84,31 +84,15 @@ export default function WritingAssistantPage() {
 
   // Load saved model, theme, and outline content on mount
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedModel = localStorage.getItem('selectedModel');
-      if (savedModel) setModel(savedModel);
+    // Give React time to hydrate
+    const timer = setTimeout(() => {
+      if (typeof window !== 'undefined') {
+        const savedModel = localStorage.getItem('selectedModel');
+        if (savedModel) setModel(savedModel);
 
-      const savedTheme = localStorage.getItem('writing-theme');
-      if (savedTheme) setTheme(savedTheme as 'dark' | 'light');
+        const savedTheme = localStorage.getItem('writing-theme');
+        if (savedTheme) setTheme(savedTheme as 'dark' | 'light');
 
-      // Check for outline content from outline-creator via URL param first
-      const urlParams = new URLSearchParams(window.location.search);
-      const outlineParam = urlParams.get('outline');
-      if (outlineParam) {
-        try {
-          const decoded = decodeURIComponent(outlineParam);
-          setInput(decoded);
-          // Clean up URL without reloading
-          window.history.replaceState({}, '', window.location.pathname);
-        } catch {
-          // Fallback to localStorage
-          const outlineContent = localStorage.getItem('outline-content');
-          if (outlineContent) {
-            setInput(outlineContent);
-            localStorage.removeItem('outline-content');
-          }
-        }
-      } else {
         // Check for outline content from outline-creator via localStorage
         const outlineContent = localStorage.getItem('outline-content');
         if (outlineContent) {
@@ -116,7 +100,9 @@ export default function WritingAssistantPage() {
           localStorage.removeItem('outline-content');
         }
       }
-    }
+    }, 100);
+
+    return () => clearTimeout(timer);
   }, []);
 
   const handleModelChange = (modelId: string) => {
