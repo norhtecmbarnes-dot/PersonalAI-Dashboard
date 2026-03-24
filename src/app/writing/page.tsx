@@ -99,12 +99,22 @@ export default function WritingAssistantPage() {
         // Check for outline content from outline-creator via URL param or localStorage
         const urlParams = new URLSearchParams(window.location.search);
         const outlineParam = urlParams.get('outline');
+        console.log('[Writing] URL search:', window.location.search);
+        console.log(
+          '[Writing] outlineParam exists:',
+          !!outlineParam,
+          outlineParam?.substring(0, 50)
+        );
         if (outlineParam) {
           try {
             const decoded = decodeURIComponent(outlineParam);
+            console.log('[Writing] Decoded content length:', decoded.length);
             setInput(decoded);
             setShowPreview(true);
-          } catch {
+            // Clean URL
+            window.history.replaceState({}, '', window.location.pathname);
+          } catch (e) {
+            console.error('[Writing] Decode error:', e);
             const outlineContent = localStorage.getItem('outline-content');
             if (outlineContent) {
               setInput(outlineContent);
