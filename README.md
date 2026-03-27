@@ -145,10 +145,33 @@ Instead of using a traditional central orchestrator, the Model Message Bus lets 
 3. **Smart Caching** — Check Vector Lake first, reducing token usage dramatically
 4. **Continuous Learning** — The lake grows smarter with every use
 
+### Technical Implementation
+
+```
+User Query → Model Message Bus → Vector Lake (Check first)
+                                ↓
+                        Semantic Search → Relevant past knowledge
+                                ↓
+                      Enriched Context → Final Response
+                                ↓
+                      New Result → Automatically added to Vector Lake
+```
+
+**Core Technologies:**
+- SQLite for local storage (no server needed)
+- Vector embeddings via Ollama or @xenova/transformers
+- Cosine similarity for semantic search
+- Automatic metadata logging (timestamps, source, model, tokens)
+
+**Key Files:**
+- `src/lib/storage/vector-lake.ts` — Main Vector Lake service
+- `src/lib/system/manager.ts` — Integration with Model Message Bus
+
 ### Key Benefits
 
 - **Massive Token Savings** — Repeated questions answered from cache
 - **True Long-Term Memory** — AI never forgets your documents or research
+- **Self-Improvement** — Intelligence reports analyze trends from the lake
 - **Privacy** — All vectors stay on your machine
 
 ---
