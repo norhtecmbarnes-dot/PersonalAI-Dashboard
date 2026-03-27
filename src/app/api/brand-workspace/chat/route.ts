@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { brandWorkspace } from '@/lib/services/brand-workspace';
 import { documentProcessor } from '@/lib/services/document-processor';
 import type { ChatMessage } from '@/types/brand-workspace';
+import { sanitizePrompt } from '@/lib/utils/validation';
 
 export async function GET(request: NextRequest) {
   try {
@@ -69,7 +70,7 @@ export async function POST(request: NextRequest) {
             : null;
 
           if (!session) {
-            session = await brandWorkspace.createChatSession(undefined, brandId, `Brand Chat - ${brand.name} - ${new Date().toLocaleDateString()}`);
+            session = await brandWorkspace.createChatSession(undefined, brandId, `Brand Chat - ${sanitizePrompt(brand.name, 200)} - ${new Date().toLocaleDateString()}`);
           }
 
           const currentSessionId = session.id;
@@ -230,7 +231,7 @@ export async function POST(request: NextRequest) {
           body: JSON.stringify({
             model: brand.settings?.defaultModel || 'ollama/qwen3.5:9b',
             message: prompt,
-            systemPrompt: `You are a professional ${outputType} writer for ${brand.name}. Generate a comprehensive, well-formatted ${outputType} in markdown format. Use the brand voice and include all relevant information from the provided context.`,
+            systemPrompt: `You are a professional ${outputType} writer for ${sanitizePrompt(brand.name, 200)}. Generate a comprehensive, well-formatted ${outputType} in markdown format. Use the brand voice and include all relevant information from the provided context.`,
           }),
         });
 
@@ -243,7 +244,7 @@ export async function POST(request: NextRequest) {
 
         const output = await brandWorkspace.saveGeneratedOutput(projectId, {
           type: outputType as 'proposal' | 'quote',
-          title: `${brand.name} ${promptTitle} - ${project.name}`,
+          title: `${sanitizePrompt(brand.name, 200)} ${sanitizePrompt(promptTitle, 100)} - ${sanitizePrompt(project.name, 200)}`,
           content: generatedContent,
           format: 'markdown',
           sessionId,
@@ -280,22 +281,22 @@ export async function POST(request: NextRequest) {
 function buildSystemPrompt(contextPrompt: string, project: any, brand: any): string {
   let systemPrompt = contextPrompt;
 
-  systemPrompt += `\n\n## Your Role\nYou are an AI assistant for ${brand.name}, working on the "${project.name}" project. `;
+  systemPrompt += `\n\n## Your Role\nYou are an AI assistant for ${sanitizePrompt(brand.name, 200)}, working on the "${sanitizePrompt(project.name, 200)}" project. `;
   
   if (brand.voiceProfile?.tone) {
-    systemPrompt += `Your tone should be ${brand.voiceProfile.tone}. `;
+    systemPrompt += `Your tone should be ${sanitizePrompt(brand.voiceProfile?.tone || "", 100)}. `;
   }
   
   if (brand.voiceProfile?.style) {
-    systemPrompt += `Your writing style is ${brand.voiceProfile.style}. `;
+    systemPrompt += `Your writing style is ${sanitizePrompt(brand.voiceProfile?.style || "", 200)}. `;
   }
 
   if (brand.voiceProfile?.keyMessages?.length) {
-    systemPrompt += `\n\nKey messages to emphasize: ${brand.voiceProfile.keyMessages.join(', ')}.`;
+    systemPrompt += `\n\nKey messages to emphasize: ${sanitizePrompt(brand.voiceProfile.keyMessages.join(", "), 1000)}.`;
   }
 
   if (brand.voiceProfile?.avoidPhrases?.length) {
-    systemPrompt += `\n\nAvoid using these phrases: ${brand.voiceProfile.avoidPhrases.join(', ')}.`;
+    systemPrompt += `\n\nAvoid using these phrases: ${sanitizePrompt(brand.voiceProfile.avoidPhrases.join(", "), 1000)}.`;
   }
 
   if (brand.voiceProfile?.customInstructions) {
@@ -328,7 +329,7 @@ function buildGenerationPrompt(
 4. Timeline & Milestones
 5. Deliverables
 6. Investment/Pricing (if applicable)
-7. Why Choose ${brand.name}
+7. Why Choose ${sanitizePrompt(brand.name, 200)}
 8. Next Steps`,
     quote: `Generate a professional quote that includes:
 1. Client/Project Information
@@ -339,13 +340,13 @@ function buildGenerationPrompt(
 6. Contact Information`,
   };
 
-  return `Based on the following context and requirements, generate a ${outputType} for ${brand.name}.
+  return `Based on the following context and requirements, generate a ${outputType} for ${sanitizePrompt(brand.name, 200)}.
 
 ## Project Details
-- Name: ${project.name}
+- Name: ${sanitizePrompt(project.name, 200)}
 - Type: ${project.type}
 - Status: ${project.status}
-${project.description ? `- Description: ${project.description}` : ''}
+${project.description ? `- Description: ${sanitizePrompt(project.description || "", 2000)}` : ''}
 ${project.requirements ? `- Requirements: ${project.requirements}` : ''}
 
 ## Additional Requirements

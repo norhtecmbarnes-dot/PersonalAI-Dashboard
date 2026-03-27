@@ -58,14 +58,7 @@ const SCAN_PATHS = [
   'data/rl-training/',
 ];
 
-const EXCLUDE_PATTERNS = [
-  'node_modules',
-  '.git',
-  '.next',
-  '__tests__',
-  '.test.',
-  '.spec.',
-];
+const EXCLUDE_PATTERNS = ['node_modules', '.git', '.next', '__tests__', '.test.', '.spec.'];
 
 const SECURITY_DATA_DIR = path.join(process.cwd(), 'data', 'security');
 const SECURITY_DATA_FILE = path.join(SECURITY_DATA_DIR, 'scans.json');
@@ -86,13 +79,16 @@ const DETECTION_RULES: Array<{
     severity: 'critical',
     patterns: [
       /\$\{.*user.*input.*\}/gi,
-      /`[^`]*\$\{.*(user|input|message|query|prompt).*\}.*`/gi,
+      /`[^`]*\$\{[^}]*body\.[^}]*\}[^`]*`/gi,
+      /`[^`]*\$\{[^}]*req\.[^}]*\}[^`]*`/gi,
       /systemPrompt\s*\+\s*user/gi,
       /context\s*\+=\s*message/gi,
       /eval\s*\(\s*.*user/gi,
+      /systemPrompt\s*\+=\s*`[^`]*\$\{[^}]*(brand|project|user)\.[^}]*\}[^`]*`/gi,
     ],
     description: 'User input directly concatenated into system prompt or evaluated code',
-    remediation: 'Sanitize all user input before including in prompts. Use structured templates with escaped placeholders.',
+    remediation:
+      'Sanitize all user input before including in prompts. Use structured templates with escaped placeholders.',
   },
   // E002: Tool Shadowing (Critical)
   {
@@ -136,18 +132,15 @@ const DETECTION_RULES: Array<{
       /dangerouslySetInnerHTML/gi,
     ],
     description: 'External content loaded without sanitization',
-    remediation: 'Sanitize all external content before processing. Strip prompt-injection patterns.',
+    remediation:
+      'Sanitize all external content before processing. Strip prompt-injection patterns.',
   },
   // E005: Unrestricted Tool Access (High)
   {
     code: 'E005',
     name: 'Unrestricted Tool Access',
     severity: 'high',
-    patterns: [
-      /tools\s*:\s*\*\s*/gi,
-      /allowedTools\s*:\s*\[.*\*/gi,
-      /allTools/gi,
-    ],
+    patterns: [/tools\s*:\s*\*\s*/gi, /allowedTools\s*:\s*\[.*\*/gi, /allTools/gi],
     description: 'Tools accessible without restrictions',
     remediation: 'Implement tool permission system and explicit allowlists.',
   },
@@ -245,12 +238,7 @@ const DETECTION_RULES: Array<{
     code: 'W010',
     name: 'Missing Input Validation',
     severity: 'medium',
-    patterns: [
-      /req\.body\.\w+/gi,
-      /request\.json\s*\(\s*\)/gi,
-      /params\.\w+/gi,
-      /query\.\w+/gi,
-    ],
+    patterns: [/req\.body\.\w+/gi, /request\.json\s*\(\s*\)/gi, /params\.\w+/gi, /query\.\w+/gi],
     description: 'User input used without visible validation',
     remediation: 'Add validateString, validateArray, or schema validation before use.',
   },
@@ -273,11 +261,7 @@ const DETECTION_RULES: Array<{
     code: 'I012',
     name: 'Rug Pull Risk',
     severity: 'low',
-    patterns: [
-      /import\s*\(\s*['"`]\$\{/gi,
-      /require\s*\(\s*.*\+/gi,
-      /eval\s*\(\s*.*import/gi,
-    ],
+    patterns: [/import\s*\(\s*['"`]\$\{/gi, /require\s*\(\s*.*\+/gi, /eval\s*\(\s*.*import/gi],
     description: 'Dynamic import patterns could load malicious code',
     remediation: 'Avoid dynamic imports with user-controlled paths.',
   },
@@ -286,10 +270,7 @@ const DETECTION_RULES: Array<{
     code: 'I013',
     name: 'Missing Rate Limiting',
     severity: 'low',
-    patterns: [
-      /app\.\w+\s*\(\s*['"`]\/api/gi,
-      /router\.\w+\s*\(\s*['"`]\//gi,
-    ],
+    patterns: [/app\.\w+\s*\(\s*['"`]\/api/gi, /router\.\w+\s*\(\s*['"`]\//gi],
     description: 'API endpoint without visible rate limiting',
     remediation: 'Add rate limiting middleware to prevent abuse.',
   },
@@ -298,10 +279,7 @@ const DETECTION_RULES: Array<{
     code: 'I014',
     name: 'Insufficient Logging',
     severity: 'low',
-    patterns: [
-      /catch\s*\(\s*\w+\s*\)\s*\{\s*\}/gi,
-      /\.catch\s*\(\s*\(\s*\)\s*=>\s*\{\s*\}/gi,
-    ],
+    patterns: [/catch\s*\(\s*\w+\s*\)\s*\{\s*\}/gi, /\.catch\s*\(\s*\(\s*\)\s*=>\s*\{\s*\}/gi],
     description: 'Error caught but not logged',
     remediation: 'Log errors for debugging and security monitoring.',
   },
@@ -325,12 +303,7 @@ const SEMANTIC_PATTERNS = [
     code: 'SP002',
     name: 'Role Manipulation Pattern',
     description: 'Text that attempts to change AI role',
-    examples: [
-      'you are a different AI',
-      'pretend you are',
-      'act as if you were',
-      'roleplay as',
-    ],
+    examples: ['you are a different AI', 'pretend you are', 'act as if you were', 'roleplay as'],
   },
   {
     code: 'SP003',
@@ -388,31 +361,31 @@ class AISecurityScanner {
 
   async scan(options: ScanOptions = {}): Promise<SecurityScanResult> {
     await this.initialize();
-    
+
     const startTime = Date.now();
     const issues: SecurityIssue[] = [];
     let filesScanned = 0;
-    
+
     const scanPaths = options.paths || SCAN_PATHS;
     const excludePatterns = [...EXCLUDE_PATTERNS, ...(options.excludePatterns || [])];
 
     for (const scanPath of scanPaths) {
       const fullPath = path.join(this.rootDir, scanPath);
-      
+
       if (!fs.existsSync(fullPath)) continue;
-      
+
       const files = this.getFiles(fullPath, excludePatterns);
-      
+
       for (const file of files) {
         if (options.quickScan && issues.filter(i => i.severity === 'critical').length >= 3) {
           break;
         }
-        
+
         const fileIssues = this.scanFile(file);
         issues.push(...fileIssues);
         filesScanned++;
       }
-      
+
       if (options.quickScan && issues.filter(i => i.severity === 'critical').length >= 3) {
         break;
       }
@@ -444,22 +417,22 @@ class AISecurityScanner {
 
   private getFiles(dir: string, excludePatterns: string[]): string[] {
     const files: string[] = [];
-    
+
     try {
       const entries = fs.readdirSync(dir, { withFileTypes: true });
-      
+
       for (const entry of entries) {
         const fullPath = path.join(dir, entry.name);
-        
+
         const shouldExclude = excludePatterns.some(pattern => {
           if (pattern.startsWith('*.')) {
             return entry.name.endsWith(pattern.slice(1));
           }
           return entry.name.includes(pattern);
         });
-        
+
         if (shouldExclude) continue;
-        
+
         if (entry.isDirectory()) {
           files.push(...this.getFiles(fullPath, excludePatterns));
         } else if (entry.isFile() && /\.(ts|tsx|js|jsx|json|md)$/.test(entry.name)) {
@@ -469,30 +442,34 @@ class AISecurityScanner {
     } catch {
       // Ignore permission errors
     }
-    
+
     return files;
   }
 
   private scanFile(filePath: string): SecurityIssue[] {
     const issues: SecurityIssue[] = [];
-    
+
     try {
       const content = fs.readFileSync(filePath, 'utf-8');
       const lines = content.split('\n');
       const relativePath = path.relative(this.rootDir, filePath);
-      
+
       for (const rule of DETECTION_RULES) {
         for (const pattern of rule.patterns) {
           pattern.lastIndex = 0;
-          
+
           let match;
           while ((match = pattern.exec(content)) !== null) {
             const lineNumber = content.substring(0, match.index).split('\n').length;
-            
-            const snippet = lines
-              .slice(Math.max(0, lineNumber - 2), lineNumber + 1)
-              .join('\n');
-            
+            const line = lines[lineNumber - 1] || '';
+            const contextLines = lines.slice(Math.max(0, lineNumber - 3), lineNumber).join('\n');
+
+            if (this.isAlreadySanitized(line, contextLines, rule.code)) {
+              continue;
+            }
+
+            const snippet = lines.slice(Math.max(0, lineNumber - 2), lineNumber + 1).join('\n');
+
             issues.push({
               code: rule.code,
               name: rule.name,
@@ -506,34 +483,66 @@ class AISecurityScanner {
           }
         }
       }
-      
+
       const semanticIssues = this.checkSemanticPatterns(content, relativePath);
       issues.push(...semanticIssues);
-      
     } catch {
       // Ignore file read errors
     }
-    
+
     return issues;
+  }
+
+  private isAlreadySanitized(line: string, contextLines: string, ruleCode: string): boolean {
+    const sanitizationFunctions = [
+      'sanitizePrompt',
+      'sanitizeString',
+      'sanitizeObject',
+      'sanitizeDisplay',
+      'validateString',
+      'escapeHtml',
+      'DOMPurify',
+      'encodeURIComponent',
+    ];
+
+    const hasSanitization = sanitizationFunctions.some(fn => {
+      const fnPattern = new RegExp(`${fn}\\s*\\(`, 'i');
+      return fnPattern.test(line) || fnPattern.test(contextLines);
+    });
+
+    if (hasSanitization) {
+      if (ruleCode === 'E001' || ruleCode === 'W010') {
+        return true;
+      }
+    }
+
+    if (ruleCode === 'E001') {
+      if (/\$\{sanitizePrompt\(/i.test(line) || /\$\{sanitizeString\(/i.test(line)) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   private checkSemanticPatterns(content: string, filePath: string): SecurityIssue[] {
     const issues: SecurityIssue[] = [];
     const lowerContent = content.toLowerCase();
-    
+
     for (const pattern of SEMANTIC_PATTERNS) {
       for (const example of pattern.examples) {
         if (lowerContent.includes(example.toLowerCase())) {
           const lines = content.split('\n');
-          const lineNumber = lines.findIndex(line => 
-            line.toLowerCase().includes(example.toLowerCase())
-          ) + 1;
-          
+          const lineNumber =
+            lines.findIndex(line => line.toLowerCase().includes(example.toLowerCase())) + 1;
+
           const contextLine = lines[lineNumber - 1] || '';
-          if (contextLine.includes('user') || 
-              contextLine.includes('input') || 
-              contextLine.includes('prompt') ||
-              contextLine.includes('message')) {
+          if (
+            contextLine.includes('user') ||
+            contextLine.includes('input') ||
+            contextLine.includes('prompt') ||
+            contextLine.includes('message')
+          ) {
             issues.push({
               code: pattern.code,
               name: pattern.name,
@@ -542,13 +551,14 @@ class AISecurityScanner {
               file: filePath,
               line: lineNumber,
               snippet: contextLine.slice(0, 200),
-              remediation: 'Review and sanitize prompts for injection attempts. Use structured templates.',
+              remediation:
+                'Review and sanitize prompts for injection attempts. Use structured templates.',
             });
           }
         }
       }
     }
-    
+
     return issues;
   }
 
@@ -559,12 +569,12 @@ class AISecurityScanner {
       medium: 2,
       low: 1,
     };
-    
+
     let score = 0;
     for (const issue of issues) {
       score += weights[issue.severity];
     }
-    
+
     return Math.min(100, score);
   }
 
@@ -575,20 +585,20 @@ class AISecurityScanner {
       riskScore: result.riskScore,
       summary: result.summary,
     });
-    
+
     // Keep only last 50 scans
     if (this.history.scans.length > 50) {
       this.history.scans = this.history.scans.slice(-50);
     }
-    
+
     // Store issues
     this.history.issues.push(...result.issues);
-    
+
     // Keep only last 1000 issues
     if (this.history.issues.length > 1000) {
       this.history.issues = this.history.issues.slice(-1000);
     }
-    
+
     this.saveHistory();
   }
 
@@ -601,7 +611,12 @@ class AISecurityScanner {
     return this.history.scans.slice(-limit);
   }
 
-  getLatestScan(): { id: string; timestamp: number; riskScore: number; summary: SecurityScanResult['summary'] } | null {
+  getLatestScan(): {
+    id: string;
+    timestamp: number;
+    riskScore: number;
+    summary: SecurityScanResult['summary'];
+  } | null {
     const scans = this.history.scans;
     return scans[scans.length - 1] || null;
   }
@@ -618,7 +633,7 @@ class AISecurityScanner {
   generateReport(result: SecurityScanResult): string {
     let report = `## Security Scan Results\n\n`;
     report += `**Risk Score:** ${result.riskScore}/100`;
-    
+
     if (result.riskScore < 20) {
       report += ` (Low) ✓\n`;
     } else if (result.riskScore < 50) {
@@ -628,30 +643,35 @@ class AISecurityScanner {
     } else {
       report += ` (Critical) 🔴\n`;
     }
-    
+
     report += `**Files Scanned:** ${result.filesScanned}\n`;
     report += `**Duration:** ${(result.scanDurationMs / 1000).toFixed(2)}s\n`;
     report += `**Timestamp:** ${new Date(result.timestamp).toLocaleString()}\n\n`;
-    
+
     const { critical, high, medium, low } = result.summary;
-    
+
     report += `### Summary\n`;
     report += `- **Critical:** ${critical}\n`;
     report += `- **High:** ${high}\n`;
     report += `- **Medium:** ${medium}\n`;
     report += `- **Low:** ${low}\n\n`;
-    
-    const severities: Array<'critical' | 'high' | 'medium' | 'low'> = ['critical', 'high', 'medium', 'low'];
-    
+
+    const severities: Array<'critical' | 'high' | 'medium' | 'low'> = [
+      'critical',
+      'high',
+      'medium',
+      'low',
+    ];
+
     for (const severity of severities) {
       const issues = result.issues.filter(i => i.severity === severity);
       if (issues.length === 0) {
         report += `### ${severity.charAt(0).toUpperCase() + severity.slice(1)} Issues\nNone found ✓\n\n`;
         continue;
       }
-      
+
       report += `### ${severity.charAt(0).toUpperCase() + severity.slice(1)} Issues (${issues.length})\n`;
-      
+
       for (let i = 0; i < Math.min(issues.length, 5); i++) {
         const issue = issues[i];
         report += `${i + 1}. **${issue.code}: ${issue.name}**`;
@@ -664,12 +684,12 @@ class AISecurityScanner {
         report += `\n   ${issue.description}\n`;
         report += `   **Remediation:** ${issue.remediation}\n\n`;
       }
-      
+
       if (issues.length > 5) {
         report += `   *...and ${issues.length - 5} more ${severity} issues*\n\n`;
       }
     }
-    
+
     return report;
   }
 
@@ -689,15 +709,20 @@ export async function runSecurityScan(options?: ScanOptions): Promise<SecuritySc
 }
 
 export async function getSecurityStatus(): Promise<{
-  lastScan: { id: string; timestamp: number; riskScore: number; summary: SecurityScanResult['summary'] } | null;
+  lastScan: {
+    id: string;
+    timestamp: number;
+    riskScore: number;
+    summary: SecurityScanResult['summary'];
+  } | null;
   issueCount: number;
   riskLevel: string;
 }> {
   await aiSecurityScanner.initialize();
-  
+
   const lastScan = aiSecurityScanner.getLatestScan();
   const issueCount = aiSecurityScanner.getIssuesByScan('').length;
-  
+
   let riskLevel = 'unknown';
   if (lastScan) {
     if (lastScan.riskScore < 20) riskLevel = 'low';
@@ -705,6 +730,6 @@ export async function getSecurityStatus(): Promise<{
     else if (lastScan.riskScore < 75) riskLevel = 'high';
     else riskLevel = 'critical';
   }
-  
+
   return { lastScan, issueCount, riskLevel };
 }

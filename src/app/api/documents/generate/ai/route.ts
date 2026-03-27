@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { generateDocumentFromPrompt } from '@/lib/services/ai-document-generator';
 import { brandWorkspace } from '@/lib/services/brand-workspace';
+import { sanitizePrompt } from '@/lib/utils/validation';
 
 export async function POST(request: NextRequest) {
   try {
@@ -38,25 +39,25 @@ export async function POST(request: NextRequest) {
         const brand = await brandWorkspace.getBrandById(brandId);
         if (brand) {
           const contextParts: string[] = [];
-          contextParts.push(`BRAND: ${brand.name}`);
+          contextParts.push(`BRAND: ${sanitizePrompt(brand.name, 200)}`);
           if (brand.description) {
-            contextParts.push(`Description: ${brand.description}`);
+            contextParts.push(`Description: ${sanitizePrompt(brand.description || "", 2000)}`);
           }
           if (brand.industry) {
             contextParts.push(`Industry: ${brand.industry}`);
           }
           if (brand.voiceProfile) {
             if (brand.voiceProfile.tone) {
-              contextParts.push(`Tone: ${brand.voiceProfile.tone}`);
+              contextParts.push(`Tone: ${sanitizePrompt(brand.voiceProfile?.tone || "", 100)}`);
             }
             if (brand.voiceProfile.style) {
-              contextParts.push(`Style: ${brand.voiceProfile.style}`);
+              contextParts.push(`Style: ${sanitizePrompt(brand.voiceProfile?.style || "", 200)}`);
             }
             if (brand.voiceProfile.keyMessages?.length) {
-              contextParts.push(`Key Messages: ${brand.voiceProfile.keyMessages.join(', ')}`);
+              contextParts.push(`Key Messages: ${sanitizePrompt(brand.voiceProfile.keyMessages.join(", "), 1000)}`);
             }
             if (brand.voiceProfile.avoidPhrases?.length) {
-              contextParts.push(`Avoid: ${brand.voiceProfile.avoidPhrases.join(', ')}`);
+              contextParts.push(`Avoid: ${sanitizePrompt(brand.voiceProfile.avoidPhrases.join(", "), 1000)}`);
             }
             if (brand.voiceProfile.customInstructions) {
               contextParts.push(`Additional: ${brand.voiceProfile.customInstructions}`);

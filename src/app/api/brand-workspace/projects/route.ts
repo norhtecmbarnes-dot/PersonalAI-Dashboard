@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { brandWorkspace } from '@/lib/services/brand-workspace';
 import type { ProjectType, ProjectStatus } from '@/types/brand-workspace';
+import { sanitizePrompt } from '@/lib/utils/validation';
 
 export async function GET(request: NextRequest) {
   try {

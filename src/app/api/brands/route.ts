@@ -2,6 +2,7 @@ export const runtime = 'nodejs';
 
 import { NextResponse } from 'next/server';
 import { sqlDatabase } from '@/lib/database/sqlite';
+import { sanitizePrompt } from '@/lib/utils/validation';
 
 export async function GET(request: Request) {
   try {
