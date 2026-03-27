@@ -6,6 +6,9 @@ authors:
   - family-names: Barnes
     given-names: Michael C.
     orcid: https://github.com/norhtecmbarnes
+  - family-names: Hill
+    given-names: Randolph
+    contribution: "Concepts and inspiration for Model Message Bus architecture"
 repository-code: "https://github.com/norhtecmbarnes-dot/PersonalAI-Dashboard"
 url: "https://github.com/norhtecmbarnes-dot/PersonalAI-Dashboard"
 license: MIT

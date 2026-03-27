@@ -61,7 +61,7 @@ A complete AI Operating System that runs on your laptop or desktop. Includes a p
 - **Model Message Bus** — Revolutionary self-assessing hierarchical LLM communication. Small models intelligently escalate to larger ones and validate the final response locally.
 - **Vector Lake** — Automatic, ever-growing memory system that turns every interaction into permanent contextual knowledge.
 
-These two concepts (developed by Michael C. Barnes) are the foundation of the entire architecture and are currently undergoing provisional patent protection.
+These two concepts (developed by Michael C. Barnes, with inspiration from Randolph Hill) are the foundation of the entire architecture and are currently undergoing provisional patent protection.
 
 ---
 
