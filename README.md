@@ -2,68 +2,71 @@
 
 **Build your own private, local-first AI productivity system — no subscriptions, no data leaks, no vendor lock-in.**
 
-A complete AI Operating System that runs on your laptop or desktop. Includes a powerful Research Assistant, Writing Studio, Visual Builder, Document Generator, Brand Workspace, Task Scheduler, Calendar, Telegram integration, and more.
+A complete AI Operating System that runs on your laptop. Includes Research Assistant, Writing Studio, Visual Builder, Document Generator, Brand Workspace, Task Scheduler, Calendar, Telegram integration, and more.
 
-**This is Michael C. Barnes' 5th book on Generative AI** — the full 384-page book is included **free** with the project.
+**Michael C. Barnes' 5th book on Generative AI** — the full 384-page book is included **free**.
 
-![Dashboard Hero](./screenshots/Home%20--%20Chat%20Windows.png)
+## 📖 Free Book
 
----
-
-## 📖 Free Book Included
-
-**Building Your AI Dashboard: The Complete Guide**  
+**[Building Your AI Dashboard: The Complete Guide](book/Building_Your_AI_Dashboard.pdf)**  
 *From Zero to Enterprise-Grade AI — On Your Own Personal Computer*
-
-- Written for complete beginners (no programming experience required)
-- Step-by-step instructions to build everything you see here
-- Full explanations of the Model Message Bus and Vector Lake
-
-**[📥 Download the Full Book (PDF)](./docs/Building_Your_AI_Dashboard.pdf)**
-
----
 
 ## ✨ Live Screenshots
 
-### AI Research Assistant
-![AI Research Assistant](./screenshots/Home%20--%20Chat%20Windows.png)
+**AI Research Assistant**  
+![AI Research Assistant](screenshots/Home -- Chat Windows.png)
 
-### Visual Builder (AI-generated UIs)
-![Visual Builder](./screenshots/Visual%20Builder.png)
+**Visual Builder**  
+![Visual Builder](screenshots/Visual Builder.png)
 
-### Writing Studio + Outliner
-![Writing Studio](./screenshots/writing%20Studio.png)
+**Writing Studio**  
+![Writing Studio](screenshots/writing Studio.png)
 
-![Outliner](./screenshots/outliner.png)
+**Brand Workspace**  
+![Brand Workspace](screenshots/Brand Workspace.png)
 
-### Brand Workspace (NotebookLM-style)
-![Brand Workspace](./screenshots/Brand%20Workspace.png)
+**LLM Leaderboard**  
+![LLM Leaderboard](screenshots/llm leaderboard.png)
 
-### LLM Leaderboard & Free Token Sources
-![LLM Leaderboard](./screenshots/llm%20leaderboard.png)
+**Task Scheduler**  
+![Task Scheduler](screenshots/Task Scehduler.png)
 
-### Task Scheduler
-![Task Scheduler](./screenshots/Task%20Scehduler.png)
+**Calendar**  
+![Calendar](screenshots/calandar page.png)
 
-### Calendar with AI Briefing
-![Calendar](./screenshots/calandar%20page.png)
+**Telegram Integration**  
+![Telegram Integration](screenshots/Telegram.png)
 
-### Telegram Integration
-![Telegram Integration](./screenshots/Telegram.png)
-
-### Notes System
-![Notes](./screenshots/notes.png)
-
----
+**Notes**  
+![Notes](screenshots/notes.png)
 
 ## Core Innovations (Patent Pending)
 
-- **Model Message Bus** — Revolutionary self-assessing hierarchical LLM communication. Small models intelligently escalate to larger ones and validate the final response locally.
-- **Vector Lake** — Automatic, ever-growing memory system that turns every interaction into permanent contextual knowledge.
+- **Model Message Bus** — Self-assessing hierarchical LLM communication (Michael C. Barnes, with inspiration from Randolph Hill)
+- **Vector Lake** — Automatic growing memory system (Michael C. Barnes)
 
-These two concepts (developed by Michael C. Barnes, with inspiration from Randolph Hill) are the foundation of the entire architecture and are currently undergoing provisional patent protection.
+## 🚀 Quick Start
 
----
+```bash
+git clone https://github.com/norhtecmbarnes-dot/PersonalAI-Dashboard.git
+cd PersonalAI-Dashboard
+npm install
+cp .env.example .env.local
+
+# Start with Docker (recommended)
+docker compose up
+
+# Or start with npm
+npm run dev
+```
+
+Open http://localhost:3000
+
+## 📖 Documentation
+
+- **[User Guide](docs/USER-GUIDE.md)** — Complete walkthrough
+- **[Book (PDF)](book/Building_Your_AI_Dashboard.pdf)** — Full 384-page guide
+- **[Book (Online)](https://designrr.page/?id=493295&token=3520346906&type=FP&h=9144)** — Web version
 
 ## Key Features
 
@@ -80,40 +83,6 @@ These two concepts (developed by Michael C. Barnes, with inspiration from Randol
 - Self-reflection and system improvement suggestions
 - Full local-first design (your data never leaves your machine)
 
----
-
-## 🚀 Quick Start
-
-```bash
-git clone https://github.com/norhtecmbarnes-dot/PersonalAI-Dashboard.git
-cd PersonalAI-Dashboard
-npm install
-
-# Start with Docker (recommended)
-docker compose up
-
-# Or start with npm
-npm run dev
-```
-
-Open http://localhost:3000 in your browser.
-
-**For local AI models** (free, private):
-```bash
-ollama pull llama3.2
-npm run dev
-```
-
----
-
-## 📖 Documentation
-
-- **[User Guide](./docs/USER-GUIDE.md)** — Complete walkthrough with screenshots
-- **[Book (PDF)](./docs/Building_Your_AI_Dashboard.pdf)** — Full 384-page guide
-- **[Book (Online)](https://designrr.page/?id=493295&token=3520346906&type=FP&h=9144)** — Web version
-
----
-
 ## Technologies
 
 - **Next.js 14** + TypeScript
@@ -121,8 +90,6 @@ npm run dev
 - **Docker** + containerized deployment
 - **SQLite** + Vector Lake
 - **Tailwind** + modern UI
-
----
 
 ## The Model Message Bus
 
@@ -137,8 +104,6 @@ npm run dev
 ```
 
 Self-assessment + budget awareness + bidirectional validation = truly novel in open source.
-
----
 
 ## License
 
