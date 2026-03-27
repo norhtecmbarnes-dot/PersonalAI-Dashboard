@@ -1,51 +1,84 @@
 # PersonalAI Dashboard
 
-**All the power of AI-assisted development — 100% local, private, and token-efficient.**
+**Build your own private, local-first AI productivity system — no subscriptions, no data leaks, no vendor lock-in.**
 
-Chat with your documents, generate beautiful presentations, automate tasks, and build your own intelligent AI assistants.  
-**No cloud lock-in. No monthly fees. No data leaks.** Just pure AI that you control.
+A complete AI Operating System that runs on your laptop or desktop. Includes a powerful Research Assistant, Writing Studio, Visual Builder, Document Generator, Brand Workspace, Task Scheduler, Calendar, Telegram integration, and more.
+
+**This is Michael C. Barnes' 5th book on Generative AI** — the full 384-page book is included **free** with the project.
+
+![Dashboard Hero](./screenshots/Home%20--%20Chat%20Windows.png)
 
 ---
 
-## ✨ Dashboard Features
+## 📖 Free Book Included
 
-Here's what the PersonalAI Dashboard looks like in action:
+**Building Your AI Dashboard: The Complete Guide**  
+*From Zero to Enterprise-Grade AI — On Your Own Personal Computer*
 
-### AI Research Assistant & Chat
+- Written for complete beginners (no programming experience required)
+- Step-by-step instructions to build everything you see here
+- Full explanations of the Model Message Bus and Vector Lake
+
+**[📥 Download the Full Book (PDF)](./docs/Building_Your_AI_Dashboard.pdf)**
+
+---
+
+## ✨ Live Screenshots
+
+### AI Research Assistant
 ![AI Research Assistant](./screenshots/Home%20--%20Chat%20Windows.png)
 
-### Visual Builder (AI-Powered UI Generation)
-Create UIs with natural language — describe what you want and AI builds it.
+### Visual Builder (AI-generated UIs)
 ![Visual Builder](./screenshots/Visual%20Builder.png)
 
-### Writing Studio & Outliner
-Full-featured writing environment with AI assistance, grammar checking, and document generation.
+### Writing Studio + Outliner
 ![Writing Studio](./screenshots/writing%20Studio.png)
+
 ![Outliner](./screenshots/outliner.png)
 
 ### Brand Workspace (NotebookLM-style)
-Knowledge management with AI-powered insights and context injection.
 ![Brand Workspace](./screenshots/Brand%20Workspace.png)
 
 ### LLM Leaderboard & Free Token Sources
-Compare models, track usage, and find free AI resources.
 ![LLM Leaderboard](./screenshots/llm%20leaderboard.png)
 
 ### Task Scheduler
-Automate tasks with cron-based scheduling and AI context.
 ![Task Scheduler](./screenshots/Task%20Scehduler.png)
 
 ### Calendar with AI Briefing
-Event management with AI-generated insights and daily briefings.
 ![Calendar](./screenshots/calandar%20page.png)
 
+### Telegram Integration
+![Telegram Integration](./screenshots/Telegram.png)
+
 ### Notes System
-Intelligent note-taking with AI-powered search and organization.
 ![Notes](./screenshots/notes.png)
 
-### Telegram Integration
-Control your AI dashboard remotely via Telegram bot.
-![Telegram Integration](./screenshots/Telegram.png)
+---
+
+## Core Innovations (Patent Pending)
+
+- **Model Message Bus** — Revolutionary self-assessing hierarchical LLM communication. Small models intelligently escalate to larger ones and validate the final response locally.
+- **Vector Lake** — Automatic, ever-growing memory system that turns every interaction into permanent contextual knowledge.
+
+These two concepts (developed by Michael C. Barnes) are the foundation of the entire architecture and are currently undergoing provisional patent protection.
+
+---
+
+## Key Features
+
+- AI Research Assistant with streaming responses
+- Visual Builder — generate UIs and forms with natural language
+- Writing Studio with Outliner, Rewrite, Expand, and Grammar tools
+- Document Generator (Word, Excel, PowerPoint)
+- Brand Workspace for multi-brand knowledge management
+- Task Scheduler (natural language recurring tasks)
+- Calendar with AI-generated briefings
+- Telegram Bot + Notifications
+- LLM Leaderboard with free token sources
+- Notes system (Kanban-style)
+- Self-reflection and system improvement suggestions
+- Full local-first design (your data never leaves your machine)
 
 ---
 
@@ -55,44 +88,31 @@ Control your AI dashboard remotely via Telegram bot.
 git clone https://github.com/norhtecmbarnes-dot/PersonalAI-Dashboard.git
 cd PersonalAI-Dashboard
 npm install
-ollama pull qwen3.5:2b
+
+# Start with Docker (recommended)
+docker compose up
+
+# Or start with npm
 npm run dev
 ```
 
-**Docker option (one command):**
+Open http://localhost:3000 in your browser.
+
+**For local AI models** (free, private):
 ```bash
-docker compose up
+ollama pull llama3.2
+npm run dev
 ```
 
-## What Makes This Different
-
-- **Smart Model Router** — automatically picks the right brain (2B → 108B)
-- **Model Message Bus** — the small local model can "chat with its own ChatGPT" when it needs help
-- **Vector Lake** — your AI's growing, intelligent memory (never forgets)
-- **Canvas UI Builder**, **Presentation Generator**, **Daily Briefing**, **Task Automation**
-- **Linguix Integration** — grammar and style checking for your writing
-
-## The Model Message Bus
-
-This is the unique architecture at the heart of the system. Your tiny local model decides when it's overwhelmed, escalates across the bus, gets a high-quality answer, validates it, and returns the final response — all while tracking tokens and keeping everything private.
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    MODEL MESSAGE BUS                         │
-│  Tier 1: Local Small (qwen3.5:2b)     ← Triage & simple tasks│
-│  Tier 2: Local Large (qwen2.5:14b)                           │
-│  Tier 3: Cloud Fast (groq/llama-3.1-8b)                      │
-│  Tier 4: Cloud Smart (gpt-4o, claude-3.5, glm-5)           │
-└─────────────────────────────────────────────────────────────┘
-```
-
-Self-assessment + budget awareness + bidirectional validation = truly novel in open source.
+---
 
 ## 📖 Documentation
 
 - **[User Guide](./docs/USER-GUIDE.md)** — Complete walkthrough with screenshots
-- **[Book (PDF)](./docs/Building_Your_AI_Dashboard.pdf)** — Full guide to building local AI systems
-- **[Book (Online)](https://designrr.page/?id=493295&token=3520346906&type=FP&h=9144)** — Web version with rich formatting
+- **[Book (PDF)](./docs/Building_Your_AI_Dashboard.pdf)** — Full 384-page guide
+- **[Book (Online)](https://designrr.page/?id=493295&token=3520346906&type=FP&h=9144)** — Web version
+
+---
 
 ## Technologies
 
@@ -100,6 +120,29 @@ Next.js 14 • TypeScript • Ollama • Tailwind • SQLite + Vector Lake • D
 
 ---
 
+## The Model Message Bus
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    MODEL MESSAGE BUS                         │
+│  Tier 1: Local Small (llama3.2:latest)   ← Triage & simple  │
+│  Tier 2: Local Large (qwen3.5:9b)                            │
+│  Tier 3: Cloud Fast (groq/llama-3.1-8b)                      │
+│  Tier 4: Cloud Smart (gpt-4o, claude-3.5, glm-5)            │
+└─────────────────────────────────────────────────────────────┘
+```
+
+Self-assessment + budget awareness + bidirectional validation = truly novel in open source.
+
+---
+
+## License
+
+- **Code**: MIT License — use freely for any purpose
+- **Book**: CC BY-SA 4.0 — share and adapt with attribution
+
+---
+
 Star ⭐ this repo if you believe in local-first AI that saves money and protects your data.
 
-Made with ❤️ by Michael C. Barnes (@norhtecmbarnes)
+**Made with ❤️ by Michael C. Barnes (@norhtecmbarnes)**
