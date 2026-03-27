@@ -116,7 +116,11 @@ npm run dev
 
 ## Technologies
 
-Next.js 14 • TypeScript • Ollama • Tailwind • SQLite + Vector Lake • Docker
+- **Next.js 14** + TypeScript
+- **Ollama** (local models)
+- **Docker** + containerized deployment
+- **SQLite** + Vector Lake
+- **Tailwind** + modern UI
 
 ---
 
