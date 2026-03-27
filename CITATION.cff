@@ -1,18 +1,30 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite it as below."
 type: software
-title: "PersonalAI Dashboard: Privacy-First AI Assistant"
+title: "PersonalAI Dashboard: Local-First AI Operating System"
 authors:
-  - name: "PersonalAI Dashboard Contributors"
+  - family-names: Barnes
+    given-names: Michael C.
+    orcid: https://github.com/norhtecmbarnes
 repository-code: "https://github.com/norhtecmbarnes-dot/PersonalAI-Dashboard"
+url: "https://github.com/norhtecmbarnes-dot/PersonalAI-Dashboard"
 license: MIT
-version: 0.1.0
-date-released: 2026-03-05
+version: 1.0.0
+date-released: 2026-03-27
+keywords:
+  - ai
+  - local-first
+  - llm
+  - ollama
+  - nextjs
+  - privacy
+abstract: "A complete AI Operating System that runs locally on your machine. Includes Research Assistant, Writing Studio, Visual Builder, Document Generator, Brand Workspace, Task Scheduler, Calendar, and Telegram integration. Features the Model Message Bus and Vector Lake architecture for intelligent LLM communication and persistent memory."
 
 preferred-citation:
   type: software
-  title: "PersonalAI Dashboard: Privacy-First AI Assistant"
+  title: "PersonalAI Dashboard: Local-First AI Operating System"
   authors:
-    - name: "PersonalAI Dashboard Contributors"
+    - family-names: Barnes
+      given-names: Michael C.
   year: 2026
   url: "https://github.com/norhtecmbarnes-dot/PersonalAI-Dashboard"
