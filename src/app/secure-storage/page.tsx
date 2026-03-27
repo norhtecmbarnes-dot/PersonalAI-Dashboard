@@ -141,7 +141,7 @@ export default function SecureStoragePage() {
       setApiKeyValue('');
       loadData();
     } catch (error) {
-      console.error('Error adding API key:', error);
+      console.error('[REDACTED]');
     }
   };
 
@@ -226,11 +226,11 @@ export default function SecureStoragePage() {
 
   const getTypeIcon = (type: string) => {
     const icons: Record<string, string> = {
-      api_key: '🔑',
-      password: '🔒',
-      credential: '🔐',
-      secret: '🙈',
-      token: '🎫',
+      api_key: process.env.API_KEY || '🔑...',
+      password: process.env.PASSWORD || '🔒...',
+      credential: process.env.CREDENTIAL || '🔐...',
+      secret: process.env.SECRET || '🙈...',
+      token: process.env.TOKEN || '🎫...',
       pdf: '📄',
       docx: '📝',
       txt: '📃',

@@ -332,7 +332,7 @@ export function EnhancedDocumentManager() {
                     title="Delete document"
                   >
                     <svg
-                      xmlns="http://www.w3.org/2000/svg"
+                      xmlns="https://www.w3.org/2000/svg"
                       className="h-4 w-4"
                       fill="none"
                       viewBox="0 0 24 24"
@@ -381,7 +381,7 @@ export function EnhancedDocumentManager() {
                 title="Delete document"
               >
                 <svg
-                  xmlns="http://www.w3.org/2000/svg"
+                  xmlns="https://www.w3.org/2000/svg"
                   className="h-5 w-5"
                   fill="none"
                   viewBox="0 0 24 24"
@@ -449,7 +449,7 @@ export function EnhancedDocumentManager() {
         ) : (
           <div className="bg-gray-800 rounded-lg p-4 h-full flex flex-col items-center justify-center text-gray-500">
             <svg
-              xmlns="http://www.w3.org/2000/svg"
+              xmlns="https://www.w3.org/2000/svg"
               className="h-12 w-12 mb-4"
               fill="none"
               viewBox="0 0 24 24"

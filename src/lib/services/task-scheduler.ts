@@ -20,6 +20,7 @@ export interface ScheduledTask {
     | 'cleanup'
     | 'cleanup_duplicate_tasks'
     | 'security_fix'
+    | 'telegram_briefing'
     | 'custom';
   schedule: string;
   brandId?: string;
@@ -72,6 +73,7 @@ const TASK_PRIORITIES: Record<ScheduledTask['taskType'], 'critical' | 'high' | '
   cleanup: 'low', // Maintenance, pause during use
   cleanup_duplicate_tasks: 'high', // Important for database hygiene
   security_fix: 'critical', // Security issues need immediate attention
+  telegram_briefing: 'normal', // Daily briefing notification
   custom: 'normal',
 };
 
@@ -95,6 +97,13 @@ export const TASK_TEMPLATES: TaskTemplate[] = [
     name: 'Cache Cleanup',
     description: 'Clear expired cache entries and old temporary data',
     defaultSchedule: 'daily',
+  },
+  {
+    type: 'telegram_briefing',
+    name: 'Telegram Daily Briefing',
+    description: 'Send daily briefing notification to Telegram',
+    defaultSchedule: 'daily',
+    promptTemplate: 'Send daily briefing with news, tasks, and calendar events to Telegram.',
   },
   {
     type: 'research',
@@ -210,6 +219,7 @@ class TaskScheduler {
     cleanup: 10 * 60 * 1000, // 10 minutes
     cleanup_duplicate_tasks: 5 * 60 * 1000, // 5 minutes - find and remove duplicate tasks
     security_fix: 10 * 60 * 1000, // 10 minutes - fix security issues
+    telegram_briefing: 2 * 60 * 1000, // 2 minutes - send briefing
     custom: 10 * 60 * 1000, // 10 minutes
   };
 
@@ -366,6 +376,7 @@ class TaskScheduler {
         { type: 'memory_archive', enabled: true, permanent: true },
         { type: 'cleanup_duplicate_tasks', enabled: true, permanent: true },
         { type: 'security_fix', enabled: true, permanent: true },
+        { type: 'telegram_briefing', enabled: true, permanent: true },
       ];
 
       let createdCount = 0;
@@ -629,6 +640,9 @@ class TaskScheduler {
         case 'security_fix':
           result = await this.executeSecurityFixTask(task);
           break;
+        case 'telegram_briefing':
+          result = await this.executeTelegramBriefingTask(task);
+          break;
         case 'custom':
           result = await this.executeCustomTask(task);
           break;
@@ -651,6 +665,21 @@ class TaskScheduler {
       report.newsSummary?.spaceDomainAwareness?.length ||
       0 + (report.newsSummary?.commercialSpace?.length || 0);
 
+    // Send Telegram notification for intelligence report
+    try {
+      const { sendIntelligenceNotification, getNotificationConfig } =
+        await import('@/lib/integrations/telegram-notify');
+      const notifConfig = await getNotificationConfig();
+      if (notifConfig.enabled && notifConfig.intelligence) {
+        await sendIntelligenceNotification({
+          articles: articleCount,
+          opportunities: report.bidOpportunities?.samGov?.length || 0,
+        });
+      }
+    } catch (e) {
+      console.log('[TaskScheduler] Telegram notification failed:', e);
+    }
+
     return {
       success: true,
       result: `Intelligence report generated with ${articleCount} articles`,
@@ -662,6 +691,25 @@ class TaskScheduler {
     const { securityAgent } = await import('@/lib/agent/security-agent');
 
     const report = await securityAgent.performSecurityScan();
+
+    // Send Telegram notification for security scan results
+    try {
+      const { sendSecurityNotification, getNotificationConfig } =
+        await import('@/lib/integrations/telegram-notify');
+      const notifConfig = await getNotificationConfig();
+      if (notifConfig.enabled && notifConfig.security) {
+        const criticalCount = report.findings?.filter(f => f.severity === 'critical').length || 0;
+        const highCount = report.findings?.filter(f => f.severity === 'high').length || 0;
+        await sendSecurityNotification({
+          count: report.findings?.length || 0,
+          riskScore: report.riskScore,
+          critical: criticalCount,
+          high: highCount,
+        });
+      }
+    } catch (e) {
+      console.log('[TaskScheduler] Telegram notification failed:', e);
+    }
 
     return {
       success: true,
@@ -1103,6 +1151,88 @@ Return JSON array: [{"category": "user|decision|knowledge", "content": "...", "i
         break;
       default:
         console.log(`[SecurityFix] Unknown fix type: ${fixType}`);
+    }
+  }
+
+  private async executeTelegramBriefingTask(task: ScheduledTask): Promise<TaskExecutionResult> {
+    try {
+      const { sendBriefingNotification, getNotificationConfig, isTelegramEnabled } =
+        await import('@/lib/integrations/telegram-notify');
+      const { intelligenceService } = await import('@/lib/intelligence/report-generator');
+      const { sqlDatabase } = await import('@/lib/database/sqlite');
+
+      // Check if Telegram is enabled
+      if (!(await isTelegramEnabled())) {
+        return {
+          success: false,
+          error: 'Telegram not configured or disabled',
+        };
+      }
+
+      const notifConfig = await getNotificationConfig();
+      if (!notifConfig.enabled || !notifConfig.dailyBriefing) {
+        return {
+          success: true,
+          result: 'Telegram briefing notifications disabled',
+        };
+      }
+
+      // Get intelligence report
+      let intelligenceReport;
+      try {
+        intelligenceReport = await intelligenceService.generateReport();
+      } catch (e) {
+        intelligenceReport = intelligenceService.getLastReport();
+      }
+
+      // Get recent task results
+      const recentResults = sqlDatabase.getAllRecentTaskResults(5);
+      const successfulResults = recentResults.filter(r => r.success);
+
+      // Get upcoming events
+      const now = Date.now();
+      const future = now + 7 * 24 * 60 * 60 * 1000;
+      const events = sqlDatabase.getEvents(now, future);
+
+      // Prepare briefing data
+      const briefing = {
+        topNews: (intelligenceReport?.newsSummary?.spaceDomainAwareness || [])
+          .slice(0, 3)
+          .map((article: any) => ({
+            title: article.title,
+            summary: article.summary?.slice(0, 100) || '',
+            url: article.url,
+          })),
+        taskReports: {
+          completed: successfulResults.length,
+          recentReports: recentResults.slice(0, 5).map(r => ({
+            taskName: r.task_name || r.task_id,
+            success: !!r.success,
+          })),
+        },
+        upcomingEvents: (events || []).slice(0, 3).map((e: any) => ({
+          title: e.title,
+          date: new Date(e.startDate).toLocaleDateString(),
+        })),
+      };
+
+      // Send notification
+      const sent = await sendBriefingNotification(briefing);
+
+      return {
+        success: sent,
+        result: sent ? 'Daily briefing sent to Telegram' : 'Failed to send briefing to Telegram',
+        data: {
+          newsCount: briefing.topNews.length,
+          taskCount: briefing.taskReports.completed,
+          eventCount: briefing.upcomingEvents.length,
+        },
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to send Telegram briefing',
+      };
     }
   }
 

@@ -154,8 +154,8 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { type, action, data, model } = body;
 
-    // Use provided model or default to glm-4.7-flash
-    const selectedModel = model || 'glm-4.7-flash';
+    // Use provided model or default to an available lightweight model
+    const selectedModel = model || 'ollama/llama3.2:latest';
 
     console.log('[Office AI] Request:', { type, action, model: selectedModel });
 

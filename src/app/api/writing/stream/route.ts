@@ -143,7 +143,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Model from request or fallback
-    const selectedModel = model || 'ollama/qwen3.5:2b';
+    const selectedModel = model || 'ollama/llama3.2:latest';
 
     let prompt = '';
     switch (action) {

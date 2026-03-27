@@ -1,9 +1,17 @@
 import { SQLDatabase } from '@/lib/database/sqlite';
 import { generateId } from '@/lib/utils/id';
+import { embeddingService } from '@/lib/services/embedding-service';
 import * as fs from 'fs';
 import * as path from 'path';
 
-export type MemoryCategory = 'user' | 'project' | 'brand' | 'decision' | 'knowledge' | 'security' | 'preference';
+export type MemoryCategory =
+  | 'user'
+  | 'project'
+  | 'brand'
+  | 'decision'
+  | 'knowledge'
+  | 'security'
+  | 'preference';
 
 export interface PersistentMemory {
   id: string;
@@ -57,52 +65,26 @@ export class PersistentMemoryStore {
     // The tables will be created via raw SQL execution
   }
 
-  private generateEmbedding(text: string): number[] {
-    const hash = this.simpleHash(text);
-    const embedding: number[] = [];
-    const seed = hash;
-    
-    for (let i = 0; i < 384; i++) {
-      const x = Math.sin(seed * (i + 1) * 12.9898) * 43758.5453;
-      embedding.push((x - Math.floor(x)) * 2 - 1);
-    }
-    
-    const magnitude = Math.sqrt(embedding.reduce((sum, val) => sum + val * val, 0));
-    return embedding.map(val => val / magnitude);
-  }
-
-  private simpleHash(text: string): number {
-    let hash = 0;
-    for (let i = 0; i < text.length; i++) {
-      const char = text.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash;
-    }
-    return Math.abs(hash);
+  private async generateEmbedding(text: string): Promise<number[]> {
+    return embeddingService.generateEmbedding(text);
   }
 
   private cosineSimilarity(a: number[], b: number[]): number {
-    if (a.length !== b.length || a.length === 0) return 0;
-    let dotProduct = 0;
-    let normA = 0;
-    let normB = 0;
-    
-    for (let i = 0; i < a.length; i++) {
-      dotProduct += a[i] * b[i];
-      normA += a[i] * a[i];
-      normB += b[i] * b[i];
-    }
-    
-    return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+    return embeddingService.cosineSimilarity(a, b);
   }
 
-  async saveMemory(memory: Omit<PersistentMemory, 'id' | 'createdAt' | 'accessCount' | 'lastAccessed' | 'embedding'>): Promise<string> {
+  async saveMemory(
+    memory: Omit<
+      PersistentMemory,
+      'id' | 'createdAt' | 'accessCount' | 'lastAccessed' | 'embedding'
+    >
+  ): Promise<string> {
     await this.initialize();
-    
+
     const id = generateId();
     const now = Date.now();
-    const embedding = this.generateEmbedding(memory.content);
-    
+    const embedding = await this.generateEmbedding(memory.content);
+
     const memoryRecord: PersistentMemory = {
       ...memory,
       id,
@@ -115,7 +97,7 @@ export class PersistentMemoryStore {
     // Save to vector store file (simple JSON append)
     const vectorFile = path.join(MEMORY_DIR, 'vectors.json');
     let vectors: PersistentMemory[] = [];
-    
+
     try {
       if (fs.existsSync(vectorFile)) {
         vectors = JSON.parse(fs.readFileSync(vectorFile, 'utf-8'));
@@ -123,9 +105,9 @@ export class PersistentMemoryStore {
     } catch (e) {
       vectors = [];
     }
-    
+
     vectors.push(memoryRecord);
-    
+
     try {
       fs.writeFileSync(vectorFile, JSON.stringify(vectors, null, 2));
     } catch (e) {
@@ -135,12 +117,16 @@ export class PersistentMemoryStore {
     return id;
   }
 
-  async searchByKeyword(query: string, limit = 10, category?: MemoryCategory): Promise<PersistentMemory[]> {
+  async searchByKeyword(
+    query: string,
+    limit = 10,
+    category?: MemoryCategory
+  ): Promise<PersistentMemory[]> {
     await this.initialize();
-    
+
     const vectorFile = path.join(MEMORY_DIR, 'vectors.json');
     if (!fs.existsSync(vectorFile)) return [];
-    
+
     let vectors: PersistentMemory[];
     try {
       vectors = JSON.parse(fs.readFileSync(vectorFile, 'utf-8'));
@@ -148,17 +134,18 @@ export class PersistentMemoryStore {
       return [];
     }
 
-    const searchTerms = query.toLowerCase().split(/\s+/).filter(t => t.length > 2);
-    
+    const searchTerms = query
+      .toLowerCase()
+      .split(/\s+/)
+      .filter(t => t.length > 2);
+
     const results = vectors.filter(v => {
       if (category && v.category !== category) return false;
-      
+
       const contentLower = v.content.toLowerCase();
       const keyLower = v.key.toLowerCase();
-      
-      return searchTerms.some(term => 
-        contentLower.includes(term) || keyLower.includes(term)
-      );
+
+      return searchTerms.some(term => contentLower.includes(term) || keyLower.includes(term));
     });
 
     // Sort by importance and recency
@@ -171,12 +158,16 @@ export class PersistentMemoryStore {
     return results.slice(0, limit);
   }
 
-  async searchByEmbedding(query: string, limit = 10, category?: MemoryCategory): Promise<MemorySearchResult[]> {
+  async searchByEmbedding(
+    query: string,
+    limit = 10,
+    category?: MemoryCategory
+  ): Promise<MemorySearchResult[]> {
     await this.initialize();
-    
+
     const vectorFile = path.join(MEMORY_DIR, 'vectors.json');
     if (!fs.existsSync(vectorFile)) return [];
-    
+
     let vectors: PersistentMemory[];
     try {
       vectors = JSON.parse(fs.readFileSync(vectorFile, 'utf-8'));
@@ -184,8 +175,8 @@ export class PersistentMemoryStore {
       return [];
     }
 
-    const queryEmbedding = this.generateEmbedding(query);
-    
+    const queryEmbedding = await this.generateEmbedding(query);
+
     const results: MemorySearchResult[] = vectors
       .filter(v => {
         if (category && v.category !== category) return false;
@@ -193,7 +184,9 @@ export class PersistentMemoryStore {
       })
       .map(memory => ({
         memory,
-        score: memory.embedding ? this.cosineSimilarity(queryEmbedding, memory.embedding) : 0,
+        score: memory.embedding
+          ? embeddingService.cosineSimilarity(queryEmbedding, memory.embedding)
+          : 0,
         matchType: 'semantic' as const,
       }))
       .filter(r => r.score > 0.2)
@@ -203,9 +196,12 @@ export class PersistentMemoryStore {
     return results;
   }
 
-  async search(query: string, options?: { category?: MemoryCategory; limit?: number }): Promise<MemorySearchResult[]> {
+  async search(
+    query: string,
+    options?: { category?: MemoryCategory; limit?: number }
+  ): Promise<MemorySearchResult[]> {
     const limit = options?.limit || 5;
-    
+
     // Run both searches in parallel
     const [keywordResults, semanticResults] = await Promise.all([
       this.searchByKeyword(query, limit * 2, options?.category),
@@ -230,7 +226,7 @@ export class PersistentMemoryStore {
         seen.add(memory.id);
         merged.push({
           memory,
-          score: 0.5 + (memory.importance / 20), // Boost by importance
+          score: 0.5 + memory.importance / 20, // Boost by importance
           matchType: 'keyword',
         });
       }
@@ -244,10 +240,10 @@ export class PersistentMemoryStore {
 
   async getRecent(limit = 10, category?: MemoryCategory): Promise<PersistentMemory[]> {
     await this.initialize();
-    
+
     const vectorFile = path.join(MEMORY_DIR, 'vectors.json');
     if (!fs.existsSync(vectorFile)) return [];
-    
+
     let vectors: PersistentMemory[];
     try {
       vectors = JSON.parse(fs.readFileSync(vectorFile, 'utf-8'));
@@ -260,17 +256,15 @@ export class PersistentMemoryStore {
       filtered = vectors.filter(v => v.category === category);
     }
 
-    return filtered
-      .sort((a, b) => b.createdAt - a.createdAt)
-      .slice(0, limit);
+    return filtered.sort((a, b) => b.createdAt - a.createdAt).slice(0, limit);
   }
 
   async getImportant(limit = 10): Promise<PersistentMemory[]> {
     await this.initialize();
-    
+
     const vectorFile = path.join(MEMORY_DIR, 'vectors.json');
     if (!fs.existsSync(vectorFile)) return [];
-    
+
     let vectors: PersistentMemory[];
     try {
       vectors = JSON.parse(fs.readFileSync(vectorFile, 'utf-8'));
@@ -289,10 +283,10 @@ export class PersistentMemoryStore {
 
   async delete(id: string): Promise<boolean> {
     await this.initialize();
-    
+
     const vectorFile = path.join(MEMORY_DIR, 'vectors.json');
     if (!fs.existsSync(vectorFile)) return false;
-    
+
     let vectors: PersistentMemory[];
     try {
       vectors = JSON.parse(fs.readFileSync(vectorFile, 'utf-8'));
@@ -313,10 +307,10 @@ export class PersistentMemoryStore {
 
   async incrementAccess(id: string): Promise<void> {
     await this.initialize();
-    
+
     const vectorFile = path.join(MEMORY_DIR, 'vectors.json');
     if (!fs.existsSync(vectorFile)) return;
-    
+
     let vectors: PersistentMemory[];
     try {
       vectors = JSON.parse(fs.readFileSync(vectorFile, 'utf-8'));
@@ -332,14 +326,18 @@ export class PersistentMemoryStore {
     }
   }
 
-  async getStats(): Promise<{ total: number; byCategory: Record<MemoryCategory, number>; avgImportance: number }> {
+  async getStats(): Promise<{
+    total: number;
+    byCategory: Record<MemoryCategory, number>;
+    avgImportance: number;
+  }> {
     await this.initialize();
-    
+
     const vectorFile = path.join(MEMORY_DIR, 'vectors.json');
     if (!fs.existsSync(vectorFile)) {
       return { total: 0, byCategory: {} as Record<MemoryCategory, number>, avgImportance: 0 };
     }
-    
+
     let vectors: PersistentMemory[];
     try {
       vectors = JSON.parse(fs.readFileSync(vectorFile, 'utf-8'));
@@ -364,10 +362,10 @@ export class PersistentMemoryStore {
 
   async archiveOld(daysOld: number = 30): Promise<number> {
     await this.initialize();
-    
+
     const vectorFile = path.join(MEMORY_DIR, 'vectors.json');
     if (!fs.existsSync(vectorFile)) return 0;
-    
+
     let vectors: PersistentMemory[];
     try {
       vectors = JSON.parse(fs.readFileSync(vectorFile, 'utf-8'));
@@ -375,7 +373,7 @@ export class PersistentMemoryStore {
       return 0;
     }
 
-    const cutoff = Date.now() - (daysOld * 24 * 60 * 60 * 1000);
+    const cutoff = Date.now() - daysOld * 24 * 60 * 60 * 1000;
     const toArchive = vectors.filter(v => v.createdAt < cutoff && v.importance < 7);
     const toKeep = vectors.filter(v => v.createdAt >= cutoff || v.importance >= 7);
 
@@ -385,13 +383,13 @@ export class PersistentMemoryStore {
     const archiveDate = new Date().toISOString().split('T')[0];
     const archiveMonth = archiveDate.substring(0, 7);
     const archiveDir = path.join(ARCHIVE_DIR, archiveMonth);
-    
+
     if (!fs.existsSync(archiveDir)) {
       fs.mkdirSync(archiveDir, { recursive: true });
     }
 
     const archiveFile = path.join(archiveDir, `memories-${archiveDate}.json`);
-    
+
     // Read existing archive if any
     let existing: PersistentMemory[] = [];
     if (fs.existsSync(archiveFile)) {

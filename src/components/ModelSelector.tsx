@@ -3,6 +3,7 @@
  * Dynamic dropdown for selecting AI models with auto-selection of best available
  */
 
+import { useEffect, useRef } from 'react';
 import { useModels } from '@/lib/hooks/useModels';
 
 interface ModelSelectorProps {
@@ -23,6 +24,7 @@ export function ModelSelector({
   className = '',
 }: ModelSelectorProps) {
   const { models, ollamaHealthy, loading, error, getCapableModel } = useModels();
+  const hasAutoSelected = useRef(false);
 
   // Group models by provider
   const groupedModels = models.reduce(
@@ -49,13 +51,16 @@ export function ModelSelector({
     other: { name: '📋 Other Models', order: 10 },
   };
 
-  // Auto-select best model if enabled and no value selected
-  if (autoSelectBest && !value && models.length > 0) {
-    const bestModel = getCapableModel();
-    if (bestModel && bestModel !== value) {
-      onChange(bestModel);
+  // Auto-select best model in useEffect to avoid setState during render
+  useEffect(() => {
+    if (autoSelectBest && !value && models.length > 0 && !hasAutoSelected.current) {
+      const bestModel = getCapableModel();
+      if (bestModel && bestModel !== value) {
+        hasAutoSelected.current = true;
+        onChange(bestModel);
+      }
     }
-  }
+  }, [autoSelectBest, value, models.length, getCapableModel, onChange]);
 
   return (
     <div className={`space-y-2 ${className}`}>

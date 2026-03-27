@@ -95,17 +95,17 @@ const AVAILABLE_MODELS: ModelInfo[] = [
   },
 
   // Local models (free)
-  // Ultra-lightweight models (CPU-friendly, no GPU required)
+  // Lightweight models (CPU-friendly, no GPU required)
   {
-    id: 'qwen3.5:2b',
-    name: 'Qwen 3.5 2B',
+    id: 'llama3.2:latest',
+    name: 'Llama 3.2',
     tier: 'local-fast',
     provider: 'ollama',
-    maxTokens: 32768,
+    maxTokens: 131072,
     costPerToken: 0,
     available: true,
     capabilities: ['chat', 'code'],
-    description: 'Ultra-lightweight model (2B params), runs on CPU, near GPT-4 mini performance',
+    description: 'Lightweight model, runs on CPU, good for most tasks',
   },
 
   // Fast mid-range models
@@ -514,9 +514,7 @@ class ModelRouter {
     this.budget.remaining = Math.max(0, this.budget.remaining - tokens);
     this.saveBudget();
 
-    console.log(
-      `[ModelRouter] Used ${tokens} tokens with ${modelId}. Remaining: ${this.budget.remaining}/${this.budget.dailyLimit}`
-    );
+    console.log('[REDACTED]');
   }
 
   /**
@@ -540,14 +538,14 @@ class ModelRouter {
     // Get available local models (we'll filter by what's actually installed)
     const availableLocalModels = this.models.filter(m => m.provider === 'ollama' && m.available);
 
-    // TIER 1: Housekeeping - Always use Qwen 3.5-2B for efficiency
+    // TIER 1: Housekeeping - Always use lightweight model for efficiency
     if (tier === 'local-fast') {
-      const qwen2b = availableLocalModels.find(m => m.id === 'qwen3.5:2b');
-      if (qwen2b) {
-        console.log(`[ModelRouter] Using Qwen 3.5-2B for housekeeping task: ${taskType}`);
-        return qwen2b;
+      const llama32 = availableLocalModels.find(m => m.id === 'llama3.2:latest');
+      if (llama32) {
+        console.log(`[ModelRouter] Using llama3.2:latest for housekeeping task: ${taskType}`);
+        return llama32;
       }
-      // Fallback to glm-4.7-flash if Qwen 2B not available
+      // Fallback to glm-4.7-flash if llama3.2 not available
       const glmFlash = availableLocalModels.find(m => m.id === 'glm-4.7-flash');
       if (glmFlash) {
         console.log(`[ModelRouter] Using GLM-4.7 Flash for housekeeping task: ${taskType}`);
@@ -610,7 +608,7 @@ class ModelRouter {
     const knownSizes: Record<string, number> = {
       'glm-4.7-flash': 4,
       'glm-ocr': 4,
-      'qwen3.5:2b': 2,
+      'llama3.2:latest': 3,
       'qwen3.5:9b': 9,
       'qwen3.5:27b': 27,
       'lfm2:latest': 7,
@@ -659,11 +657,11 @@ class ModelRouter {
       return preferredModel;
     }
 
-    // Fallback to qwen3.5:2b for speed
-    const qwen2b = this.models.find(m => m.id === 'qwen3.5:2b' && m.available);
-    if (qwen2b) {
-      console.log(`[ModelRouter] Using qwen3.5:2b for chat (ultra-fast)`);
-      return qwen2b;
+    // Fallback to llama3.2:latest for speed
+    const llama32 = this.models.find(m => m.id === 'llama3.2:latest' && m.available);
+    if (llama32) {
+      console.log(`[ModelRouter] Using llama3.2:latest for chat (fast)`);
+      return llama32;
     }
 
     // Fallback to glm-4.7-flash for speed
@@ -685,14 +683,14 @@ class ModelRouter {
 
   /**
    * Get model for scheduled/background tasks
-   * Always uses Qwen 3.5-2B for maximum efficiency
+   * Always uses lightweight models for maximum efficiency
    */
   getTaskModel(taskType: string): ModelInfo {
-    // Housekeeping tasks always use Qwen 3.5-2B - ultra-lightweight and efficient
-    const qwen2b = this.models.find(m => m.id === 'qwen3.5:2b');
-    if (qwen2b && qwen2b.available) {
-      console.log(`[ModelRouter] Using Qwen 3.5-2B for background task: ${taskType}`);
-      return qwen2b;
+    // Housekeeping tasks use lightweight models
+    const llama32 = this.models.find(m => m.id === 'llama3.2:latest');
+    if (llama32 && llama32.available) {
+      console.log(`[ModelRouter] Using llama3.2:latest for background task: ${taskType}`);
+      return llama32;
     }
 
     // Fallback to GLM-4.7-Flash
@@ -729,21 +727,20 @@ class ModelRouter {
 
   /**
    * Get fast model for quick responses
-   * Uses qwen3.5:9b or qwen3.5:2b for speed
+   * Uses qwen3.5:9b or llama3.2:latest for speed
    */
   getFastModel(): ModelInfo {
-    // Prefer qwen3.5:9b for good speed/quality balance
+    // Prefer qwen3.5:9b
     const qwen9b = this.models.find(m => m.id === 'qwen3.5:9b' && m.available);
     if (qwen9b) {
-      console.log(`[ModelRouter] Using qwen3.5:9b for fast response`);
       return qwen9b;
     }
 
-    // Fallback to qwen3.5:2b
-    const qwen2b = this.models.find(m => m.id === 'qwen3.5:2b' && m.available);
-    if (qwen2b) {
-      console.log(`[ModelRouter] Using qwen3.5:2b for fast response`);
-      return qwen2b;
+    // Fallback to llama3.2:latest
+    const llama32 = this.models.find(m => m.id === 'llama3.2:latest' && m.available);
+    if (llama32) {
+      console.log(`[ModelRouter] Using llama3.2:latest for fast response`);
+      return llama32;
     }
 
     // Fallback to glm-4.7-flash

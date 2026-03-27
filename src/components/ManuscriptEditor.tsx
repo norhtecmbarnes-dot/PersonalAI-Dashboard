@@ -30,6 +30,7 @@ export function ManuscriptEditor({
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const PAGE_HEIGHT = 1056; // Letter size height at 96 DPI (11 inches)
+  const CHARS_PER_PAGE = 3000; // Approximate characters per page
 
   const [internalUpdate, setInternalUpdate] = useState(false);
 
@@ -56,20 +57,11 @@ export function ManuscriptEditor({
     setWordCount(words);
     setCharCount(text.length);
 
-    // Calculate pages based on visible content height, accounting for zoom
-    const editor = editorRef.current;
-    if (editor) {
-      const visibleHeight = editor.clientHeight;
-      const contentHeight = editor.scrollHeight;
-      const lineHeight = 21.6; // 12pt * 1.8 line-height at 96 DPI
-      const padding = 192; // 96px top + 96px bottom padding
-      const usableHeight = visibleHeight - padding;
-      const estimatedLines = Math.max(1, Math.ceil(contentHeight / lineHeight));
-      const linesPerPage = Math.max(1, Math.floor(usableHeight / lineHeight));
-      const estimatedPages = Math.max(1, Math.ceil(estimatedLines / linesPerPage));
-      setTotalPages(estimatedPages);
-    }
-  }, [content, zoom]);
+    // Calculate pages based on character count (more reliable)
+    // ~3000 characters per page is a reasonable estimate for letter size
+    const estimatedPages = Math.max(1, Math.ceil(text.length / CHARS_PER_PAGE));
+    setTotalPages(estimatedPages);
+  }, [content]);
 
   const execCmd = (command: string, value?: string) => {
     document.execCommand(command, false, value);
@@ -558,7 +550,7 @@ export function ManuscriptEditor({
             fontSize: defaultFontSize,
             lineHeight: '1.8',
             width: '816px', // Letter size width at 96 DPI (8.5 inches)
-            minHeight: `${PAGE_HEIGHT * totalPages}px`, // Dynamic height based on pages
+            minHeight: `${PAGE_HEIGHT}px`, // Single page minimum
             padding: '96px', // 1 inch margins
             marginBottom: '80px', // Extra space to prevent status bar overlap
           }}

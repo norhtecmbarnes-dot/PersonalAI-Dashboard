@@ -1,5 +1,6 @@
 import { sqlDatabase, VectorLakeEntry } from '../database/sqlite';
 import { performWebSearch, SearchResult } from '../websearch';
+import { embeddingService } from '../services/embedding-service';
 
 export interface VectorLakeResult {
   cached: boolean;
@@ -33,12 +34,15 @@ export class VectorLake {
   async processQuery(userQuery: string): Promise<VectorLakeResult> {
     sqlDatabase.initialize();
 
-    const similarEntries = sqlDatabase.findSimilarQueries(userQuery, this.similarityThreshold);
-    
+    const similarEntries = await sqlDatabase.findSimilarQueries(
+      userQuery,
+      this.similarityThreshold
+    );
+
     if (similarEntries.length > 0) {
       const bestMatch = similarEntries[0];
       sqlDatabase.incrementAccessCount(bestMatch.id);
-      
+
       return {
         cached: true,
         entry: bestMatch,
@@ -55,8 +59,8 @@ export class VectorLake {
     const organizedData = await this.organizeIntoSQL(userQuery, searchResults, context);
     const answer = this.generateAnswer(userQuery, context, organizedData);
 
-    const embedding = this.generateEmbedding(userQuery);
-    const expiresAt = Date.now() + (this.cacheExpiryDays * 24 * 60 * 60 * 1000);
+    const embedding = await this.generateEmbedding(userQuery);
+    const expiresAt = Date.now() + this.cacheExpiryDays * 24 * 60 * 60 * 1000;
 
     const entry = sqlDatabase.addVectorLakeEntry({
       query: userQuery,
@@ -111,28 +115,60 @@ Return ONLY a JSON array of strings, nothing else. Example: ["term1", "term2", "
   }
 
   private fallbackGenerateSearchTerms(query: string): string[] {
-    const words = query.toLowerCase()
+    const words = query
+      .toLowerCase()
       .replace(/[^\w\s]/g, '')
       .split(/\s+/)
       .filter(w => w.length > 2);
-    
-    const stopWords = new Set(['what', 'how', 'when', 'where', 'why', 'which', 'who', 'that', 'this', 'with', 'from', 'have', 'been', 'were', 'they', 'their', 'there', 'about', 'would', 'could', 'should', 'into', 'more', 'some', 'such', 'than', 'then', 'them', 'these', 'those', 'being', 'other']);
-    
-    return words
-      .filter(w => !stopWords.has(w))
-      .slice(0, 5);
+
+    const stopWords = new Set([
+      'what',
+      'how',
+      'when',
+      'where',
+      'why',
+      'which',
+      'who',
+      'that',
+      'this',
+      'with',
+      'from',
+      'have',
+      'been',
+      'were',
+      'they',
+      'their',
+      'there',
+      'about',
+      'would',
+      'could',
+      'should',
+      'into',
+      'more',
+      'some',
+      'such',
+      'than',
+      'then',
+      'them',
+      'these',
+      'those',
+      'being',
+      'other',
+    ]);
+
+    return words.filter(w => !stopWords.has(w)).slice(0, 5);
   }
 
   private async performSearches(searchTerms: string[]): Promise<SearchResult[]> {
     const results: SearchResult[] = [];
-    
+
     for (const term of searchTerms.slice(0, 3)) {
       const termResults = await performWebSearch(term);
       results.push(...termResults);
     }
 
-    const uniqueResults = results.filter((result, index, self) =>
-      index === self.findIndex(r => r.url === result.url)
+    const uniqueResults = results.filter(
+      (result, index, self) => index === self.findIndex(r => r.url === result.url)
     );
 
     return uniqueResults.slice(0, 10);
@@ -203,7 +239,7 @@ Return ONLY a JSON object with this structure, or empty arrays if nothing found:
     organizedData?: VectorLakeResult['organizedData']
   ): string {
     let answer = `## Answer to: "${query}"\n\n`;
-    
+
     answer += `### Search Results Summary\n`;
     answer += `Found ${organizedData?.contacts?.length || 0} contacts, `;
     answer += `${organizedData?.tasks?.length || 0} tasks, `;
@@ -323,28 +359,8 @@ Return ONLY a JSON object with this structure, or empty arrays if nothing found:
     return sqlDatabase.clearExpiredEntries();
   }
 
-  private generateEmbedding(text: string): number[] {
-    const hash = this.simpleHash(text);
-    const embedding: number[] = [];
-    const seed = hash;
-    
-    for (let i = 0; i < 384; i++) {
-      const x = Math.sin(seed * (i + 1) * 12.9898) * 43758.5453;
-      embedding.push((x - Math.floor(x)) * 2 - 1);
-    }
-    
-    const magnitude = Math.sqrt(embedding.reduce((sum, val) => sum + val * val, 0));
-    return embedding.map(val => val / magnitude);
-  }
-
-  private simpleHash(text: string): number {
-    let hash = 0;
-    for (let i = 0; i < text.length; i++) {
-      const char = text.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash;
-    }
-    return Math.abs(hash);
+  private async generateEmbedding(text: string): Promise<number[]> {
+    return embeddingService.generateEmbedding(text);
   }
 }
 

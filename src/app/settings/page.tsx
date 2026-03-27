@@ -210,7 +210,7 @@ export default function SettingsPage() {
         setApiKeys(keyStatus);
       }
     } catch (error) {
-      console.error('Error loading API keys:', error);
+      console.error('[REDACTED]');
     } finally {
       setLoading(false);
     }
@@ -520,6 +520,15 @@ export default function SettingsPage() {
                   desc: 'Government contracts API - get key at sam.gov',
                   category: 'Government',
                 },
+                // Writing Tools
+                {
+                  id: 'linguix',
+                  name: 'Linguix',
+                  desc: 'Grammar & style checker - get key at linguix.com/api',
+                  category: 'Writing',
+                  info: 'Linguix is a grammar and style checker similar to Grammarly. Free tier includes 1,000,000 characters/month. Get your free API key at linguix.com/api',
+                  link: 'https://linguix.com/api/',
+                },
               ].map(provider => (
                 <div
                   key={provider.id}
@@ -541,6 +550,22 @@ export default function SettingsPage() {
                     )}
                   </div>
                   <p className="text-gray-500 text-sm mb-2">{provider.desc}</p>
+                  {provider.info && (
+                    <p className="text-gray-400 text-xs mb-2 flex items-center gap-2">
+                      <span>ℹ️</span>
+                      <span>{provider.info}</span>
+                      {provider.link && (
+                        <a
+                          href={provider.link}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-400 hover:text-blue-300 underline"
+                        >
+                          Learn more
+                        </a>
+                      )}
+                    </p>
+                  )}
                   <div className="flex gap-2">
                     <input
                       type="password"

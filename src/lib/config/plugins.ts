@@ -20,7 +20,9 @@ export interface PluginContext {
   setConfig: (key: string, value: any) => void;
   getAPIKey: (provider: string) => string | null;
   isFeatureEnabled: (featureId: string) => boolean;
-  onFeatureChange: (callback: (feature: Feature, action: 'enable' | 'disable') => void) => () => void;
+  onFeatureChange: (
+    callback: (feature: Feature, action: 'enable' | 'disable') => void
+  ) => () => void;
 }
 
 export class PluginManager {
@@ -122,7 +124,7 @@ export const createPluginContext = (): PluginContext => {
       return null;
     },
     setConfig: (key: string, value: any) => {
-      console.log(`Config ${key} set to ${value} (plugin)`);
+      console.log('[REDACTED]');
     },
     getAPIKey: (provider: string) => {
       return null;

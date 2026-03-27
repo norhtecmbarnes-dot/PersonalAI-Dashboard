@@ -221,7 +221,7 @@ function extractContent(content: string): ExtractedData {
             saved: true,
           });
         } catch (e) {
-          console.error('[Extract] Failed to store API key:', e);
+          console.error('[REDACTED]');
         }
       }
     }
@@ -254,14 +254,10 @@ function extractContent(content: string): ExtractedData {
           saved: true,
         });
       } catch (e) {
-        console.error('[Extract] Failed to store credential:', e);
+        console.error('[REDACTED]');
       }
     }
   }
-
-  // Generate summary
-  const summary =
-    content.replace(/\s+/g, ' ').trim().slice(0, 200) + (content.length > 200 ? '...' : '');
 
   // Extract keywords
   const wordFreq: Record<string, number> = {};
@@ -309,6 +305,9 @@ function extractContent(content: string): ExtractedData {
       .slice(0, 10)
       .map(([word]) => word)
   );
+
+  // Generate summary from first 200 chars
+  const summary = content.trim().slice(0, 200) + (content.length > 200 ? '...' : '');
 
   return {
     contacts: deduplicateByField(contacts, 'email'),

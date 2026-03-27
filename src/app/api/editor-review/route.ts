@@ -54,7 +54,7 @@ Response (one sentence only):`;
   try {
     const reasonResponse = await chatCompletion({
       messages: [{ role: 'user', content: sanitizePrompt(reasonPrompt, 500) }],
-      model: 'qwen3.5:2b',
+      model: 'llama3.2:latest',
       temperature: 0.2,
       maxTokens: 50,
     });

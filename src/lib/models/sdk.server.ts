@@ -1283,12 +1283,14 @@ const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
 
 // Priority list of lightweight models for CPU-only setups (no GPU required)
 const LIGHTWEIGHT_MODEL_PRIORITY = [
-  'qwen3.5:2b', // Ultra-lightweight (2B params), runs on CPU, near GPT-4 mini performance
-  'qwen3.5:3b', // Slightly larger but still lightweight
   'llama3.2:3b', // Meta's lightweight model
-  'gemma:2b', // Google's lightweight model
+  'llama3.2:latest', // Default llama3.2
   'phi3:mini', // Microsoft's lightweight model
-  'llama3.2', // Default llama3.2 (smallest variant)
+  'gemma:2b', // Google's lightweight model
+  'qwen3.5:9b', // Qwen lightweight
+  'glm-4.7-flash:latest', // GLM flash model
+  'phi4:latest', // Phi model
+  'llama3.2', // Default llama3.2
 ];
 
 /**
@@ -1316,7 +1318,7 @@ function getBestLightweightModel(availableModels: string[]): string {
 export async function getFirstAvailableModel(): Promise<string> {
   // Check cache first
   if (cachedAvailableModels && Date.now() - cacheTimestamp < CACHE_TTL) {
-    return cachedAvailableModels[0] || 'ollama/qwen3.5:2b';
+    return cachedAvailableModels[0] || 'ollama/llama3.2:latest';
   }
 
   try {
@@ -1333,7 +1335,7 @@ export async function getFirstAvailableModel(): Promise<string> {
   }
 
   // Fallback defaults - prioritize lightweight CPU-friendly model
-  return 'ollama/qwen3.5:2b';
+  return 'ollama/llama3.2:latest';
 }
 
 /**
@@ -1368,8 +1370,8 @@ export async function validateOrFallbackModel(model: string): Promise<string> {
     console.log('[SDK] Could not validate model, using fallback');
   }
 
-  // Default fallback - Qwen 3.5-2B (ultra-lightweight, CPU-friendly)
-  return 'ollama/qwen3.5:2b';
+  // Default fallback - llama3.2:latest (common lightweight model)
+  return 'ollama/llama3.2:latest';
 }
 
 /**
@@ -1378,13 +1380,13 @@ export async function validateOrFallbackModel(model: string): Promise<string> {
  */
 export function isCPUFriendlyModel(model: string): boolean {
   const cpuFriendlyModels = [
-    'qwen3.5:2b',
-    'qwen3.5:3b',
     'llama3.2:3b',
-    'llama3.2',
+    'llama3.2:latest',
     'gemma:2b',
     'phi3:mini',
     'phi3',
+    'phi4',
+    'glm-4.7-flash',
   ];
 
   const modelName = model.replace('ollama/', '');
@@ -1399,16 +1401,7 @@ export async function getRecommendedModel(): Promise<{ model: string; reason: st
     const models = await getOllamaModels();
     const availableModels = models.map(m => m.name);
 
-    // Check for Qwen 3.5-2B first (best CPU-friendly option)
-    if (availableModels.includes('qwen3.5:2b')) {
-      return {
-        model: 'ollama/qwen3.5:2b',
-        reason:
-          'Qwen 3.5-2B: Ultra-lightweight (2B parameters), runs on CPU without GPU, near GPT-4 mini performance',
-      };
-    }
-
-    // Check for other lightweight models
+    // Check for lightweight models in priority order
     for (const preferred of LIGHTWEIGHT_MODEL_PRIORITY) {
       if (availableModels.includes(preferred)) {
         return {
@@ -1431,8 +1424,7 @@ export async function getRecommendedModel(): Promise<{ model: string; reason: st
 
   // Default recommendation
   return {
-    model: 'ollama/qwen3.5:2b',
-    reason:
-      'Qwen 3.5-2B: Recommended default - ultra-lightweight, CPU-friendly, near GPT-4 mini performance',
+    model: 'ollama/llama3.2:latest',
+    reason: 'llama3.2: Recommended default - lightweight, CPU-friendly model',
   };
 }

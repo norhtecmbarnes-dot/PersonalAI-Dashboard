@@ -120,7 +120,7 @@ export function SettingsPanel() {
       setEditingProvider(null);
       setNewKeyValue('');
     } catch (error) {
-      console.error('Error saving API key:', error);
+      console.error('[REDACTED]');
     } finally {
       setIsSaving(false);
     }
@@ -137,7 +137,7 @@ export function SettingsPanel() {
       });
       await loadSettings();
     } catch (error) {
-      console.error('Error deleting API key:', error);
+      console.error('[REDACTED]');
     }
   };
 

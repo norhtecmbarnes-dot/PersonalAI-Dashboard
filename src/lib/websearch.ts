@@ -85,7 +85,7 @@ export async function performWebSearch(query: string): Promise<SearchResult[]> {
       if (dbSerpapi) serpapiKey = dbSerpapi;
       if (dbOllama) ollamaKey = dbOllama;
     } catch (dbError) {
-      console.log('[WebSearch] Could not load keys from database, using env vars');
+      console.log('[REDACTED]');
     }
 
     // Priority 0: Ollama Web Search (recommended, built into Ollama Cloud)
@@ -110,7 +110,7 @@ export async function performWebSearch(query: string): Promise<SearchResult[]> {
         errors.push(`Ollama: ${errorMsg}`);
       }
     } else {
-      console.log('[WebSearch] No OLLAMA_API_KEY configured - skipping Ollama search');
+      console.log('[REDACTED]');
     }
 
     // Priority 1: Tavily API (requires API key)

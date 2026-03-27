@@ -25,8 +25,8 @@ export function useModels() {
 
   const getFallbackModels = (): ModelInfo[] => [
     {
-      id: 'ollama/qwen3.5:2b',
-      name: 'qwen3.5:2b',
+      id: 'ollama/llama3.2:latest',
+      name: 'llama3.2:latest',
       provider: 'ollama',
       description: '2.3B - Fast, near GPT-4 mini',
     },
@@ -345,7 +345,7 @@ export function useModels() {
       setError(err instanceof Error ? err.message : 'Failed to load models');
       // Fallback models when API fails
       setModels(getFallbackModels());
-      setSelectedModel('ollama/qwen3.5:2b');
+      setSelectedModel('ollama/llama3.2:latest');
     } finally {
       setLoading(false);
     }
@@ -355,7 +355,7 @@ export function useModels() {
   const findBestModel = (modelList: ModelInfo[]): string => {
     const priorityModels = [
       'qwen3.5:9b',
-      'qwen3.5:2b',
+      'llama3.2:latest',
       'qwen3.5:27b',
       'gemma2:9b',
       'llama3.2',

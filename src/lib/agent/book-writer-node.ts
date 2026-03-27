@@ -37,11 +37,14 @@ export interface WritingTask {
 }
 
 const AUTHOR = 'Michael C. Barnes';
-const BOOK_TITLE = 'Building Your AI Dashboard: The Complete Beginner\'s Guide';
+const BOOK_TITLE = "Building Your AI Dashboard: The Complete Beginner's Guide";
 const SUBTITLE = 'From Zero to Enterprise-Grade AI — On Your Own Server';
-const DEDICATION = 'To Randolph (Randy) Hill, Founder & CTO of GovBotics — your enterprise AI concepts now run locally, for free, in everyone\'s hands.';
-const CREDITS = 'Key enterprise AI concepts adapted from Randolph Hill, Founder & CTO of GovBotics. Released under CC BY-SA 4.0 (text) and MIT License (code).';
-const GOVBOTICS = 'For enterprise AI integration needs, visit www.govbotics.com — connecting legacy systems to AI capabilities with security and scale.';
+const DEDICATION =
+  "To Randolph (Randy) Hill, Founder & CTO of GovBotics — your enterprise AI concepts now run locally, for free, in everyone's hands.";
+const CREDITS =
+  'Key enterprise AI concepts adapted from Randolph Hill, Founder & CTO of GovBotics. Released under CC BY-SA 4.0 (text) and MIT License (code).';
+const GOVBOTICS =
+  'For enterprise AI integration needs, visit www.govbotics.com — connecting legacy systems to AI capabilities with security and scale.';
 const PROJECT_OVERVIEW_FILE = path.join(process.cwd(), 'data', 'PROJECT_OVERVIEW_BOOK_PROMPT.md');
 
 function getGlobalBookInstructions(): string {
@@ -224,28 +227,33 @@ class BookWriterService {
 
     try {
       const content = await this.generateChapterContent(chapter);
-      
+
       // Apply de-ai-ify if enabled (default: true)
       let finalContent = content;
       let humanScore = 0;
-      
+
       if (this.progress.deaiifyEnabled) {
         console.log(`[BookWriter] Applying de-ai-ify to chapter ${chapterNumber}...`);
         const result = deaiify(content, this.progress.deaiifyMode);
         finalContent = result.revisedText;
         humanScore = result.revisedScore;
-        console.log(`[BookWriter] Human score: ${result.originalScore.toFixed(1)} → ${result.revisedScore.toFixed(1)}`);
-        console.log(`[BookWriter] Changes: transitions=${result.changes.transitionsRemoved}, cliches=${result.changes.clichesRemoved}, buzzwords=${result.changes.buzzwordsReplaced}`);
+        console.log(
+          `[BookWriter] Human score: ${result.originalScore.toFixed(1)} → ${result.revisedScore.toFixed(1)}`
+        );
+        console.log(
+          `[BookWriter] Changes: transitions=${result.changes.transitionsRemoved}, cliches=${result.changes.clichesRemoved}, buzzwords=${result.changes.buzzwordsReplaced}`
+        );
       }
-      
+
       chapter.content = finalContent;
       chapter.humanScore = humanScore;
       chapter.status = 'completed';
       chapter.lastUpdated = Date.now();
 
       this.progress.lastUpdated = Date.now();
-      this.progress.totalWords = this.progress.chapters.reduce((sum, ch) => 
-        sum + (ch.content ? ch.content.split(/\s+/).length : 0), 0
+      this.progress.totalWords = this.progress.chapters.reduce(
+        (sum, ch) => sum + (ch.content ? ch.content.split(/\s+/).length : 0),
+        0
       );
 
       if (chapterNumber >= this.progress.chapters.length) {
@@ -295,25 +303,27 @@ class BookWriterService {
     };
 
     const prompt = chapterPrompts[chapter.number] || this.getDefaultChapterPrompt(chapter);
-    
+
     // Call AI model to generate content
     console.log(`[BookWriter] Generating content for chapter ${chapter.number}: ${chapter.title}`);
-    
+
     const systemPrompt = getGlobalBookInstructions();
-    
+
     try {
       const result = await chatCompletion({
         model: 'glm-4.7-flash',
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: prompt }
+          { role: 'user', content: prompt },
         ],
         temperature: 0.8,
-        maxTokens: 6000,
+        maxTokens: 5000,
       });
 
       if (result.message && typeof result.message === 'object' && result.message.content) {
-        console.log(`[BookWriter] Chapter ${chapter.number} generated successfully (${result.message.content.length} chars)`);
+        console.log(
+          `[BookWriter] Chapter ${chapter.number} generated successfully (${result.message.content.length} chars)`
+        );
         return result.message.content;
       } else if (typeof result.message === 'string') {
         console.log(`[BookWriter] Chapter ${chapter.number} generated successfully`);
@@ -725,9 +735,11 @@ WRITING STYLE:
       19: `Troubleshooting - when things go wrong. Cover: Common errors, reading error messages, debugging strategies, getting help. Include troubleshooting checklist.`,
       20: `Appendix: Complete prompt library. Cover: All prompts from the book in one place, organized by feature, ready to copy and modify.`,
     };
-    
-    const details = chapterDetails[chapter.number] || `Cover: The topic thoroughly for beginners. Include practical examples and sample prompts.`;
-    
+
+    const details =
+      chapterDetails[chapter.number] ||
+      `Cover: The topic thoroughly for beginners. Include practical examples and sample prompts.`;
+
     return `Write Chapter ${chapter.number}: "${sanitizePrompt(chapter.title)}" for the book "${BOOK_TITLE}" by ${AUTHOR}.
 
 ${details}

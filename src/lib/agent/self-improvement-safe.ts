@@ -92,7 +92,7 @@ export class SelfImprovingAgent {
         return JSON.parse(metricsJson);
       }
     } catch {}
-    
+
     return {
       responseTime: 0,
       tokenUsage: 0,
@@ -113,16 +113,16 @@ export class SelfImprovingAgent {
   canModify(filePath: string): boolean {
     // Simple path validation without Node.js path module
     const normalizedPath = filePath.replace(/\\/g, '/');
-    
+
     if (normalizedPath.includes('..')) return false;
-    
+
     for (const pattern of this.config.disallowedPatterns) {
       const patternStr = typeof pattern === 'string' ? pattern : pattern.source;
       if (new RegExp(patternStr, 'i').test(normalizedPath)) return false;
     }
 
-    const isSelfModifiable = this.config.selfModifiablePaths.some(
-      p => normalizedPath.startsWith(p)
+    const isSelfModifiable = this.config.selfModifiablePaths.some(p =>
+      normalizedPath.startsWith(p)
     );
 
     return isSelfModifiable && this.securityRules.validate(filePath);
@@ -146,10 +146,10 @@ export class SelfImprovingAgent {
   private async optimizeTokenUsage(): Promise<ImprovementLog[]> {
     // Analysis only - no file modifications in Edge Runtime
     const improvements: ImprovementLog[] = [];
-    
+
     // In Edge Runtime, we can only analyze, not modify files
     // This would need to be run in a Node.js API route instead
-    console.log('[SelfImprovingAgent] Token optimization analysis (Edge Runtime - no file access)');
+    console.log('[REDACTED]');
 
     return improvements;
   }
@@ -158,13 +158,13 @@ export class SelfImprovingAgent {
     // SAFETY: Only removes excessive whitespace, NOT comments or TODOs
     // Comments contain valuable context and should never be auto-removed
     let result = code;
-    
+
     // Only collapse multiple blank lines into double newlines
     result = result.replace(/\n\s*\n\s*\n\s*\n/g, '\n\n\n');
-    
+
     // Remove trailing whitespace on lines (safe)
     result = result.replace(/[ \t]+$/gm, '');
-    
+
     return result;
   }
 
@@ -172,7 +172,7 @@ export class SelfImprovingAgent {
     // SAFETY: Analysis only - does NOT modify files automatically
     // Returns recommendations for human review
     const improvements: ImprovementLog[] = [];
-    
+
     console.log('[SelfImprovingAgent] Code optimization analysis (Edge Runtime - no file access)');
 
     return improvements;
@@ -189,14 +189,17 @@ export class SelfImprovingAgent {
     const imports = new Map<string, string[]>();
     const lines = content.split('\n');
     const nonImportLines: string[] = [];
-    
+
     for (const line of lines) {
       if (line.match(/^import\s+.*from\s+['"]/)) {
         const match = line.match(/import\s+\{?([^}]*)\}?\s+from\s+['"]([^'"]+)['"]/);
         if (match) {
           const [, importsStr, source] = match;
-          const imported = importsStr.split(',').map(s => s.trim()).filter(Boolean);
-          
+          const imported = importsStr
+            .split(',')
+            .map(s => s.trim())
+            .filter(Boolean);
+
           if (!imports.has(source)) {
             imports.set(source, []);
           }
@@ -206,7 +209,7 @@ export class SelfImprovingAgent {
         nonImportLines.push(line);
       }
     }
-    
+
     let result = '';
     for (const [source, items] of Array.from(imports.entries())) {
       if (items.length > 0) {
@@ -214,7 +217,7 @@ export class SelfImprovingAgent {
       }
     }
     result += '\n' + nonImportLines.join('\n');
-    
+
     return result;
   }
 
@@ -222,7 +225,7 @@ export class SelfImprovingAgent {
     const typeMap = new Map<string, string>();
     const lines = content.split('\n');
     const result: string[] = [];
-    
+
     for (const line of lines) {
       const match = line.match(/^export\s+interface\s+(\w+)\s+\{/);
       if (match) {
@@ -234,31 +237,31 @@ export class SelfImprovingAgent {
       }
       result.push(line);
     }
-    
+
     return result.join('\n');
   }
 
   recordSuccess(responseTime: number, tokensUsed: number): void {
-    this.metrics.responseTime = (this.metrics.responseTime * 0.9) + (responseTime * 0.1);
+    this.metrics.responseTime = this.metrics.responseTime * 0.9 + responseTime * 0.1;
     this.metrics.tokenUsage += tokensUsed;
     this.saveMetrics();
   }
 
   recordError(): void {
     const currentErrorRate = this.metrics.errorRate;
-    this.metrics.errorRate = (currentErrorRate * 0.95) + (0.05);
+    this.metrics.errorRate = currentErrorRate * 0.95 + 0.05;
     this.saveMetrics();
   }
 
   getMetrics(): PerformanceMetrics {
     const rlStats = getRLStats();
-    return { 
+    return {
       ...this.metrics,
       rlStats: {
         totalConversations: rlStats.totalConversations,
         averageScore: rlStats.averageScore,
         improvementsLearned: rlStats.improvementsLearned,
-      }
+      },
     };
   }
 
@@ -273,9 +276,9 @@ export class SelfImprovingAgent {
     }
 
     console.log('[SelfImprovingAgent] Running RL training session...');
-    
+
     const result = await runRLTrainingSession();
-    
+
     const log: ImprovementLog = {
       id: Date.now().toString(),
       timestamp: Date.now(),
@@ -288,10 +291,10 @@ export class SelfImprovingAgent {
         lessonsLearned: result.success ? 1 : 0,
       },
     };
-    
+
     this.config.improvementLog.push(log);
     this.saveConfig();
-    
+
     return log;
   }
 
@@ -321,8 +324,7 @@ export class SelfImprovingAgent {
   }
 
   validateSecurity(filePath: string, content: string): boolean {
-    return this.securityRules.validate(filePath) && 
-           this.securityRules.checkContent(content);
+    return this.securityRules.validate(filePath) && this.securityRules.checkContent(content);
   }
 
   getAllowedPaths(): string[] {
@@ -344,9 +346,11 @@ class SecurityRules {
 
   validate(filePath: string): boolean {
     const normalized = filePath.toLowerCase();
-    return !normalized.includes('..') && 
-           !normalized.includes('node_modules') &&
-           !normalized.includes('.git');
+    return (
+      !normalized.includes('..') &&
+      !normalized.includes('node_modules') &&
+      !normalized.includes('.git')
+    );
   }
 
   checkContent(content: string): boolean {

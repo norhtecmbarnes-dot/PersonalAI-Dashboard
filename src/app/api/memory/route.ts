@@ -3,9 +3,9 @@ import { VectorStore } from '@/lib/storage/vector';
 import { TokenOptimizer } from '@/lib/utils/tokens';
 import { DocumentStore } from '@/lib/storage/documents';
 import { memoryStore, MemoryCategory } from '@/lib/memory/persistent-store';
-import { 
-  injectMemoryContext, 
-  saveImportantFact, 
+import {
+  injectMemoryContext,
+  saveImportantFact,
   getMemoryStats,
   setUserName,
   setAssistantName,
@@ -29,12 +29,9 @@ export async function POST(request: Request) {
     switch (action) {
       case 'importDocument': {
         const { title, content, type, tags } = data;
-        
+
         if (!title || !content) {
-          return NextResponse.json(
-            { error: 'Title and content are required' },
-            { status: 400 }
-          );
+          return NextResponse.json({ error: 'Title and content are required' }, { status: 400 });
         }
 
         const doc = await DocumentStore.create({
@@ -61,15 +58,12 @@ export async function POST(request: Request) {
 
       case 'searchMemory': {
         const { query, limit } = data;
-        
+
         if (!query) {
-          return NextResponse.json(
-            { error: 'Query is required' },
-            { status: 400 }
-          );
+          return NextResponse.json({ error: 'Query is required' }, { status: 400 });
         }
 
-        const results = VectorStore.search(query, limit || 5);
+        const results = await VectorStore.search(query, limit || 5);
 
         return NextResponse.json({
           results,
@@ -79,18 +73,12 @@ export async function POST(request: Request) {
 
       case 'getContext': {
         const { query, maxTokens } = data;
-        
+
         if (!query) {
-          return NextResponse.json(
-            { error: 'Query is required' },
-            { status: 400 }
-          );
+          return NextResponse.json({ error: 'Query is required' }, { status: 400 });
         }
 
-        const context = VectorStore.getContextForQuery(
-          query,
-          maxTokens || 2000
-        );
+        const context = await VectorStore.getContextForQuery(query, maxTokens || 2000);
 
         return NextResponse.json({
           context,
@@ -109,15 +97,13 @@ export async function POST(request: Request) {
 
         return NextResponse.json({
           optimized,
-          estimatedTokens: TokenOptimizer.estimateTokens(
-            JSON.stringify(optimized)
-          ),
+          estimatedTokens: TokenOptimizer.estimateTokens(JSON.stringify(optimized)),
         });
       }
 
       case 'syncMemory': {
         VectorStore.syncWithStorage();
-        
+
         return NextResponse.json({
           success: true,
           stats: VectorStore.getStats(),
@@ -126,7 +112,7 @@ export async function POST(request: Request) {
 
       case 'clearMemory': {
         const { type } = data;
-        
+
         if (type) {
           const entries = VectorStore.getByType(type);
           entries.forEach(entry => VectorStore.delete(entry.id));
@@ -208,14 +194,14 @@ export async function POST(request: Request) {
       case 'memory_stats': {
         const stats = await memoryStore.getStats();
         const scratchpadStats = getMemoryStats();
-        return NextResponse.json({ success: true, stats: { ...stats, scratchpad: scratchpadStats } });
+        return NextResponse.json({
+          success: true,
+          stats: { ...stats, scratchpad: scratchpadStats },
+        });
       }
 
       default:
-        return NextResponse.json(
-          { error: 'Unknown action' },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
     }
   } catch (error) {
     console.error('Memory API error:', error);

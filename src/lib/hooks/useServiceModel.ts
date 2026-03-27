@@ -21,15 +21,15 @@ const STORAGE_KEY = 'service_model_preferences_v2';
 
 // Default models for each service
 export const SERVICE_DEFAULTS: Record<ServiceType, string> = {
-  'chat': 'ollama/qwen3.5:2b',
-  'brand-workspace': 'ollama/qwen3.5:2b',
+  'chat': 'ollama/llama3.2:latest',
+  'brand-workspace': 'ollama/llama3.2:latest',
   'writing': 'ollama/qwen3.5:9b',
-  'canvas': 'ollama/qwen3.5:2b',
+  'canvas': 'ollama/llama3.2:latest',
   'office': 'ollama/qwen3.5:9b',
   'intelligence': 'ollama/qwen3.5:9b',
-  'forms': 'ollama/qwen3.5:2b',
+  'forms': 'ollama/llama3.2:latest',
   'documents': 'ollama/qwen3.5:9b',
-  'default': 'ollama/qwen3.5:2b',
+  'default': 'ollama/llama3.2:latest',
 };
 
 // Service descriptions for settings UI

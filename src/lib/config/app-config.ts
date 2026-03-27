@@ -288,7 +288,7 @@ class ConfigManager {
           // Fallback defaults - prioritize lightweight CPU-friendly models
           console.log('[ConfigManager] No Ollama models found, using defaults');
           models.push(
-            'ollama/qwen3.5:2b',  // Ultra-lightweight, CPU-friendly, near GPT-4 mini performance
+            'ollama/llama3.2:latest',  // Ultra-lightweight, CPU-friendly, near GPT-4 mini performance
             'ollama/llama3.2',     // Reliable fallback
           'ollama/qwen3.5:9b', // Good coding model
             'ollama/deepseek-r1'   // Reasoning model
@@ -298,7 +298,7 @@ class ConfigManager {
         console.log('[ConfigManager] Could not fetch Ollama models:', error);
         // Fallback to defaults - prioritize lightweight CPU-friendly models
         models.push(
-          'ollama/qwen3.5:2b',  // Ultra-lightweight, CPU-friendly, near GPT-4 mini performance
+          'ollama/llama3.2:latest',  // Ultra-lightweight, CPU-friendly, near GPT-4 mini performance
           'ollama/llama3.2',     // Reliable fallback
           'ollama/qwen3.5:9b', // Good coding model
           'ollama/deepseek-r1'   // Reasoning model

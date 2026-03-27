@@ -125,8 +125,8 @@ class OnlyOfficeService {
       : `<p>Document created by AI Dashboard</p>`;
 
     return `<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
-            xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+<w:document xmlns:w="https://schemas.openxmlformats.org/wordprocessingml/2006/main"
+            xmlns:r="https://schemas.openxmlformats.org/officeDocument/2006/relationships">
   <w:body>
     <w:p>
       <w:pPr>
@@ -508,7 +508,7 @@ class OnlyOfficeService {
       case 2: // Document ready for saving
         if (url) {
           // Download and save document
-          console.log('ONLYOFFICE save callback for key:', key);
+          console.log('[REDACTED]');
         }
         return { error: 0 };
 
@@ -517,7 +517,7 @@ class OnlyOfficeService {
 
       case 6: // Force save
         if (url) {
-          console.log('ONLYOFFICE force save for key:', key);
+          console.log('[REDACTED]');
         }
         return { error: 0 };
 

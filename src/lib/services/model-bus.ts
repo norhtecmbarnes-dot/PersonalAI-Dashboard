@@ -66,7 +66,7 @@ interface ModelTier {
 const MODEL_TIERS: ModelTier[] = [
   {
     name: 'local-small',
-    models: ['angglam.slim', 'qwen3.5:2b', 'glm-4.7-flash', 'llama3.2:3b'],
+    models: ['angglam.slim', 'llama3.2:latest', 'glm-4.7-flash', 'llama3.2:3b'],
     provider: 'local',
     preferredFor: ['triage', 'routine tasks', 'formatting', 'simple queries'],
     isCPUFriendly: true,
@@ -212,7 +212,7 @@ export class ModelMessageBus {
           })
         );
       } catch (e) {
-        console.error('Error saving token budget:', e);
+        console.error('[REDACTED]');
       }
     }
   }
@@ -473,7 +473,7 @@ suggestedTier meaning:
           { role: 'user', content: request.originalQuery },
         ],
         temperature: 0.7,
-        maxTokens: 1024,
+        maxTokens: 800,
       });
 
       response =

@@ -3,6 +3,7 @@ type SqlJsDatabase = SqliteWrapper;
 import { v4 as uuidv4 } from 'uuid';
 import * as fs from 'fs';
 import * as path from 'path';
+import { embeddingService } from '../services/embedding-service';
 
 let db: SqlJsDatabase | null = null;
 let dbPath: string = '';
@@ -1782,10 +1783,10 @@ export class SQLDatabase {
     return this.mapRowToVectorLakeEntry(result[0].columns, result[0].values[0]);
   }
 
-  findSimilarQueries(query: string, threshold: number = 0.7): VectorLakeEntry[] {
+  async findSimilarQueries(query: string, threshold: number = 0.7): Promise<VectorLakeEntry[]> {
     if (!db) throw new Error('Database not initialized');
 
-    const queryEmbedding = this.generateEmbedding(query);
+    const queryEmbedding = await embeddingService.generateEmbedding(query);
     const result = db.exec(
       'SELECT * FROM vector_lake WHERE expires_at IS NULL OR expires_at > ? ORDER BY last_accessed DESC LIMIT 20',
       [Date.now()]
@@ -1800,7 +1801,7 @@ export class SQLDatabase {
     return entries
       .map(entry => ({
         ...entry,
-        similarity: this.cosineSimilarity(
+        similarity: embeddingService.cosineSimilarity(
           queryEmbedding,
           entry.embedding ? JSON.parse(entry.embedding) : []
         ),
@@ -1862,44 +1863,7 @@ export class SQLDatabase {
     };
   }
 
-  private generateEmbedding(text: string): number[] {
-    const hash = this.simpleHash(text);
-    const embedding: number[] = [];
-    const seed = hash;
-
-    for (let i = 0; i < 384; i++) {
-      const x = Math.sin(seed * (i + 1) * 12.9898) * 43758.5453;
-      embedding.push((x - Math.floor(x)) * 2 - 1);
-    }
-
-    const magnitude = Math.sqrt(embedding.reduce((sum, val) => sum + val * val, 0));
-    return embedding.map(val => val / magnitude);
-  }
-
-  private simpleHash(text: string): number {
-    let hash = 0;
-    for (let i = 0; i < text.length; i++) {
-      const char = text.charCodeAt(i);
-      hash = (hash << 5) - hash + char;
-      hash = hash & hash;
-    }
-    return Math.abs(hash);
-  }
-
-  private cosineSimilarity(a: number[], b: number[]): number {
-    if (a.length !== b.length || a.length === 0) return 0;
-    let dotProduct = 0;
-    let normA = 0;
-    let normB = 0;
-
-    for (let i = 0; i < a.length; i++) {
-      dotProduct += a[i] * b[i];
-      normA += a[i] * a[i];
-      normB += b[i] * b[i];
-    }
-
-    return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
-  }
+  // Note: generateEmbedding and cosineSimilarity moved to embedding-service.ts
 
   private mapRowToVectorLakeEntry(columns: string[], values: any[]): VectorLakeEntry {
     const row: any = {};
@@ -3822,6 +3786,7 @@ export class SQLDatabase {
       'gemini',
       'groq',
       'mistral',
+      'linguix',
     ];
     return providers.map(provider => ({
       provider,

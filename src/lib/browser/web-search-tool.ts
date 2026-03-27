@@ -65,10 +65,10 @@ export async function ollamaWebSearch(
   const safeQuery = sanitizePrompt(query, 500);
 
   if (!apiKey) {
-    console.log('[OllamaWebSearch] No OLLAMA_API_KEY found');
+    console.log('[REDACTED]');
     console.log('[OllamaWebSearch] To enable web search:');
     console.log('[OllamaWebSearch] 1. Go to /settings page');
-    console.log('[OllamaWebSearch] 2. Enter your Ollama API key (get at ollama.com/settings/keys)');
+    console.log('[OllamaWebSearch] 2. Add your Brave Search API key');
     console.log('[OllamaWebSearch] 3. Click Save');
     console.log('[OllamaWebSearch] Falling back to SearXNG...');
     return searXNGSearch(safeQuery, 'http://localhost:8888', options?.maxResults || 5);
@@ -166,7 +166,7 @@ async function fallbackToBrowserSearch(
 ): Promise<WebSearchResponse> {
   console.log('[OllamaWebSearch] No fallback search available.');
   console.log('[OllamaWebSearch] To enable web search:');
-  console.log('[OllamaWebSearch] 1. Add OLLAMA_API_KEY to .env.local');
+  console.log('[REDACTED]');
   console.log('[OllamaWebSearch] 2. Or set up a SearXNG instance');
   return { results: [], query };
 }

@@ -567,6 +567,60 @@ export default function WritingStudioPage() {
     return html;
   };
 
+  const handleLinguixAction = async () => {
+    const sel = window.getSelection();
+    const selectedText = sel?.toString() || '';
+
+    if (!selectedText) {
+      alert('Select text to check grammar with Linguix');
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const res = await fetch('/api/linguix', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'fix', text: selectedText }),
+      });
+
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error.error || 'Linguix API error');
+      }
+
+      const data = await res.json();
+
+      if (data.changes > 0) {
+        // Replace selected text with corrected text
+        const selection = window.getSelection();
+        if (selection && selection.rangeCount > 0) {
+          const range = selection.getRangeAt(0);
+          range.deleteContents();
+
+          const textNode = document.createTextNode(data.fixed);
+          range.insertNode(textNode);
+
+          // Sync with React state
+          const parentElement = textNode.parentElement;
+          if (parentElement && parentElement.innerHTML) {
+            setContent(parentElement.innerHTML);
+          }
+        }
+
+        // Show how many corrections were made
+        alert(`✓ ${data.changes} correction${data.changes > 1 ? 's' : ''} applied`);
+      } else {
+        alert('✓ No grammar issues found');
+      }
+    } catch (e: any) {
+      console.error('Linguix error:', e);
+      alert(`Linguix error: ${e.message}\n\nMake sure Linguix API key is configured in Settings.`);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleAIAction = async (action: string) => {
     // Handle diagram and table specially
     if (action === 'diagram') {
@@ -577,6 +631,13 @@ export default function WritingStudioPage() {
       await handleDiagramAction('table');
       return;
     }
+
+    // Handle Linguix grammar check
+    if (action === 'linguix') {
+      await handleLinguixAction();
+      return;
+    }
+
     const sel = window.getSelection();
     let selectedText = sel?.toString() || '';
 
@@ -847,6 +908,7 @@ export default function WritingStudioPage() {
     { id: 'simplify', name: 'Simplify', icon: '💡' },
     { id: 'humanize', name: 'Humanize', icon: '✨' },
     { id: 'grammar', name: 'Grammar', icon: '✓' },
+    { id: 'linguix', name: 'Linguix', icon: '📝' },
     { id: 'diagram', name: 'Diagram', icon: '📊' },
     { id: 'table', name: 'Table', icon: '📱' },
   ];

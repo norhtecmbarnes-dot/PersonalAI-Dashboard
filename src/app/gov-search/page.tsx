@@ -90,7 +90,7 @@ export default function GovSearchPage() {
         }
       }
     } catch (err) {
-      console.error('Error loading API key:', err);
+      console.error('[REDACTED]');
     }
   };
 

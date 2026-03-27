@@ -123,6 +123,17 @@ Requirements:
           levels: (content.match(/^#{1,4}\s+/gm) || []).length,
           sections: (content.match(/^##\s+/gm) || []).length,
         });
+
+        // Save outline to localStorage for Writing page
+        localStorage.setItem('outline-content', content);
+        localStorage.setItem('outline-title', title);
+
+        // Auto-redirect to Writing page with expand action ready
+        if (autoRedirect) {
+          setTimeout(() => {
+            window.location.href = '/writing?from=outliner&action=expand';
+          }, 500);
+        }
       } else {
         setError(data.error || 'Failed to generate outline');
       }
@@ -220,6 +231,7 @@ Requirements:
 
   const [expandedPaths, setExpandedPaths] = useState<number[][]>([]);
   const [viewMode, setViewMode] = useState<'tree' | 'markdown'>('tree');
+  const [autoRedirect, setAutoRedirect] = useState(true);
 
   const exportOutline = async (format: 'txt' | 'md' | 'docx' | 'pdf') => {
     if (!result?.content) return;
@@ -413,18 +425,49 @@ Requirements:
             </div>
 
             {/* Generate Button */}
-            <button
-              onClick={generateOutline}
-              disabled={loading || !topic.trim()}
-              className={`w-full px-6 py-3 rounded-lg font-medium flex items-center justify-center gap-2 ${
-                theme === 'dark'
-                  ? 'bg-purple-600 text-white hover:bg-purple-700'
-                  : 'bg-purple-500 text-white hover:bg-purple-600'
-              } disabled:opacity-50 disabled:cursor-not-allowed`}
-            >
-              {loading && <span className="animate-spin">◐</span>}
-              {loading ? 'Generating & sending to editor...' : '📋 Generate & Send to Editor'}
-            </button>
+            <div className={`${cardClasses} rounded-xl p-4`}>
+              <div className="flex items-center gap-2 mb-3">
+                <input
+                  type="checkbox"
+                  id="autoRedirect"
+                  checked={autoRedirect}
+                  onChange={e => setAutoRedirect(e.target.checked)}
+                  className="w-4 h-4"
+                />
+                <label
+                  htmlFor="autoRedirect"
+                  className={`${theme === 'dark' ? 'text-white' : 'text-gray-900'} text-sm`}
+                >
+                  Auto-redirect to Writing Studio
+                </label>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={generateOutline}
+                  disabled={loading || !topic.trim()}
+                  className={`flex-1 px-6 py-3 rounded-lg font-medium flex items-center justify-center gap-2 ${
+                    theme === 'dark'
+                      ? 'bg-purple-600 text-white hover:bg-purple-700'
+                      : 'bg-purple-500 text-white hover:bg-purple-600'
+                  } disabled:opacity-50 disabled:cursor-not-allowed`}
+                >
+                  {loading && <span className="animate-spin">◐</span>}
+                  {loading ? 'Generating...' : '📋 Generate Outline'}
+                </button>
+                {result && !autoRedirect && (
+                  <Link
+                    href="/writing?from=outliner&action=expand"
+                    className={`px-6 py-3 rounded-lg font-medium flex items-center gap-2 ${
+                      theme === 'dark'
+                        ? 'bg-green-600 text-white hover:bg-green-700'
+                        : 'bg-green-500 text-white hover:bg-green-600'
+                    }`}
+                  >
+                    🚀 Expand in Studio
+                  </Link>
+                )}
+              </div>
+            </div>
           </div>
 
           {/* Output Section */}

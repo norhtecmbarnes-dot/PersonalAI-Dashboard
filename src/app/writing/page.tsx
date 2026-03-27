@@ -84,6 +84,8 @@ export default function WritingAssistantPage() {
 
   // Preview state for outline content
   const [showPreview, setShowPreview] = useState(false);
+  const [fromOutliner, setFromOutliner] = useState(false);
+  const [outlineTitle, setOutlineTitle] = useState<string | null>(null);
 
   // Load saved model, theme, and outline content on mount
   useEffect(() => {
@@ -99,6 +101,10 @@ export default function WritingAssistantPage() {
         // Check for outline content from outline-creator via URL param or localStorage
         const urlParams = new URLSearchParams(window.location.search);
         const outlineParam = urlParams.get('outline');
+        const fromOutlinerParam = urlParams.get('from') === 'outliner';
+        const actionParam = urlParams.get('action');
+        const storedTitle = localStorage.getItem('outline-title');
+
         console.log('[Writing] URL search:', window.location.search);
         console.log('[Writing] outlineParam exists:', !!outlineParam);
         if (outlineParam) {
@@ -108,6 +114,11 @@ export default function WritingAssistantPage() {
             console.log('[Writing] Decoded content length:', decoded.length);
             setInput(decoded);
             setShowPreview(true);
+            if (storedTitle) setOutlineTitle(storedTitle);
+            if (fromOutlinerParam) {
+              setFromOutliner(true);
+              if (actionParam) setAction(actionParam as any);
+            }
             // Clean URL
             window.history.replaceState({}, '', window.location.pathname);
           } catch (e) {
@@ -116,6 +127,8 @@ export default function WritingAssistantPage() {
             if (outlineContent) {
               setInput(outlineContent);
               setShowPreview(true);
+              if (storedTitle) setOutlineTitle(storedTitle);
+              if (fromOutlinerParam) setFromOutliner(true);
               localStorage.removeItem('outline-content');
             }
           }
@@ -124,7 +137,10 @@ export default function WritingAssistantPage() {
           if (outlineContent) {
             setInput(outlineContent);
             setShowPreview(true);
+            if (storedTitle) setOutlineTitle(storedTitle);
+            setFromOutliner(true);
             localStorage.removeItem('outline-content');
+            localStorage.removeItem('outline-title');
           }
         }
       }
@@ -173,7 +189,7 @@ export default function WritingAssistantPage() {
     setResult(null);
     setChanges([]);
 
-    const modelToUse = model || 'ollama/qwen3.5:2b';
+    const modelToUse = model || 'ollama/llama3.2:latest';
 
     try {
       const response = await fetch('/api/writing', {
@@ -395,6 +411,17 @@ export default function WritingAssistantPage() {
             </p>
           </div>
           <div className="flex gap-2 items-center">
+            {/* Outliner Banner */}
+            {fromOutliner && (
+              <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-purple-600/20 border border-purple-500/50 text-purple-300">
+                <span>📋</span>
+                <span className="text-sm">
+                  {outlineTitle ? `Outline: ${outlineTitle}` : 'Outline loaded'}
+                </span>
+                <span className="text-xs text-purple-400">• Ready to expand</span>
+              </div>
+            )}
+
             {/* Theme Toggle */}
             <button
               onClick={toggleTheme}
@@ -835,20 +862,40 @@ export default function WritingAssistantPage() {
                 >
                   {input.length} characters
                 </span>
-                <button
-                  onClick={handleSubmit}
-                  disabled={
-                    loading || (!input.trim() && !['review', 'track_changes'].includes(action))
-                  }
-                  className={`px-6 py-2 rounded-lg flex items-center gap-2 ${
-                    theme === 'dark'
-                      ? 'bg-purple-600 text-white hover:bg-purple-700'
-                      : 'bg-purple-500 text-white hover:bg-purple-600'
-                  } disabled:opacity-50 disabled:cursor-not-allowed`}
-                >
-                  {loading && <span className="animate-spin">◐</span>}
-                  {loading ? 'Processing...' : 'Process'}
-                </button>
+                <div className="flex gap-2">
+                  {fromOutliner && (
+                    <button
+                      onClick={handleSubmit}
+                      disabled={loading || !input.trim()}
+                      className={`px-6 py-2 rounded-lg flex items-center gap-2 animate-pulse ${
+                        theme === 'dark'
+                          ? 'bg-green-600 text-white hover:bg-green-700'
+                          : 'bg-green-500 text-white hover:bg-green-600'
+                      } disabled:opacity-50 disabled:cursor-not-allowed disabled:animate-none`}
+                    >
+                      {loading && <span className="animate-spin">◐</span>}
+                      {loading ? 'Expanding...' : '🚀 Expand Outline'}
+                    </button>
+                  )}
+                  <button
+                    onClick={handleSubmit}
+                    disabled={
+                      loading || (!input.trim() && !['review', 'track_changes'].includes(action))
+                    }
+                    className={`px-6 py-2 rounded-lg flex items-center gap-2 ${
+                      fromOutliner
+                        ? theme === 'dark'
+                          ? 'bg-slate-700 text-slate-300'
+                          : 'bg-gray-200 text-gray-700'
+                        : theme === 'dark'
+                          ? 'bg-purple-600 text-white hover:bg-purple-700'
+                          : 'bg-purple-500 text-white hover:bg-purple-600'
+                    } disabled:opacity-50 disabled:cursor-not-allowed`}
+                  >
+                    {loading && <span className="animate-spin">◐</span>}
+                    {loading ? 'Processing...' : 'Process'}
+                  </button>
+                </div>
               </div>
             </div>
           </div>

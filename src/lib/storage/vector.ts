@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { embeddingService } from '../services/embedding-service';
 import { DocumentStore } from './documents';
 import { NoteStore } from './notes';
 
@@ -63,47 +64,21 @@ export class VectorStore {
     }
   }
 
-  private static generateEmbedding(text: string): number[] {
-    const hash = this.simpleHash(text);
-    const embedding: number[] = [];
-    const seed = hash;
-    
-    for (let i = 0; i < 384; i++) {
-      const x = Math.sin(seed * (i + 1) * 12.9898) * 43758.5453;
-      embedding.push((x - Math.floor(x)) * 2 - 1);
-    }
-    
-    const magnitude = Math.sqrt(embedding.reduce((sum, val) => sum + val * val, 0));
-    return embedding.map(val => val / magnitude);
-  }
-
-  private static simpleHash(text: string): number {
-    let hash = 0;
-    for (let i = 0; i < text.length; i++) {
-      const char = text.charCodeAt(i);
-      hash = ((hash << 5) - hash) + char;
-      hash = hash & hash;
-    }
-    return Math.abs(hash);
+  private static async generateEmbedding(text: string): Promise<number[]> {
+    return embeddingService.generateEmbedding(text);
   }
 
   private static cosineSimilarity(a: number[], b: number[]): number {
-    if (a.length !== b.length) return 0;
-    let dotProduct = 0;
-    let normA = 0;
-    let normB = 0;
-    
-    for (let i = 0; i < a.length; i++) {
-      dotProduct += a[i] * b[i];
-      normA += a[i] * a[i];
-      normB += b[i] * b[i];
-    }
-    
-    return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+    return embeddingService.cosineSimilarity(a, b);
   }
 
-  static addDocument(doc: { id: string; content: string; title: string; tags?: string[] }): void {
-    const embedding = this.generateEmbedding(doc.content);
+  static async addDocument(doc: {
+    id: string;
+    content: string;
+    title: string;
+    tags?: string[];
+  }): Promise<void> {
+    const embedding = await this.generateEmbedding(doc.content);
     const entry: VectorEntry = {
       id: doc.id,
       content: doc.content,
@@ -120,8 +95,13 @@ export class VectorStore {
     this.save();
   }
 
-  static addNote(note: { id: string; content: string; title: string; tags?: string[] }): void {
-    const embedding = this.generateEmbedding(note.content);
+  static async addNote(note: {
+    id: string;
+    content: string;
+    title: string;
+    tags?: string[];
+  }): Promise<void> {
+    const embedding = await this.generateEmbedding(note.content);
     const entry: VectorEntry = {
       id: note.id,
       content: note.content,
@@ -138,8 +118,12 @@ export class VectorStore {
     this.save();
   }
 
-  static addKnowledge(knowledge: { id: string; content: string; tags?: string[] }): void {
-    const embedding = this.generateEmbedding(knowledge.content);
+  static async addKnowledge(knowledge: {
+    id: string;
+    content: string;
+    tags?: string[];
+  }): Promise<void> {
+    const embedding = await this.generateEmbedding(knowledge.content);
     const entry: VectorEntry = {
       id: knowledge.id,
       content: knowledge.content,
@@ -154,8 +138,12 @@ export class VectorStore {
     this.save();
   }
 
-  static addConversation(message: { id: string; content: string; role: string }): void {
-    const embedding = this.generateEmbedding(message.content);
+  static async addConversation(message: {
+    id: string;
+    content: string;
+    role: string;
+  }): Promise<void> {
+    const embedding = await this.generateEmbedding(message.content);
     const entry: VectorEntry = {
       id: message.id,
       content: message.content,
@@ -166,16 +154,16 @@ export class VectorStore {
       },
     };
     this.embeddings.push(entry);
-    
+
     if (this.embeddings.length > 1000) {
       this.embeddings = this.embeddings.slice(-500);
     }
     this.save();
   }
 
-  static search(query: string, limit = 5, threshold = 0.3): SearchResult[] {
-    const queryEmbedding = this.generateEmbedding(query);
-    
+  static async search(query: string, limit = 5, threshold = 0.3): Promise<SearchResult[]> {
+    const queryEmbedding = await this.generateEmbedding(query);
+
     const results: SearchResult[] = this.embeddings
       .map(entry => ({
         id: entry.id,
@@ -190,9 +178,9 @@ export class VectorStore {
     return results;
   }
 
-  static getContextForQuery(query: string, maxTokens = 2000): string {
-    const results = this.search(query, 10, 0.2);
-    
+  static async getContextForQuery(query: string, maxTokens = 2000): Promise<string> {
+    const results = await this.search(query, 10, 0.2);
+
     let context = '';
     let tokenCount = 0;
     const avgTokensPerWord = 1.3;
@@ -200,9 +188,9 @@ export class VectorStore {
     for (const result of results) {
       const wordCount = result.content.split(/\s+/).length;
       const tokens = wordCount * avgTokensPerWord;
-      
+
       if (tokenCount + tokens > maxTokens) break;
-      
+
       context += `[${result.metadata.type}] ${result.content}\n\n`;
       tokenCount += tokens;
     }
@@ -235,13 +223,17 @@ export class VectorStore {
   static async syncWithStorage(): Promise<void> {
     const docs = await DocumentStore.getAll();
     const notes = NoteStore.getAll();
-    
-    const existingDocIds = new Set(this.embeddings.filter(e => e.metadata.type === 'document').map(e => e.metadata.sourceId));
-    const existingNoteIds = new Set(this.embeddings.filter(e => e.metadata.type === 'note').map(e => e.metadata.sourceId));
+
+    const existingDocIds = new Set(
+      this.embeddings.filter(e => e.metadata.type === 'document').map(e => e.metadata.sourceId)
+    );
+    const existingNoteIds = new Set(
+      this.embeddings.filter(e => e.metadata.type === 'note').map(e => e.metadata.sourceId)
+    );
 
     for (const doc of docs) {
       if (!existingDocIds.has(doc.id)) {
-        this.addDocument({
+        await this.addDocument({
           id: doc.id,
           content: doc.content,
           title: doc.title,
@@ -252,7 +244,7 @@ export class VectorStore {
 
     for (const note of notes) {
       if (!existingNoteIds.has(note.id)) {
-        this.addNote({
+        await this.addNote({
           id: note.id,
           content: note.content,
           title: note.title,

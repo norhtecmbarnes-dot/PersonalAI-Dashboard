@@ -64,13 +64,13 @@ export function initializeDefaultUser(): void {
     const userPassword = process.env.DEFAULT_USER_PASSWORD;
     
     if (!adminPassword) {
-      console.warn('[Auth] WARNING: DEFAULT_ADMIN_PASSWORD not set. Admin login disabled.');
-      console.warn('[Auth] Set DEFAULT_ADMIN_PASSWORD environment variable to enable admin login.');
+      console.warn('[REDACTED]');
+      console.warn('[REDACTED]');
       return;
     }
     
     if (adminPassword.length < 12) {
-      console.warn('[Auth] WARNING: DEFAULT_ADMIN_PASSWORD is too short. Use at least 12 characters.');
+      console.warn('[REDACTED]');
     }
     
     const { hash, salt } = hashPassword(adminPassword);

@@ -100,3 +100,9 @@ personal-extensions/
 COMPLETION_NOTICE.txt
 POST_TO_GITHUB.txt
 *.log
+
+# Added by security cleanup
+*.env
+
+# Added by security cleanup
+credentials.json

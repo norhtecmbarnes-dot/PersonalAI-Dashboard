@@ -37,30 +37,89 @@ interface KnownFramework {
 }
 
 const KNOWN_FRAMEWORKS: KnownFramework[] = [
-  { name: 'OpenClaw', keywords: ['openclaw', 'claw', 'law', 'legal ai', 'legal automation'], category: 'autonomous-agent' },
-  { name: 'AutoGPT', keywords: ['autogpt', 'autonomous agent', 'gpt agent'], category: 'autonomous-agent' },
-  { name: 'LangChain', keywords: ['langchain', 'lang chain', 'llm framework'], category: 'orchestration' },
-  { name: 'LlamaIndex', keywords: ['llamaindex', 'llama index', 'data framework', 'rag'], category: 'rag' },
+  {
+    name: 'AutoGPT',
+    keywords: ['autogpt', 'autonomous agent', 'gpt agent'],
+    category: 'autonomous-agent',
+  },
+  {
+    name: 'LangChain',
+    keywords: ['langchain', 'lang chain', 'llm framework'],
+    category: 'orchestration',
+  },
+  {
+    name: 'LlamaIndex',
+    keywords: ['llamaindex', 'llama index', 'data framework', 'rag'],
+    category: 'rag',
+  },
   { name: 'CrewAI', keywords: ['crewai', 'crew ai', 'multi-agent'], category: 'autonomous-agent' },
-  { name: 'AutoGen', keywords: ['autogen', 'auto gen', 'multi-agent conversation'], category: 'autonomous-agent' },
+  {
+    name: 'AutoGen',
+    keywords: ['autogen', 'auto gen', 'multi-agent conversation'],
+    category: 'autonomous-agent',
+  },
   { name: 'AgentGPT', keywords: ['agentgpt', 'browser autonomous'], category: 'autonomous-agent' },
-  { name: 'BabyAGI', keywords: ['babyagi', 'baby agi', 'task-driven'], category: 'autonomous-agent' },
-  { name: 'SuperAGI', keywords: ['superagi', 'super agi', 'agent framework'], category: 'autonomous-agent' },
+  {
+    name: 'BabyAGI',
+    keywords: ['babyagi', 'baby agi', 'task-driven'],
+    category: 'autonomous-agent',
+  },
+  {
+    name: 'SuperAGI',
+    keywords: ['superagi', 'super agi', 'agent framework'],
+    category: 'autonomous-agent',
+  },
   { name: 'GPT-Engineer', keywords: ['gpt-engineer', 'code generation'], category: 'tools' },
-  { name: 'LangGraph', keywords: ['langgraph', 'lang graph', 'stateful agent'], category: 'orchestration' },
+  {
+    name: 'LangGraph',
+    keywords: ['langgraph', 'lang graph', 'stateful agent'],
+    category: 'orchestration',
+  },
   { name: 'Haystack', keywords: ['haystack', 'nlp', 'question answering'], category: 'rag' },
   { name: 'MemGPT', keywords: ['memgpt', 'unlimited context', 'memory'], category: 'memory' },
   { name: 'Mem0', keywords: ['mem0', 'memory layer', 'ai memory'], category: 'memory' },
-  { name: 'AgentOps', keywords: ['agentops', 'agent observability', 'agent monitoring'], category: 'evaluation' },
-  { name: 'Phoenix', keywords: ['phoenix arize', 'llm observability', 'arize'], category: 'evaluation' },
+  {
+    name: 'AgentOps',
+    keywords: ['agentops', 'agent observability', 'agent monitoring'],
+    category: 'evaluation',
+  },
+  {
+    name: 'Phoenix',
+    keywords: ['phoenix arize', 'llm observability', 'arize'],
+    category: 'evaluation',
+  },
   { name: 'Ragas', keywords: ['ragas', 'rag evaluation', 'rag metrics'], category: 'evaluation' },
-  { name: 'DeepEval', keywords: ['deepeval', 'llm evaluation', 'assertions'], category: 'evaluation' },
+  {
+    name: 'DeepEval',
+    keywords: ['deepeval', 'llm evaluation', 'assertions'],
+    category: 'evaluation',
+  },
   { name: 'Dify', keywords: ['dify', 'llm app platform', 'no code ai'], category: 'orchestration' },
-  { name: 'Flowise', keywords: ['flowise', 'drag and drop', 'llm flow'], category: 'orchestration' },
-  { name: 'Semantic Kernel', keywords: ['semantic kernel', 'microsoft', 'ai orchestration'], category: 'orchestration' },
-  { name: 'OpenAI Swarm', keywords: ['openai swarm', 'swarm', 'multi-agent orchestration'], category: 'autonomous-agent' },
-  { name: 'Agent Zero', keywords: ['agent zero', 'autonomous', 'docker agent'], category: 'autonomous-agent' },
-  { name: 'Remotion', keywords: ['remotion', 'video generation', 'programmatic video'], category: 'tools' },
+  {
+    name: 'Flowise',
+    keywords: ['flowise', 'drag and drop', 'llm flow'],
+    category: 'orchestration',
+  },
+  {
+    name: 'Semantic Kernel',
+    keywords: ['semantic kernel', 'microsoft', 'ai orchestration'],
+    category: 'orchestration',
+  },
+  {
+    name: 'OpenAI Swarm',
+    keywords: ['openai swarm', 'swarm', 'multi-agent orchestration'],
+    category: 'autonomous-agent',
+  },
+  {
+    name: 'Agent Zero',
+    keywords: ['agent zero', 'autonomous', 'docker agent'],
+    category: 'autonomous-agent',
+  },
+  {
+    name: 'Remotion',
+    keywords: ['remotion', 'video generation', 'programmatic video'],
+    category: 'tools',
+  },
 ];
 
 const CURRENT_CAPABILITIES = [
@@ -128,14 +187,14 @@ class AgentEcosystemResearch {
 
     // Research a subset of frameworks each time
     const frameworksToResearch = this.getFrameworksToResearch();
-    
+
     for (const framework of frameworksToResearch) {
       try {
         const info = await this.researchFramework(framework);
         if (info) {
           frameworks.push(info);
           this.frameworks.set(framework.name, info);
-          
+
           const suggestions = this.suggestIntegration(info);
           suggestedIntegrations.push(...suggestions);
         }
@@ -171,7 +230,7 @@ class AgentEcosystemResearch {
   private getFrameworksToResearch(): KnownFramework[] {
     const now = Date.now();
     const researchCandidates: KnownFramework[] = [];
-    
+
     for (const fw of KNOWN_FRAMEWORKS) {
       const cached = this.frameworks.get(fw.name);
       if (!cached || now - cached.lastResearched > 7 * 24 * 60 * 60 * 1000) {
@@ -212,7 +271,7 @@ class AgentEcosystemResearch {
 
   private extractCapabilities(text: string, framework: KnownFramework): string[] {
     const capabilities: string[] = [];
-    
+
     const capabilityPatterns = [
       /supports?\s+([^.]+)/gi,
       /provides?\s+([^.]+)/gi,
@@ -225,7 +284,9 @@ class AgentEcosystemResearch {
       const matches = text.match(pattern);
       if (matches) {
         for (const match of matches) {
-          const cap = match.replace(/^(supports?|provides?|features?:?|can|ability\s+to)\s*/i, '').trim();
+          const cap = match
+            .replace(/^(supports?|provides?|features?:?|can|ability\s+to)\s*/i, '')
+            .trim();
           if (cap.length > 5 && cap.length < 100) {
             capabilities.push(cap.charAt(0).toUpperCase() + cap.slice(1).toLowerCase());
           }
@@ -253,7 +314,9 @@ class AgentEcosystemResearch {
         return sentence.trim().slice(0, 300);
       }
     }
-    return sentences[0]?.trim().slice(0, 300) || `${framework.name} - ${framework.category} framework`;
+    return (
+      sentences[0]?.trim().slice(0, 300) || `${framework.name} - ${framework.category} framework`
+    );
   }
 
   private extractGithubUrl(text: string): string | undefined {
@@ -266,37 +329,49 @@ class AgentEcosystemResearch {
     return match ? match[0] : undefined;
   }
 
-  private assessComplexity(text: string, framework: KnownFramework): 'simple' | 'medium' | 'complex' {
+  private assessComplexity(
+    text: string,
+    framework: KnownFramework
+  ): 'simple' | 'medium' | 'complex' {
     const lowerText = text.toLowerCase();
-    
-    if (lowerText.includes('simple') || lowerText.includes('easy') || lowerText.includes('quick start')) {
+
+    if (
+      lowerText.includes('simple') ||
+      lowerText.includes('easy') ||
+      lowerText.includes('quick start')
+    ) {
       return 'simple';
     }
-    
-    if (lowerText.includes('complex') || lowerText.includes('advanced') || 
-        lowerText.includes('enterprise') || lowerText.includes('multi-agent')) {
+
+    if (
+      lowerText.includes('complex') ||
+      lowerText.includes('advanced') ||
+      lowerText.includes('enterprise') ||
+      lowerText.includes('multi-agent')
+    ) {
       return 'complex';
     }
-    
+
     if (framework.category === 'autonomous-agent') {
       return 'complex';
     }
-    
+
     return 'medium';
   }
 
   private suggestIntegration(framework: AgentFramework): SuggestedIntegration[] {
     const suggestions: SuggestedIntegration[] = [];
-    
+
     if (CURRENT_CAPABILITIES.includes(framework.name.toLowerCase().replace(/[^a-z]/g, '-'))) {
       return suggestions;
     }
 
     const existingCapabilitiesLower = CURRENT_CAPABILITIES.map(c => c.toLowerCase());
     const newCapabilities = framework.capabilities.filter(
-      cap => !existingCapabilitiesLower.some(existing => 
-        cap.toLowerCase().includes(existing) || existing.includes(cap.toLowerCase())
-      )
+      cap =>
+        !existingCapabilitiesLower.some(
+          existing => cap.toLowerCase().includes(existing) || existing.includes(cap.toLowerCase())
+        )
     );
 
     for (const cap of newCapabilities.slice(0, 3)) {
@@ -308,11 +383,17 @@ class AgentEcosystemResearch {
         priority = 'high';
         reason = 'Memory capabilities would improve context retention across conversations';
         effort = '4-8 hours';
-      } else if (cap.toLowerCase().includes('multi-agent') || cap.toLowerCase().includes('orchestration')) {
+      } else if (
+        cap.toLowerCase().includes('multi-agent') ||
+        cap.toLowerCase().includes('orchestration')
+      ) {
         priority = 'medium';
         reason = 'Multi-agent orchestration would enable more complex workflows';
         effort = '8-16 hours';
-      } else if (cap.toLowerCase().includes('evaluation') || cap.toLowerCase().includes('observability')) {
+      } else if (
+        cap.toLowerCase().includes('evaluation') ||
+        cap.toLowerCase().includes('observability')
+      ) {
         priority = 'medium';
         reason = 'Would help monitor and improve system quality';
         effort = '2-4 hours';
@@ -344,7 +425,7 @@ class AgentEcosystemResearch {
 
   private identifyNewCapabilities(frameworks: AgentFramework[]): string[] {
     const capabilities = new Set<string>();
-    
+
     for (const fw of frameworks) {
       for (const cap of fw.capabilities) {
         capabilities.add(cap);
@@ -364,24 +445,27 @@ class AgentEcosystemResearch {
     return newCaps.slice(0, 10);
   }
 
-  private generateSummary(frameworks: AgentFramework[], suggestions: SuggestedIntegration[]): string {
+  private generateSummary(
+    frameworks: AgentFramework[],
+    suggestions: SuggestedIntegration[]
+  ): string {
     const highPriority = suggestions.filter(s => s.priority === 'high').length;
     const mediumPriority = suggestions.filter(s => s.priority === 'medium').length;
-    
+
     let summary = `Researched ${frameworks.length} frameworks in the agent ecosystem. `;
-    
+
     if (highPriority > 0) {
       summary += `Found ${highPriority} high-priority integration suggestion${highPriority > 1 ? 's' : ''}. `;
     }
-    
+
     if (mediumPriority > 0) {
       summary += `${mediumPriority} medium-priority suggestions available. `;
     }
-    
+
     if (suggestions.length === 0) {
       summary += 'No new integrations recommended at this time.';
     }
-    
+
     return summary;
   }
 
@@ -403,25 +487,29 @@ class AgentEcosystemResearch {
 
   getRecommendationsForCapability(capability: string): SuggestedIntegration[] {
     const suggestions: SuggestedIntegration[] = [];
-    
+
     for (const fw of this.frameworks.values()) {
-      const matching = fw.capabilities.filter(
-        cap => cap.toLowerCase().includes(capability.toLowerCase())
+      const matching = fw.capabilities.filter(cap =>
+        cap.toLowerCase().includes(capability.toLowerCase())
       );
-      
+
       for (const cap of matching) {
         suggestions.push({
           framework: fw.name,
           capability: cap,
           reason: `${fw.name} provides ${cap}`,
           priority: 'medium',
-          estimatedEffort: fw.integrationComplexity === 'simple' ? '1-2 hours' : 
-                           fw.integrationComplexity === 'medium' ? '4-8 hours' : '16+ hours',
+          estimatedEffort:
+            fw.integrationComplexity === 'simple'
+              ? '1-2 hours'
+              : fw.integrationComplexity === 'medium'
+                ? '4-8 hours'
+                : '16+ hours',
           implementationNotes: `Check ${fw.documentationUrl || fw.githubUrl || fw.name} for implementation details`,
         });
       }
     }
-    
+
     return suggestions;
   }
 }

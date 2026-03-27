@@ -186,7 +186,7 @@ export default function OnlyOfficeConfigPage() {
     "providers": [
       {
         "name": "AI Dashboard",
-        "url": "${aiUrl || 'http://your-server:3000/api/onlyoffice/ai'}",
+        "url": "${aiUrl || 'https://your-server:3000/api/onlyoffice/ai'}",
         "models": ["glm-4.7-flash", "glm-5:cloud", "qwen3.5:9b"]
       }
     ]
@@ -204,7 +204,7 @@ export default function OnlyOfficeConfigPage() {
 {`// Add to ONLYOFFICE AI plugin settings
 {
   "name": "AI Dashboard",
-  "baseUrl": "${aiUrl || 'http://your-server:3000/api/onlyoffice/ai'}",
+  "baseUrl": "${aiUrl || 'https://your-server:3000/api/onlyoffice/ai'}",
   "models": [
     { "id": "glm-4.7-flash", "name": "GLM-4.7 Flash" },
     { "id": "qwen3.5:9b", "name": "Qwen 3.5 9B" }
