@@ -91,19 +91,69 @@ Open http://localhost:3000
 - **SQLite** + Vector Lake
 - **Tailwind** + modern UI
 
-## The Model Message Bus
+## 🚀 The Model Message Bus — Core Innovation (Patent Pending)
+
+The **Model Message Bus** is the heart of the entire PersonalAI Dashboard architecture and Michael C. Barnes' most significant contribution.
+
+Instead of using a traditional central orchestrator, the Model Message Bus lets the **smallest local model act as its own intelligent triage orchestrator**.
+
+### How It Works
+
+1. **Self-Assessment** — The smallest model (Tier 1) receives the query and evaluates: Can I answer this? Would a larger model do better? What's the token cost?
+2. **Intelligent Escalation** — If overwhelmed, it escalates to the appropriate higher tier with full context.
+3. **Bidirectional Validation** — The higher-tier model processes and returns. The small model validates and formats before delivery.
+4. **Token Budget Awareness** — Real-time cost tracking prefers local models when possible.
+
+### The 4-Tier Hierarchy
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    MODEL MESSAGE BUS                         │
-│  Tier 1: Local Small (llama3.2:latest)   ← Triage & simple  │
-│  Tier 2: Local Large (qwen3.5:9b)                            │
-│  Tier 3: Cloud Fast (groq/llama-3.1-8b)                      │
-│  Tier 4: Cloud Smart (gpt-4o, claude-3.5, glm-5)            │
+│                                                             │
+│  Tier 1: Local Small (gemma3:4b or llama4:scout-small)     │
+│  └── Triage, preprocessing, simple queries                  │
+│                                                             │
+│  Tier 2: Local Large (llama4:scout or llama4:maverick)      │
+│  └── Medium complexity, document analysis, writing          │
+│                                                             │
+│  Tier 3: Cloud Fast (Groq-hosted Llama 4 fast variants)    │
+│  └── Speed-critical escalations                              │
+│                                                             │
+│  Tier 4: Cloud Smart (gpt-5.4, claude-opus-4.6, gemini-2.5) │
+│  └── Complex reasoning, high-accuracy, creative tasks       │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-Self-assessment + budget awareness + bidirectional validation = truly novel in open source.
+### Why This Architecture Is Unique
+
+- **No central orchestrator** — decision to escalate happens inside the model
+- **Bidirectional flow** — powerful model lifts, small model retains final control
+- **Self-aware escalation** — learns what it can handle locally over time
+- **True cost intelligence** — token budget considered at every step
+- **Auditability** — every escalation logged with reasoning and tokens
+
+---
+
+## 🌊 Vector Lake — Your AI's Living, Growing Memory (Patent Pending)
+
+**Vector Lake** is the intelligent memory layer that makes the Dashboard truly adaptive. While most AI systems forget everything when a conversation ends, Vector Lake turns every interaction into permanent, searchable knowledge.
+
+### How Vector Lake Works
+
+1. **Automatic Ingestion** — Every query, document, and result is converted to vectors and stored
+2. **Semantic Understanding** — Find connections across different documents and conversations
+3. **Smart Caching** — Check Vector Lake first, reducing token usage dramatically
+4. **Continuous Learning** — The lake grows smarter with every use
+
+### Key Benefits
+
+- **Massive Token Savings** — Repeated questions answered from cache
+- **True Long-Term Memory** — AI never forgets your documents or research
+- **Privacy** — All vectors stay on your machine
+
+---
+
+**Patent Pending** — Model Message Bus and Vector Lake are original concepts developed by Michael C. Barnes, with inspiration from Randolph Hill.
 
 ## License
 
