@@ -88,9 +88,11 @@ This is the unique architecture at the heart of the system. Your tiny local mode
 
 Self-assessment + budget awareness + bidirectional validation = truly novel in open source.
 
-## 📖 The Book
+## 📖 Documentation
 
-Read the full book online: [AI-Assisted Development: Local, Private, Token-Efficient](https://designrr.page/?id=493295&token=3520346906&type=FP&h=9144)
+- **[User Guide](./docs/USER-GUIDE.md)** — Complete walkthrough with screenshots
+- **[Book (PDF)](./docs/Building_Your_AI_Dashboard.pdf)** — Full guide to building local AI systems
+- **[Book (Online)](https://designrr.page/?id=493295&token=3520346906&type=FP&h=9144)** — Web version with rich formatting
 
 ## Technologies
 
