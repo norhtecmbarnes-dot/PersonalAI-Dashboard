@@ -26,8 +26,8 @@ ollama pull glm-4.7-flash
 ## Step 2: Clone and Install
 
 ```bash
-git clone https://github.com/your-org/ai-dashboard.git
-cd ai-dashboard
+git clone https://github.com/norhtecmbarnes-dot/PersonalAI-Dashboard.git
+cd PersonalAI-Dashboard
 npm install
 ```
 
@@ -140,7 +140,7 @@ ollama pull llama4:scout
 ## Project Structure
 
 ```
-ai-dashboard/
+PersonalAI-Dashboard/
 ├── src/
 │   ├── app/           # Pages and API routes
 │   ├── lib/           # Core libraries
@@ -245,7 +245,7 @@ Fixed in v2.0.0 - all storage now uses file system.
 
 ## Support
 
-- **Issues:** https://github.com/your-org/ai-dashboard/issues
+- **Issues:** https://github.com/norhtecmbarnes-dot/PersonalAI-Dashboard/issues
 - **Docs:** [DOCUMENTATION.md](./docs/DOCUMENTATION.md)
 - **Enterprise:** enterprise@govbotics.com
 

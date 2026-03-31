@@ -34,8 +34,8 @@
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/ai-dashboard.git
-cd ai-dashboard
+git clone https://github.com/norhtecmbarnes-dot/PersonalAI-Dashboard.git
+cd PersonalAI-Dashboard
 
 # Install dependencies
 npm install
@@ -173,7 +173,7 @@ User Input → API Route → Validation → Service Layer → AI Model → Respo
 ### File Structure
 
 ```
-ai-dashboard/
+PersonalAI-Dashboard/
 ├── data/                          # Runtime data
 │   ├── assistant.db               # SQLite database
 │   ├── book_progress.json         # Book writing state
@@ -722,7 +722,7 @@ npm run build
 
 ### Issues
 
-Report issues at: https://github.com/your-org/ai-dashboard/issues
+Report issues at: https://github.com/norhtecmbarnes-dot/PersonalAI-Dashboard/issues
 
 ### Enterprise Support
 

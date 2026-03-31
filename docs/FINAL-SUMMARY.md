@@ -114,8 +114,8 @@ curl -X POST http://localhost:3000/api/chat \
 
 ```bash
 # Clone repository
-git clone https://github.com/your-org/ai-dashboard.git
-cd ai-dashboard
+git clone https://github.com/norhtecmbarnes-dot/PersonalAI-Dashboard.git
+cd PersonalAI-Dashboard
 
 # Install dependencies
 npm install
