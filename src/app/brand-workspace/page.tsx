@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { MarkdownRenderer } from '@/components/MarkdownRenderer';
-import { PageModelSelector } from '@/components/PageModelSelector';
+import { useGlobalModel } from '@/lib/context/ModelContext';
 import type {
   Brand,
   Project,
@@ -1135,14 +1135,6 @@ export default function BrandWorkspacePage() {
 
                 {/* Input */}
                 <div className="p-4 border-t border-gray-700">
-                  <div className="mb-3">
-                    <PageModelSelector
-                      pageId="brand-workspace"
-                      label="AI Model"
-                      showHealth={true}
-                      className="w-full"
-                    />
-                  </div>
                   <div className="flex gap-2">
                     <textarea
                       value={chatInput}

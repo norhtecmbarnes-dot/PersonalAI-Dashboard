@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ModelSelector } from '@/components/ModelSelector';
+import { useGlobalModel } from '@/lib/context/ModelContext';
 import { MarkdownRenderer } from '@/components/MarkdownRenderer';
 
 interface OutlineResult {
@@ -28,7 +28,7 @@ export default function OutlineCreatorPage() {
   const [outlineType, setOutlineType] = useState<
     'general' | 'proposal' | 'blog' | 'academic' | 'business'
   >('general');
-  const [model, setModel] = useState('');
+  const { selectedModel: model } = useGlobalModel();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<OutlineResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -36,17 +36,10 @@ export default function OutlineCreatorPage() {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const savedModel = localStorage.getItem('selectedModel');
-      if (savedModel) setModel(savedModel);
       const savedTheme = localStorage.getItem('writing-theme');
       if (savedTheme) setTheme(savedTheme as 'dark' | 'light');
     }
   }, []);
-
-  const handleModelChange = (modelId: string) => {
-    setModel(modelId);
-    localStorage.setItem('selectedModel', modelId);
-  };
 
   const toggleTheme = () => {
     const newTheme = theme === 'dark' ? 'light' : 'dark';
@@ -414,14 +407,9 @@ Requirements:
               >
                 AI Model
               </h2>
-              <ModelSelector
-                value={model}
-                onChange={handleModelChange}
-                label=""
-                showHealth={true}
-                className="w-full"
-                autoSelectBest={true}
-              />
+              <div className={`text-sm ${theme === 'dark' ? 'text-slate-400' : 'text-gray-600'}`}>
+                {model || 'Select a model from the navigation bar'}
+              </div>
             </div>
 
             {/* Generate Button */}

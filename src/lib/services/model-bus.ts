@@ -63,17 +63,48 @@ interface ModelTier {
   isCPUFriendly?: boolean;
 }
 
-const MODEL_TIERS: ModelTier[] = [
+const LOCAL_SMALL_PATTERNS = [
+  'slim',
+  'mini',
+  '3b',
+  '1b',
+  '2b',
+  'flash',
+  'tiny',
+  'small',
+  'angelight',
+  'angglam',
+  'llama3.2:latest',
+  'llama3.2:1b',
+  'phi3:mini',
+  'gemma:2b',
+];
+const LOCAL_LARGE_PATTERNS = [
+  '7b',
+  '8b',
+  '9b',
+  '12b',
+  '14b',
+  '27b',
+  '70b',
+  'qwen3.5',
+  'llama3.1',
+  'mistral',
+  'codellama',
+  'deepseek-r1',
+];
+
+const STATIC_MODEL_TIERS: ModelTier[] = [
   {
     name: 'local-small',
-    models: ['angglam.slim', 'llama3.2:latest', 'glm-4.7-flash', 'llama3.2:3b'],
+    models: ['llama3.2:latest', 'phi3:mini'],
     provider: 'local',
     preferredFor: ['triage', 'routine tasks', 'formatting', 'simple queries'],
     isCPUFriendly: true,
   },
   {
     name: 'local-large',
-    models: ['qwen3.5:9b', 'qwen3.5:27b', 'llama3.1:8b', 'mistral-nemo'],
+    models: ['llama3.1:8b', 'qwen3.5:9b'],
     provider: 'local',
     preferredFor: ['chat', 'document analysis', 'medium complexity'],
   },
@@ -97,6 +128,67 @@ const MODEL_TIERS: ModelTier[] = [
     preferredFor: ['complex reasoning', 'research', 'high accuracy', 'intelligence tasks'],
   },
 ];
+
+function buildDynamicModelTiers(localModels: string[]): ModelTier[] {
+  const localSmall: string[] = [];
+  const localLarge: string[] = [];
+
+  for (const model of localModels) {
+    const modelLower = model.toLowerCase();
+    const isSmall = LOCAL_SMALL_PATTERNS.some(p => modelLower.includes(p));
+    const isLarge = LOCAL_LARGE_PATTERNS.some(p => modelLower.includes(p));
+
+    if (isSmall && !isLarge) {
+      localSmall.push(`ollama/${model}`);
+    } else if (isLarge || !isSmall) {
+      localLarge.push(`ollama/${model}`);
+    } else {
+      localSmall.push(`ollama/${model}`);
+    }
+  }
+
+  if (localSmall.length === 0) {
+    localSmall.push('ollama/llama3.2:latest', 'ollama/phi3:mini');
+  }
+  if (localLarge.length === 0 && localSmall.length > 0) {
+    localLarge.push(...localSmall);
+  }
+
+  return [
+    {
+      name: 'local-small',
+      models: localSmall,
+      provider: 'local',
+      preferredFor: ['triage', 'routine tasks', 'formatting', 'simple queries'],
+      isCPUFriendly: true,
+    },
+    {
+      name: 'local-large',
+      models: localLarge.length > 0 ? localLarge : localSmall,
+      provider: 'local',
+      preferredFor: ['chat', 'document analysis', 'medium complexity'],
+    },
+    {
+      name: 'cloud-fast',
+      models: ['groq/llama-3.1-8b-instant', 'groq/mixtral-8x7b-32768'],
+      provider: 'cloud',
+      preferredFor: ['fast responses', 'simple escalations'],
+    },
+    {
+      name: 'cloud-smart',
+      models: [
+        'openai/gpt-4o',
+        'anthropic/claude-3.5-sonnet',
+        'gemini/gemini-pro',
+        'deepseek/deepseek-v3',
+        'minimax/minimax-2.7',
+        'moonshot/kimi-2.5',
+      ],
+      provider: 'cloud',
+      preferredFor: ['complex reasoning', 'research', 'high accuracy', 'intelligence tasks'],
+    },
+  ];
+}
 
 export interface CloudModelOption {
   id: string;
@@ -176,9 +268,33 @@ export class ModelMessageBus {
     localVsCloud: { local: 0, cloud: 0 },
   };
   private userPreferredCloudModel: string = 'deepseek/deepseek-v3';
+  private cachedLocalModels: string[] = [];
+  private lastModelFetch: number = 0;
+  private readonly MODEL_CACHE_TTL = 60000;
 
   constructor() {
     this.loadTokenBudget();
+  }
+
+  async getDynamicModelTiers(): Promise<ModelTier[]> {
+    const localModels = await this.fetchLocalModels();
+    return buildDynamicModelTiers(localModels);
+  }
+
+  private async fetchLocalModels(): Promise<string[]> {
+    const now = Date.now();
+    if (this.cachedLocalModels.length > 0 && now - this.lastModelFetch < this.MODEL_CACHE_TTL) {
+      return this.cachedLocalModels;
+    }
+
+    try {
+      const models = await this.getLocalModels();
+      this.cachedLocalModels = models;
+      this.lastModelFetch = now;
+      return models;
+    } catch {
+      return this.cachedLocalModels.length > 0 ? this.cachedLocalModels : ['llama3.2:latest'];
+    }
   }
 
   private loadTokenBudget() {
@@ -345,7 +461,7 @@ suggestedTier meaning:
     }
 
     if (suggestedTier === 3) {
-      const tier = MODEL_TIERS.find(t => t.name === 'cloud-fast');
+      const tier = STATIC_MODEL_TIERS.find((t: ModelTier) => t.name === 'cloud-fast');
       return tier?.models[0] || 'groq/llama-3.1-8b-instant';
     }
 
@@ -538,7 +654,7 @@ suggestedTier meaning:
   }
 
   getAvailableModels(): ModelTier[] {
-    return MODEL_TIERS;
+    return STATIC_MODEL_TIERS;
   }
 }
 

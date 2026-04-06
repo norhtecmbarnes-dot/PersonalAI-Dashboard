@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { PageModelSelector } from '@/components/PageModelSelector';
+import { useGlobalModel } from '@/lib/context/ModelContext';
 
 // ============ CANVAS TYPES ============
 interface CanvasLayout {
@@ -104,12 +104,6 @@ export default function BuilderPage() {
             </p>
           </div>
           <div className="flex gap-2 items-center">
-            <PageModelSelector
-              pageId="builder"
-              label="AI Model"
-              showHealth={true}
-              className="w-64"
-            />
             <Link
               href="/"
               className="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600"

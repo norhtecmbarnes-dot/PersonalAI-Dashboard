@@ -1,6 +1,9 @@
 /**
  * Dynamic Model Hook
  * Fetches available models from the API and provides model selection utilities
+ *
+ * NOTE: For global model selection across the app, use useGlobalModel() from ModelContext.
+ * This hook provides local model selection for backward compatibility.
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -23,262 +26,116 @@ export function useModels() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const getFallbackModels = (): ModelInfo[] => [
-    {
-      id: 'ollama/llama3.2:latest',
-      name: 'llama3.2:latest',
-      provider: 'ollama',
-      description: '2.3B - Fast, near GPT-4 mini',
-    },
-    {
-      id: 'ollama/qwen3.5:7b',
-      name: 'qwen3.5:7b',
-      provider: 'ollama',
-      description: '7B - Excellent performance',
-    },
-    {
-      id: 'ollama/qwen3.5:14b',
-      name: 'qwen3.5:14b',
-      provider: 'ollama',
-      description: '14B - More capable reasoning',
-    },
-    {
-      id: 'ollama/qwen3.5:32b',
-      name: 'qwen3.5:32b',
-      provider: 'ollama',
-      description: '32B - Highly capable',
-    },
-    {
-      id: 'ollama/qwen3.5:9b',
-      name: 'qwen3.5:9b',
-      provider: 'ollama',
-      description: '9B - Fast & capable multimodal',
-    },
-    {
-      id: 'ollama/qwen3-coder-next:latest',
-      name: 'qwen3-coder-next',
-      provider: 'ollama',
-      description: '79.7B - Code specialist',
-    },
-    {
-      id: 'ollama/llama3.2',
-      name: 'llama3.2',
-      provider: 'ollama',
-      description: '3B - Lightweight fallback',
-    },
-    {
-      id: 'ollama/llama3.2:1b',
-      name: 'llama3.2:1b',
-      provider: 'ollama',
-      description: '1B - Ultra lightweight',
-    },
-    {
-      id: 'ollama/llama3.1:8b',
-      name: 'llama3.1:8b',
-      provider: 'ollama',
-      description: '8B - Good middle ground',
-    },
-    {
-      id: 'ollama/llama3.1:70b',
-      name: 'llama3.1:70b',
-      provider: 'ollama',
-      description: '70B - Very capable (needs GPU)',
-    },
-    {
-      id: 'ollama/llama4:scout',
-      name: 'llama4:scout',
-      provider: 'ollama',
-      description: '108.6B - Very capable (needs GPU)',
-    },
-    {
-      id: 'ollama/glm-4.7-flash',
-      name: 'glm-4.7-flash',
-      provider: 'ollama',
-      description: '29.9B - Multilingual model',
-    },
-    {
-      id: 'ollama/glm-4:9b',
-      name: 'glm-4:9b',
-      provider: 'ollama',
-      description: '9B - Good for general use',
-    },
-    {
-      id: 'ollama/gemma2:9b',
-      name: 'gemma2:9b',
-      provider: 'ollama',
-      description: '9B - Great performance',
-    },
-    {
-      id: 'ollama/gemma2:27b',
-      name: 'gemma2:27b',
-      provider: 'ollama',
-      description: '27B - Excellent (needs GPU)',
-    },
-    {
-      id: 'ollama/mistral:7b',
-      name: 'mistral:7b',
-      provider: 'ollama',
-      description: '7B - Efficient and capable',
-    },
-    {
-      id: 'ollama/mistral-nemo:12b',
-      name: 'mistral-nemo:12b',
-      provider: 'ollama',
-      description: '12B - Good reasoning',
-    },
-    {
-      id: 'ollama/codellama:7b',
-      name: 'codellama:7b',
-      provider: 'ollama',
-      description: '7B - Code generation',
-    },
-    {
-      id: 'ollama/codellama:34b',
-      name: 'codellama:34b',
-      provider: 'ollama',
-      description: '34B - Advanced code (needs GPU)',
-    },
-    {
-      id: 'ollama/deepseek-coder:6.7b',
-      name: 'deepseek-coder:6.7b',
-      provider: 'ollama',
-      description: '6.7B - Code specialist',
-    },
-    {
-      id: 'ollama/deepseek-r1:7b',
-      name: 'deepseek-r1:7b',
-      provider: 'ollama',
-      description: '7B - Reasoning model',
-    },
-    {
-      id: 'ollama/phi3:mini',
-      name: 'phi3:mini',
-      provider: 'ollama',
-      description: '3.8B - Microsoft lightweight',
-    },
-    {
-      id: 'ollama/phi3:medium',
-      name: 'phi3:medium',
-      provider: 'ollama',
-      description: '14B - Microsoft medium',
-    },
-    {
-      id: 'gemini/gemini-2.0-flash',
-      name: 'Gemini 2.0 Flash',
-      provider: 'gemini',
-      description: 'Fast, efficient, free tier',
-    },
-    {
-      id: 'gemini/gemini-1.5-pro',
-      name: 'Gemini 1.5 Pro',
-      provider: 'gemini',
-      description: 'Advanced reasoning',
-    },
-    {
-      id: 'gemini/gemini-1.5-flash',
-      name: 'Gemini 1.5 Flash',
-      provider: 'gemini',
-      description: 'Fast multimodal',
-    },
-    { id: 'openai/gpt-4o', name: 'GPT-4o', provider: 'openai', description: 'Most capable GPT-4' },
-    {
-      id: 'openai/gpt-4o-mini',
-      name: 'GPT-4o Mini',
-      provider: 'openai',
-      description: 'Fast and affordable',
-    },
-    {
-      id: 'openai/gpt-4-turbo',
-      name: 'GPT-4 Turbo',
-      provider: 'openai',
-      description: 'Previous flagship',
-    },
-    {
-      id: 'openai/gpt-3.5-turbo',
-      name: 'GPT-3.5 Turbo',
-      provider: 'openai',
-      description: 'Fast and cheap',
-    },
-    {
-      id: 'anthropic/claude-3-5-sonnet-20241022',
-      name: 'Claude 3.5 Sonnet',
-      provider: 'anthropic',
-      description: 'Latest Claude',
-    },
-    {
-      id: 'anthropic/claude-3-opus-20240229',
-      name: 'Claude 3 Opus',
-      provider: 'anthropic',
-      description: 'Most powerful Claude',
-    },
-    {
-      id: 'anthropic/claude-3-haiku-20240307',
-      name: 'Claude 3 Haiku',
-      provider: 'anthropic',
-      description: 'Fast and efficient',
-    },
-    {
-      id: 'groq/llama-3.3-70b-versatile',
-      name: 'Llama 3.3 70B (Groq)',
-      provider: 'groq',
-      description: 'Ultra-fast inference',
-    },
-    {
-      id: 'groq/llama-3.1-8b-instant',
-      name: 'Llama 3.1 8B (Groq)',
-      provider: 'groq',
-      description: 'Fastest inference',
-    },
-    {
-      id: 'groq/mixtral-8x7b-32768',
-      name: 'Mixtral 8x7B (Groq)',
-      provider: 'groq',
-      description: 'Fast mixture of experts',
-    },
-    {
-      id: 'mistral/mistral-large-latest',
-      name: 'Mistral Large',
-      provider: 'mistral',
-      description: 'Flagship Mistral',
-    },
-    {
-      id: 'mistral/mistral-medium-latest',
-      name: 'Mistral Medium',
-      provider: 'mistral',
-      description: 'Balanced performance',
-    },
-    {
-      id: 'mistral/codestral-latest',
-      name: 'Codestral',
-      provider: 'mistral',
-      description: 'Code generation',
-    },
-    {
-      id: 'deepseek/deepseek-chat',
-      name: 'DeepSeek Chat',
-      provider: 'deepseek',
-      description: 'General chat',
-    },
-    {
-      id: 'deepseek/deepseek-reasoner',
-      name: 'DeepSeek Reasoner',
-      provider: 'deepseek',
-      description: 'Advanced reasoning',
-    },
-    {
-      id: 'glm/glm-4.7-flash',
-      name: 'GLM-4.7 Flash',
-      provider: 'glm',
-      description: 'Fast multilingual',
-    },
-    { id: 'glm/glm-4-plus', name: 'GLM-4 Plus', provider: 'glm', description: 'Advanced GLM' },
-    {
-      id: 'openrouter/auto',
-      name: 'OpenRouter Auto',
-      provider: 'openrouter',
-      description: 'Auto-select best',
-    },
-  ];
+  const STORAGE_KEY = 'globalSelectedModel';
+  const FALLBACK_MODEL = 'ollama/llama3.2:latest';
+
+  const getFallbackModels = useCallback(
+    (): ModelInfo[] => [
+      {
+        id: 'ollama/llama3.2:latest',
+        name: 'llama3.2:latest',
+        provider: 'ollama',
+        description: '2.3B - Fast, near GPT-4 mini',
+      },
+      {
+        id: 'ollama/llama3.2:3b',
+        name: 'llama3.2:3b',
+        provider: 'ollama',
+        description: '3B - Lightweight',
+      },
+      {
+        id: 'ollama/qwen3.5:7b',
+        name: 'qwen3.5:7b',
+        provider: 'ollama',
+        description: '7B - Excellent performance',
+      },
+      {
+        id: 'ollama/qwen3.5:14b',
+        name: 'qwen3.5:14b',
+        provider: 'ollama',
+        description: '14B - More capable',
+      },
+      {
+        id: 'ollama/qwen3.5:32b',
+        name: 'qwen3.5:32b',
+        provider: 'ollama',
+        description: '32B - Highly capable',
+      },
+      {
+        id: 'ollama/qwen3.5:9b',
+        name: 'qwen3.5:9b',
+        provider: 'ollama',
+        description: '9B - Fast & capable',
+      },
+      {
+        id: 'ollama/glm-4.7-flash',
+        name: 'glm-4.7-flash',
+        provider: 'ollama',
+        description: 'Fast multilingual',
+      },
+      {
+        id: 'ollama/mistral:7b',
+        name: 'mistral:7b',
+        provider: 'ollama',
+        description: '7B - Efficient and capable',
+      },
+      {
+        id: 'ollama/mistral-nemo:12b',
+        name: 'mistral-nemo:12b',
+        provider: 'ollama',
+        description: '12B - Good reasoning',
+      },
+      {
+        id: 'ollama/angelight',
+        name: 'angelight',
+        provider: 'ollama',
+        description: 'Lightweight CPU model',
+      },
+      {
+        id: 'ollama/angglam.slim',
+        name: 'angglam.slim',
+        provider: 'ollama',
+        description: 'CPU-friendly slim model',
+      },
+      {
+        id: 'openai/gpt-4o',
+        name: 'GPT-4o',
+        provider: 'openai',
+        description: 'Most capable GPT-4',
+      },
+      {
+        id: 'openai/gpt-4o-mini',
+        name: 'GPT-4o Mini',
+        provider: 'openai',
+        description: 'Fast and affordable',
+      },
+      {
+        id: 'anthropic/claude-3-5-sonnet-20241022',
+        name: 'Claude 3.5 Sonnet',
+        provider: 'anthropic',
+        description: 'Latest Claude',
+      },
+      {
+        id: 'gemini/gemini-2.0-flash',
+        name: 'Gemini 2.0 Flash',
+        provider: 'gemini',
+        description: 'Fast, efficient, free tier',
+      },
+      {
+        id: 'deepseek/deepseek-chat',
+        name: 'DeepSeek Chat',
+        provider: 'deepseek',
+        description: 'General chat',
+      },
+      {
+        id: 'groq/llama-3.3-70b-versatile',
+        name: 'Llama 3.3 70B (Groq)',
+        provider: 'groq',
+        description: 'Ultra-fast inference',
+      },
+    ],
+    []
+  );
 
   const loadModels = useCallback(async () => {
     try {
@@ -290,10 +147,6 @@ export function useModels() {
       }
 
       const data = await response.json();
-      console.log('[useModels] API response:', {
-        ollamaAvailable: data.ollama?.available,
-        ollamaModels: data.ollama?.models?.length,
-      });
 
       // Process Ollama models
       const ollama = data.ollama?.models || [];
@@ -307,7 +160,7 @@ export function useModels() {
       }));
       setOllamaModels(processedOllama);
 
-      // Process external models - they already have provider prefix in ID
+      // Process external models
       const external = data.external || [];
       const processedExternal = external.map((m: any) => ({
         id: m.id,
@@ -322,20 +175,29 @@ export function useModels() {
       // Combine all models
       const allModels = [...processedOllama, ...processedExternal];
 
-      // If no models available, use fallback list so users always see options
       if (allModels.length === 0) {
-        console.warn('[useModels] No models available - using fallback list');
         setModels(getFallbackModels());
       } else {
         setModels(allModels);
       }
 
-      // Set default model if not already selected
-      if (!selectedModel && data.defaultModel) {
-        setSelectedModel(data.defaultModel);
-      } else if (!selectedModel && allModels.length > 0) {
-        const bestModel = findBestModel(allModels);
-        setSelectedModel(bestModel);
+      // Initialize selected model from storage or default
+      if (!selectedModel) {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (
+          stored &&
+          (allModels.some((m: ModelInfo) => m.id === stored) ||
+            getFallbackModels().some(m => m.id === stored))
+        ) {
+          setSelectedModel(stored);
+        } else if (data.defaultModel) {
+          setSelectedModel(data.defaultModel);
+        } else if (allModels.length > 0) {
+          const bestModel = findBestModel(allModels);
+          setSelectedModel(bestModel);
+        } else {
+          setSelectedModel(FALLBACK_MODEL);
+        }
       }
 
       setOllamaHealthy(data.ollama?.available || false);
@@ -343,25 +205,31 @@ export function useModels() {
     } catch (err) {
       console.error('[useModels] Error loading models:', err);
       setError(err instanceof Error ? err.message : 'Failed to load models');
-      // Fallback models when API fails
       setModels(getFallbackModels());
-      setSelectedModel('ollama/llama3.2:latest');
+      if (!selectedModel) {
+        setSelectedModel(FALLBACK_MODEL);
+      }
     } finally {
       setLoading(false);
     }
+  }, [selectedModel, getFallbackModels]);
+
+  // Persist selected model
+  useEffect(() => {
+    if (selectedModel && typeof window !== 'undefined') {
+      localStorage.setItem(STORAGE_KEY, selectedModel);
+    }
   }, [selectedModel]);
 
-  // Find the best available model based on size/capability
   const findBestModel = (modelList: ModelInfo[]): string => {
     const priorityModels = [
       'qwen3.5:9b',
       'llama3.2:latest',
-      'qwen3.5:27b',
       'gemma2:9b',
-      'llama3.2',
       'llama3.1:8b',
-      'glm-5:cloud',
-      'kimi-k2.5:cloud',
+      'glm-4.7-flash',
+      'mistral:7b',
+      'phi3:mini',
     ];
 
     for (const priority of priorityModels) {
@@ -377,10 +245,9 @@ export function useModels() {
       }
     }
 
-    return modelList[0]?.id || 'ollama/llama3.2';
+    return modelList[0]?.id || FALLBACK_MODEL;
   };
 
-  // Get the most capable model for complex tasks
   const getCapableModel = (): string => {
     const sortedModels = [...models].sort((a, b) => {
       const sizeA = extractModelSize(a.name);
@@ -388,28 +255,25 @@ export function useModels() {
       return sizeB - sizeA;
     });
 
-    return sortedModels[0]?.id || selectedModel || 'ollama/llama3.2';
+    return sortedModels[0]?.id || selectedModel || FALLBACK_MODEL;
   };
 
-  // Extract model size in billions from name
   const extractModelSize = (name: string): number => {
     const match = name.match(/(\d+)b/i);
     if (match) {
       return parseInt(match[1], 10);
     }
     const knownSizes: Record<string, number> = {
-      'glm-5:cloud': 50,
       'glm-5': 50,
-      'kimi-k2.5:cloud': 20,
+      'glm-4.7-flash': 29,
       'kimi-k2.5': 20,
     };
     return knownSizes[name] || 7;
   };
 
-  // Refresh models periodically
+  // Load models on mount and refresh periodically
   useEffect(() => {
     loadModels();
-
     const interval = setInterval(loadModels, 60000);
     return () => clearInterval(interval);
   }, [loadModels]);

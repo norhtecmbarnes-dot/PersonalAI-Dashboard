@@ -28,7 +28,7 @@ export interface AppSettings {
 }
 
 const DEFAULT_SETTINGS: AppSettings = {
-  defaultModel: 'glm-4.7-flash',
+  defaultModel: 'llama3.2:latest',
   maxTokens: 2000,
   temperature: 0.7,
   theme: 'dark',
@@ -75,10 +75,10 @@ class ConfigManager {
 
   private async ensureInitialized(): Promise<void> {
     if (this.initialized) return;
-    
+
     try {
       sqlDatabase.initialize();
-      
+
       // Load config from database
       const docs = sqlDatabase.getDocuments(undefined, 'app_config');
       if (docs && docs.length > 0) {
@@ -96,7 +96,7 @@ class ConfigManager {
           console.error('[ConfigManager] Error parsing config:', e);
         }
       }
-      
+
       this.initialized = true;
     } catch (e) {
       console.error('[ConfigManager] Error initializing:', e);
@@ -106,10 +106,10 @@ class ConfigManager {
   private async saveConfig(): Promise<void> {
     try {
       await this.ensureInitialized();
-      
+
       const docs = sqlDatabase.getDocuments(undefined, 'app_config');
       const content = JSON.stringify(this.config);
-      
+
       if (docs && docs.length > 0) {
         sqlDatabase.updateDocument(docs[0].id, { content });
       } else {
@@ -273,14 +273,14 @@ class ConfigManager {
   async getAvailableModels(): Promise<string[]> {
     await this.ensureInitialized();
     const models: string[] = [];
-    
+
     // Check which Ollama models are actually available
     if (this.config.features['ollama']) {
       try {
         const { getOllamaModels } = await import('@/lib/models/sdk.server');
         const ollamaModels = await getOllamaModels();
         const availableOllamaModels = ollamaModels.map(m => `ollama/${m.name}`);
-        
+
         // Add available models, with fallback defaults if none found
         if (availableOllamaModels.length > 0) {
           models.push(...availableOllamaModels);
@@ -288,20 +288,20 @@ class ConfigManager {
           // Fallback defaults - prioritize lightweight CPU-friendly models
           console.log('[ConfigManager] No Ollama models found, using defaults');
           models.push(
-            'ollama/llama3.2:latest',  // Ultra-lightweight, CPU-friendly, near GPT-4 mini performance
-            'ollama/llama3.2',     // Reliable fallback
-          'ollama/qwen3.5:9b', // Good coding model
-            'ollama/deepseek-r1'   // Reasoning model
+            'ollama/llama3.2:latest', // Ultra-lightweight, CPU-friendly, near GPT-4 mini performance
+            'ollama/llama3.2', // Reliable fallback
+            'ollama/qwen3.5:9b', // Good coding model
+            'ollama/deepseek-r1' // Reasoning model
           );
         }
       } catch (error) {
         console.log('[ConfigManager] Could not fetch Ollama models:', error);
         // Fallback to defaults - prioritize lightweight CPU-friendly models
         models.push(
-          'ollama/llama3.2:latest',  // Ultra-lightweight, CPU-friendly, near GPT-4 mini performance
-          'ollama/llama3.2',     // Reliable fallback
+          'ollama/llama3.2:latest', // Ultra-lightweight, CPU-friendly, near GPT-4 mini performance
+          'ollama/llama3.2', // Reliable fallback
           'ollama/qwen3.5:9b', // Good coding model
-          'ollama/deepseek-r1'   // Reasoning model
+          'ollama/deepseek-r1' // Reasoning model
         );
       }
     }
@@ -328,12 +328,12 @@ export async function syncApiKeysToEnv(): Promise<void> {
   if (openRouterKey && !process.env.OPENROUTER_API_KEY) {
     process.env.OPENROUTER_API_KEY = openRouterKey;
   }
-  
+
   const deepSeekKey = await configManager.getAPIKey('deepseek');
   if (deepSeekKey && !process.env.DEEPSEEK_API_KEY) {
     process.env.DEEPSEEK_API_KEY = deepSeekKey;
   }
-  
+
   const glmKey = await configManager.getAPIKey('glm');
   if (glmKey && !process.env.GLM_API_KEY) {
     process.env.GLM_API_KEY = glmKey;

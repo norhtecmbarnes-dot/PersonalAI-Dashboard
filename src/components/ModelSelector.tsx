@@ -1,30 +1,63 @@
 /**
  * Model Selector Component
  * Dynamic dropdown for selecting AI models with auto-selection of best available
+ *
+ * When value/onChange are provided, uses local state (controlled).
+ * When not provided, uses global ModelContext.
  */
 
-import { useEffect, useRef } from 'react';
+'use client';
+
+import { useEffect, useRef, useState, useContext } from 'react';
 import { useModels } from '@/lib/hooks/useModels';
+import { ModelContext, useGlobalModel } from '@/lib/context/ModelContext';
 
 interface ModelSelectorProps {
-  value: string;
-  onChange: (modelId: string) => void;
+  value?: string;
+  onChange?: (modelId: string) => void;
   label?: string;
   showHealth?: boolean;
   autoSelectBest?: boolean;
   className?: string;
+  showRefresh?: boolean;
 }
 
 export function ModelSelector({
-  value,
-  onChange,
+  value: propValue,
+  onChange: propOnChange,
   label = 'Model',
   showHealth = true,
   autoSelectBest = false,
   className = '',
+  showRefresh = true,
 }: ModelSelectorProps) {
-  const { models, ollamaHealthy, loading, error, getCapableModel } = useModels();
+  // Try to use global context
+  const globalContext = useContext(ModelContext);
+  const isGlobalMode = !propValue && !propOnChange && globalContext;
+
+  const { models, ollamaHealthy, loading, error, getCapableModel, refresh } = useModels();
   const hasAutoSelected = useRef(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Get current value from props or global context
+  const currentValue =
+    propValue ?? (isGlobalMode && globalContext ? globalContext.selectedModel : '');
+  const handleChange = (modelId: string) => {
+    if (propOnChange) {
+      propOnChange(modelId);
+    } else if (isGlobalMode && globalContext) {
+      globalContext.setSelectedModel(modelId);
+    }
+  };
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await refresh();
+    if (isGlobalMode && globalContext) {
+      await globalContext.refreshModels();
+    }
+    setTimeout(() => setIsRefreshing(false), 500);
+  };
 
   // Group models by provider
   const groupedModels = models.reduce(
@@ -53,26 +86,36 @@ export function ModelSelector({
 
   // Auto-select best model in useEffect to avoid setState during render
   useEffect(() => {
-    if (autoSelectBest && !value && models.length > 0 && !hasAutoSelected.current) {
+    if (autoSelectBest && !currentValue && models.length > 0 && !hasAutoSelected.current) {
       const bestModel = getCapableModel();
-      if (bestModel && bestModel !== value) {
+      if (bestModel && bestModel !== currentValue) {
         hasAutoSelected.current = true;
-        onChange(bestModel);
+        handleChange(bestModel);
       }
     }
-  }, [autoSelectBest, value, models.length, getCapableModel, onChange]);
+  }, [autoSelectBest, currentValue, models.length, getCapableModel]);
 
   return (
     <div className={`space-y-2 ${className}`}>
       <div className="flex items-center justify-between">
         <label className="text-white font-medium">{label}</label>
-        {showHealth && (
-          <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          {showHealth && (
             <span className={`text-sm ${ollamaHealthy ? 'text-green-400' : 'text-red-400'}`}>
               {ollamaHealthy ? '● Ollama Online' : '● Ollama Offline'}
             </span>
-          </div>
-        )}
+          )}
+          {showRefresh && (
+            <button
+              onClick={handleRefresh}
+              disabled={isRefreshing || loading}
+              className="text-xs px-2 py-1 bg-slate-600 hover:bg-slate-500 text-white rounded transition-colors disabled:opacity-50"
+              title="Refresh models"
+            >
+              {isRefreshing ? '⟳' : '↻'}
+            </button>
+          )}
+        </div>
       </div>
 
       {loading && models.length === 0 ? (
@@ -85,8 +128,8 @@ export function ModelSelector({
         </div>
       ) : (
         <select
-          value={value}
-          onChange={e => onChange(e.target.value)}
+          value={currentValue}
+          onChange={e => handleChange(e.target.value)}
           className="w-full bg-slate-700 text-white border-0 rounded-lg px-4 py-2 focus:ring-2 focus:ring-purple-500"
         >
           <option value="">Select a model...</option>
@@ -103,11 +146,11 @@ export function ModelSelector({
                     const nameB = b.name || b.id;
                     return nameA.localeCompare(nameB);
                   })
+                  .slice(0, 15) // Limit to 15 models per provider for dropdown performance
                   .map(model => (
                     <option key={model.id} value={model.id}>
                       {model.name || model.id.split('/').pop()}
                       {model.size ? ` (${model.size})` : ''}
-                      {model.description ? ` - ${model.description}` : ''}
                     </option>
                   ))}
               </optgroup>
@@ -117,14 +160,14 @@ export function ModelSelector({
 
       {!loading && models.length === 0 && (
         <p className="text-slate-400 text-sm">
-          No models available. Please check Ollama connection.
+          No models available. Please check Ollama connection or run the refresh button.
         </p>
       )}
 
       {models.length > 0 && (
         <p className="text-slate-500 text-xs">
           {models.length} model{models.length !== 1 ? 's' : ''} available (
-          {models.filter(m => m.provider === 'ollama').length} local,
+          {models.filter(m => m.provider === 'ollama').length} local,{' '}
           {models.filter(m => m.provider !== 'ollama').length} cloud)
         </p>
       )}

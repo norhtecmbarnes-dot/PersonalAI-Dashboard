@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { TaskInstruction } from '@/components/TaskInstruction';
-import { ModelSelector } from '@/components/ModelSelector';
+import { useGlobalModel } from '@/lib/context/ModelContext';
 
 interface ScheduledTask {
   id: string;
@@ -52,7 +52,7 @@ export default function TasksPage() {
   const [selectedTask, setSelectedTask] = useState<ScheduledTask | null>(null);
   const [taskResults, setTaskResults] = useState<TaskResult[]>([]);
   const [resultsLoading, setResultsLoading] = useState(false);
-  const [selectedModel, setSelectedModel] = useState('');
+  const { selectedModel } = useGlobalModel();
   const [stats, setStats] = useState<TaskStats>({
     total: 0,
     enabled: 0,
@@ -71,21 +71,6 @@ export default function TasksPage() {
     const interval = setInterval(loadData, 30000);
     return () => clearInterval(interval);
   }, []);
-
-  // Load saved model on mount
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('selectedModel');
-      if (saved) setSelectedModel(saved);
-    }
-  }, []);
-
-  const handleModelChange = (modelId: string) => {
-    setSelectedModel(modelId);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('selectedModel', modelId);
-    }
-  };
 
   const loadData = async () => {
     try {
@@ -345,13 +330,6 @@ export default function TasksPage() {
             <p className="text-gray-400 mt-1">Automate recurring tasks with natural language</p>
           </div>
           <div className="flex gap-3 items-center">
-            <ModelSelector
-              value={selectedModel}
-              onChange={handleModelChange}
-              label="Model"
-              showHealth={true}
-              className="w-64"
-            />
             <div
               className={`px-4 py-2 rounded ${schedulerStatus?.isRunning ? 'bg-green-900/50 text-green-300' : 'bg-red-900/50 text-red-300'}`}
             >

@@ -152,11 +152,13 @@ ${prompt}`
   let result;
   try {
     result = await chatCompletion({
-      model: model || 'glm-4.7-flash',
+      model: model || 'ollama/llama3.2:latest',
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userPrompt },
       ],
+      temperature: 0.7,
+      maxTokens: 4096,
     });
   } catch (error) {
     console.error('[Document AI] chatCompletion error:', error);
@@ -175,6 +177,31 @@ ${prompt}`
   }
 
   content = String(content).trim();
+
+  // Remove thinking/reasoning blocks that some models output
+  content = content
+    .replace(/<tool_call>think[\s\S]*?<\/think>/gi, '')
+    .replace(/<thinking>[\s\S]*?<\/thinking>/gi, '')
+    .replace(/\{\s*\*[\s\S]*?\*\s*\}/g, '')
+    .replace(/```thinking[\s\S]*?```/gi, '')
+    .replace(/#####+\s*Thinking[\s\S]*?(?=####|$)/gi, '')
+    .replace(/#####+\s*\u601d\u8003[\s\S]*?(?=####|$)/gi, '')
+    .trim();
+
+  // If content starts with thinking patterns, skip to the actual answer
+  const thinkingPatterns = [
+    /^(Okay|I need to|Let me|First,|Let's|I'll|I will|I should|The user)/i,
+    /^[\s]*(?=[\*\-])/,
+  ];
+
+  // Find where actual content starts (marked by answer tag or clear content)
+  const answerMatch = content.match(/<answer[\s\S]*?<\/answer>/i);
+  if (answerMatch) {
+    content = answerMatch[0]
+      .replace(/<answer>/i, '')
+      .replace(/<\/answer>/i, '')
+      .trim();
+  }
 
   // Only log errors, not successful generation
   if (!content || content.length < 10) {

@@ -1,6 +1,7 @@
 export interface OllamaMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
+  images?: string[]; // Base64 encoded images for vision models
   tool_calls?: ToolCall[];
 }
 
@@ -102,7 +103,7 @@ function getOllamaKey(): string | undefined {
 
 const MAX_RETRIES = 3;
 const RETRY_DELAY = 1000;
-const REQUEST_TIMEOUT = 30000;
+const REQUEST_TIMEOUT = 120000; // 2 minutes for large multimodal requests
 
 async function fetchWithTimeout(
   url: string,

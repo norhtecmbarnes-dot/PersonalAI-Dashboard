@@ -8,7 +8,7 @@ import { Visualization } from '@/components/Visualization';
 import { expertStorage, Expert } from '@/lib/storage/experts';
 import { SettingsPanel } from '@/components/SettingsPanel';
 import { BrandVoiceSelector } from '@/components/BrandVoiceSelector';
-import { useModels } from '@/lib/hooks/useModels';
+import { useGlobalModel } from '@/lib/context/ModelContext';
 
 export interface Message {
   role: 'user' | 'assistant';
@@ -53,7 +53,7 @@ export default function Home() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const { models, selectedModel, setSelectedModel, ollamaHealthy } = useModels();
+  const { models, selectedModel, setSelectedModel, ollamaHealthy } = useGlobalModel();
   const [showCommands, setShowCommands] = useState(false);
   const [userPrefs, setUserPrefs] = useState<UserPreferences>({
     userName: '',
@@ -106,6 +106,13 @@ export default function Home() {
   const [reflectionData, setReflectionData] = useState<any>(null);
   const [dbQuery, setDbQuery] = useState('');
   const [dbResult, setDbResult] = useState<any>(null);
+
+  // Attached media for multimodal models
+  const [attachedMedia, setAttachedMedia] = useState<{
+    type: 'image' | 'video' | 'audio';
+    data: string;
+    name: string;
+  } | null>(null);
 
   // Refs
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -498,6 +505,28 @@ export default function Home() {
     [loadDocuments]
   );
 
+  // Media upload for multimodal models
+  const handleMediaUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const data = reader.result as string;
+      const fileType = file.type.startsWith('image/')
+        ? 'image'
+        : file.type.startsWith('video/')
+          ? 'video'
+          : file.type.startsWith('audio/')
+            ? 'audio'
+            : 'image';
+
+      setAttachedMedia({ type: fileType, data, name: file.name });
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  }, []);
+
   // OCR
   const handleOcrUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -567,16 +596,21 @@ export default function Home() {
 
   // Send message
   const sendMessage = async () => {
-    if (!input.trim() || isLoading) return;
+    if ((!input.trim() && !attachedMedia) || isLoading) return;
 
     const userMessage: Message = {
       role: 'user',
-      content: input,
+      content: attachedMedia
+        ? `[Attached ${attachedMedia.type}: ${attachedMedia.name}]\n\n${input}`
+        : input,
       brandName: selectedBrandName || undefined,
     };
 
     setMessages(prev => [...prev, userMessage]);
+    const currentInput = input;
+    const currentMedia = attachedMedia;
     setInput('');
+    setAttachedMedia(null);
     setIsLoading(true);
 
     try {
@@ -585,13 +619,16 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           model: selectedModel,
-          message: input,
+          message: currentInput,
           conversationHistory: messages.slice(-20),
           searchMode,
           userName: userPrefs.userName,
           assistantName: userPrefs.assistantName,
           expertId: selectedExpert?.id,
           brandId: selectedBrandId,
+          media: currentMedia
+            ? { type: currentMedia.type, data: currentMedia.data, name: currentMedia.name }
+            : undefined,
         }),
       });
 
@@ -619,6 +656,10 @@ export default function Home() {
           if (line.startsWith('data: ')) {
             try {
               const json = JSON.parse(line.slice(6));
+              if (json.error) {
+                // Handle error from server
+                throw new Error(json.error);
+              }
               if (json.chunk) {
                 fullContent += json.chunk;
               }
@@ -627,6 +668,7 @@ export default function Home() {
               }
             } catch (e) {
               // If not valid JSON, treat as plain text (fallback)
+              if (e instanceof Error) throw e;
               if (line.length > 6) {
                 fullContent += line.slice(6);
               }
@@ -635,11 +677,15 @@ export default function Home() {
             // Plain text fallback
             try {
               const json = JSON.parse(line);
+              if (json.error) {
+                throw new Error(json.error);
+              }
               if (json.chunk) {
                 fullContent += json.chunk;
               }
             } catch (e) {
               // Skip invalid lines
+              if (e instanceof Error && e.message !== 'Unknown error') throw e;
             }
           }
         }
@@ -924,19 +970,6 @@ export default function Home() {
               </button>
             </div>
             <div className="flex items-center gap-2">
-              {/* Model Selector */}
-              <select
-                value={selectedModel}
-                onChange={e => setSelectedModel(e.target.value)}
-                className="bg-slate-700 text-white rounded px-3 py-1.5 text-sm border border-slate-600 focus:border-purple-500 focus:outline-none"
-              >
-                {models.map(model => (
-                  <option key={model.id} value={model.id}>
-                    {model.name}
-                  </option>
-                ))}
-              </select>
-
               {/* Expert Selector */}
               <div className="relative">
                 <button
@@ -1171,6 +1204,28 @@ export default function Home() {
 
               {/* Action Buttons */}
               <div className="absolute bottom-2 right-2 flex items-center gap-1">
+                {/* Media Upload (for multimodal models) */}
+                <label
+                  className="p-2 rounded-lg bg-slate-600 text-gray-400 hover:text-white cursor-pointer"
+                  title="Upload image/video/audio"
+                >
+                  <input
+                    type="file"
+                    accept="image/*,video/*,audio/*"
+                    onChange={handleMediaUpload}
+                    className="hidden"
+                    disabled={isLoading}
+                  />
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                    />
+                  </svg>
+                </label>
+
                 {/* Document Upload */}
                 <label className="p-2 rounded-lg bg-slate-600 text-gray-400 hover:text-white cursor-pointer">
                   <input
@@ -1189,6 +1244,35 @@ export default function Home() {
                     />
                   </svg>
                 </label>
+
+                {/* Attached Media Preview */}
+                {attachedMedia && (
+                  <div className="flex items-center gap-1 px-2 py-1 bg-slate-700 rounded-lg">
+                    {attachedMedia.type === 'image' && (
+                      <img
+                        src={attachedMedia.data}
+                        alt="Attached"
+                        className="w-8 h-8 object-cover rounded"
+                      />
+                    )}
+                    {attachedMedia.type === 'video' && (
+                      <span className="text-xs text-slate-300">
+                        🎬 {attachedMedia.name.slice(0, 10)}...
+                      </span>
+                    )}
+                    {attachedMedia.type === 'audio' && (
+                      <span className="text-xs text-slate-300">
+                        🎵 {attachedMedia.name.slice(0, 15)}
+                      </span>
+                    )}
+                    <button
+                      onClick={() => setAttachedMedia(null)}
+                      className="text-slate-400 hover:text-white text-xs"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                )}
 
                 {/* Documents Button */}
                 {documents.length > 0 && (
@@ -1226,7 +1310,7 @@ export default function Home() {
                 {/* Send Button */}
                 <button
                   onClick={sendMessage}
-                  disabled={isLoading || !input.trim()}
+                  disabled={isLoading || (!input.trim() && !attachedMedia)}
                   className="p-2 rounded-lg bg-purple-600 text-white hover:bg-purple-500 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

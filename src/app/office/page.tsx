@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ModelSelector } from '@/components/ModelSelector';
+import { useGlobalModel } from '@/lib/context/ModelContext';
 
 type DocumentType = 'word' | 'excel' | 'powerpoint';
 type GenerationMode = 'ai' | 'raw';
@@ -29,12 +29,12 @@ interface Brand {
 }
 
 export default function OfficePage() {
+  const { selectedModel } = useGlobalModel();
   const [docType, setDocType] = useState<DocumentType>('word');
   const [mode, setMode] = useState<GenerationMode>('ai');
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [prompt, setPrompt] = useState('');
-  const [selectedModel, setSelectedModel] = useState<string>('');
   const [presentationTheme, setPresentationTheme] = useState<PresentationTheme>('default');
   const [state, setState] = useState<GenerationState>({
     loading: false,
@@ -311,17 +311,6 @@ export default function OfficePage() {
             )}
           </div>
         )}
-
-        {/* Model Selection */}
-        <div className="mb-6">
-          <ModelSelector
-            value={selectedModel}
-            onChange={setSelectedModel}
-            label="AI Model"
-            showHealth={true}
-            className="w-full"
-          />
-        </div>
 
         {/* Presentation Theme (only for PowerPoint) */}
         {docType === 'powerpoint' && (

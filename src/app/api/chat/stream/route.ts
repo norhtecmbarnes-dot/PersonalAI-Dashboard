@@ -104,6 +104,7 @@ export async function POST(request: NextRequest) {
     const model = sanitizeString(body.model);
     const conversationHistory = sanitizeObject(body.conversationHistory || []);
     const isSearchMode = body.searchMode === true;
+    const media = body.media as { type: string; data: string; name: string } | undefined;
 
     const memoryContext = await getMemoryPrompt();
 
@@ -159,7 +160,10 @@ You are ready to analyze and discuss uploaded documents in detail.`;
 
     let userMessage = message;
 
-    if (isSearchMode) {
+    // Disable search mode when media is attached - focus on analyzing the media
+    const effectiveSearchMode = media && media.data ? false : isSearchMode;
+
+    if (effectiveSearchMode) {
       try {
         console.log('[Chat] Performing web search for:', message);
         const searchResponse = await ollamaWebSearch(message, { maxResults: 5 });
@@ -190,6 +194,152 @@ You are ready to analyze and discuss uploaded documents in detail.`;
 
     messages.push({ role: 'user', content: userMessage });
 
+    // Handle multimodal content (images, video, audio)
+    if (media && media.data) {
+      console.log('[Chat Stream] Processing media:', {
+        type: media.type,
+        name: media.name,
+        dataSize: media.data.length,
+        preview: media.data.substring(0, 50) + '...',
+      });
+
+      // Check if this is an Ollama model
+      const isOllama =
+        model.includes('ollama') ||
+        !model.includes('/') ||
+        model.includes('gemma4') ||
+        model.includes('gemma-4');
+
+      // Check if model supports vision
+      const ollamaVisionModels = [
+        'llava',
+        'moondream',
+        'bakllava',
+        'cogvlm',
+        'vision',
+        'gemma4',
+        'gemma-4',
+        'gemma',
+      ];
+      const externalVisionModels = ['gpt-4o', 'gpt-4-vision', 'gpt-4-turbo', 'claude-3', 'gemini'];
+
+      const isOllamaVision =
+        isOllama && ollamaVisionModels.some(vm => model.toLowerCase().includes(vm));
+      const isExternalVision =
+        !isOllama && externalVisionModels.some(vm => model.toLowerCase().includes(vm));
+
+      console.log('[Chat Stream] Vision detection:', {
+        model,
+        isOllama,
+        isOllamaVision,
+        isExternalVision,
+        mediaType: media.type,
+        searchMode: effectiveSearchMode,
+      });
+
+      // If search mode is on AND there's media, warn that search might interfere
+      if (effectiveSearchMode && media.type === 'image') {
+        console.log(
+          '[Chat Stream] WARNING: Search mode is ON with image - search results may override image analysis'
+        );
+      }
+
+      if (media.type === 'image') {
+        if (isOllamaVision) {
+          // Ollama format: images array with base64 data (strip data:image/...;base64, prefix)
+          const base64Data = media.data.replace(/^data:image\/[^;]+;base64,/, '');
+          console.log(
+            '[Chat Stream] Using Ollama vision format. Base64 length:',
+            base64Data.length
+          );
+          const lastUserIdx = messages.length - 1;
+          messages[lastUserIdx] = {
+            role: 'user',
+            content: userMessage,
+            images: [base64Data],
+          } as any;
+        } else if (isExternalVision) {
+          // OpenAI/external format: content array
+          const lastUserIdx = messages.length - 1;
+          messages[lastUserIdx] = {
+            role: 'user',
+            content: [
+              { type: 'text', text: userMessage },
+              { type: 'image_url', image_url: { url: media.data } },
+            ],
+          } as any;
+        } else {
+          // Non-vision model - just describe
+          messages[messages.length - 1].content =
+            `[User attached an image: ${media.name}]\n\n${userMessage}`;
+        }
+      } else if (media.type === 'audio') {
+        // Audio handling - some models like Gemma 4 may support audio
+        // For now, describe the audio file
+        console.log('[Chat Stream] Audio file attached:', media.name);
+        const base64Audio = media.data.replace(/^data:audio\/[^;]+;base64,/, '');
+
+        // Check if model might support audio (experimental)
+        const audioCapableModels = ['gemma4', 'gemma-4', 'gpt-4o-audio', 'claude-3-opus'];
+        const supportsAudio = audioCapableModels.some(m => model.toLowerCase().includes(m));
+
+        if (supportsAudio && isOllama) {
+          // Try sending audio to Ollama (experimental - may not work on all versions)
+          messages[messages.length - 1] = {
+            role: 'user',
+            content: userMessage,
+            images: [base64Audio], // Ollama may treat audio similarly to images
+          } as any;
+          messages[messages.length - 1].content =
+            `[Audio file: ${media.name}. Please transcribe and respond to this audio.]\n\n${userMessage}`;
+        } else {
+          // Describe audio file for text-based models
+          messages[messages.length - 1].content =
+            `[User attached an audio file: ${media.name}. If you cannot process audio directly, please acknowledge this and respond to any text questions.]\n\n${userMessage}`;
+        }
+      } else if (media.type === 'video') {
+        // Video handling - description only for now
+        console.log('[Chat Stream] Video file attached:', media.name);
+        messages[messages.length - 1].content =
+          `[User attached a video file: ${media.name}. Please respond based on the filename and any text provided.]\n\n${userMessage}`;
+      }
+
+      if (media.type === 'image') {
+        if (isOllamaVision) {
+          // Ollama format: images array with base64 data (strip data:image/...;base64, prefix)
+          const base64Data = media.data.replace(/^data:image\/[^;]+;base64,/, '');
+          console.log(
+            '[Chat Stream] Using Ollama vision format. Base64 length:',
+            base64Data.length
+          );
+          const lastUserIdx = messages.length - 1;
+          messages[lastUserIdx] = {
+            role: 'user',
+            content: userMessage,
+            images: [base64Data],
+          } as any;
+        } else if (isExternalVision) {
+          // OpenAI/external format: content array
+          const lastUserIdx = messages.length - 1;
+          messages[lastUserIdx] = {
+            role: 'user',
+            content: [
+              { type: 'text', text: userMessage },
+              { type: 'image_url', image_url: { url: media.data } },
+            ],
+          } as any;
+        } else {
+          // Non-vision model - just describe
+          messages[messages.length - 1].content =
+            `[User attached an image: ${media.name}]\n\n${userMessage}`;
+        }
+      } else if (media.type === 'audio') {
+        messages[messages.length - 1].content = `[Audio file: ${media.name}]\n\n${userMessage}`;
+      } else if (media.type === 'video') {
+        messages[messages.length - 1].content = `[Video file: ${media.name}]\n\n${userMessage}`;
+      }
+    }
+
     // Create a TransformStream for streaming
     const encoder = new TextEncoder();
     const stream = new TransformStream();
@@ -198,43 +348,57 @@ You are ready to analyze and discuss uploaded documents in detail.`;
     // Start streaming in background
     (async () => {
       try {
-        // Use fast model - prefer qwen3.5:9b
-        const fastModel = model && model.includes('qwen') ? model : 'ollama/qwen3.5:9b';
+        // Use the selected model, with fallback
+        const useModel = model || 'ollama/llama3.2:latest';
+        console.log('[Chat Stream] Using model:', useModel, 'with media:', !!media);
+
         const result = await streamChatCompletion({
-          model: fastModel,
+          model: useModel,
           messages,
         });
 
         // Check if we got a stream (Ollama) or a complete response (external APIs)
         if ((result as any).stream) {
-          // Handle Ollama streaming response
+          // Handle Ollama streaming response with timeout
           const reader = (result as any).stream.getReader();
           const decoder = new TextDecoder();
 
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
+          // 2 minute timeout for the entire stream
+          const streamTimeout = setTimeout(() => {
+            console.error('[Chat Stream] Stream timeout - cancelling');
+            reader.cancel();
+          }, 120000);
 
-            const chunk = decoder.decode(value, { stream: true });
-            const lines = chunk.split('\n').filter(line => line.trim());
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
 
-            for (const line of lines) {
-              try {
-                const parsed = JSON.parse(line);
-                if (parsed.message?.content) {
-                  await writer.write(
-                    encoder.encode(
-                      `data: ${JSON.stringify({ chunk: parsed.message.content, done: false })}\n\n`
-                    )
-                  );
+              const chunk = decoder.decode(value, { stream: true });
+              const lines = chunk.split('\n').filter(line => line.trim());
+
+              for (const line of lines) {
+                try {
+                  const parsed = JSON.parse(line);
+                  if (parsed.message?.content) {
+                    await writer.write(
+                      encoder.encode(
+                        `data: ${JSON.stringify({ chunk: parsed.message.content, done: false })}\n\n`
+                      )
+                    );
+                  }
+                  if (parsed.done) {
+                    await writer.write(
+                      encoder.encode(`data: ${JSON.stringify({ done: true })}\n\n`)
+                    );
+                  }
+                } catch {
+                  // Skip invalid JSON
                 }
-                if (parsed.done) {
-                  await writer.write(encoder.encode(`data: ${JSON.stringify({ done: true })}\n\n`));
-                }
-              } catch {
-                // Skip invalid JSON
               }
             }
+          } finally {
+            clearTimeout(streamTimeout);
           }
         } else {
           // Handle complete response (non-streaming APIs like OpenRouter, GLM, DeepSeek)
@@ -254,6 +418,7 @@ You are ready to analyze and discuss uploaded documents in detail.`;
           await writer.write(encoder.encode(`data: ${JSON.stringify({ done: true })}\n\n`));
         }
       } catch (error) {
+        console.error('[Chat Stream] Error:', error);
         const errorMessage = error instanceof Error ? error.message : 'Unknown error';
         await writer.write(
           encoder.encode(`data: ${JSON.stringify({ error: errorMessage, done: true })}\n\n`)

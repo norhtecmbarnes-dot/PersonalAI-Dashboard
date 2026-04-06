@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
-import { ModelSelector } from '@/components/ModelSelector';
+import { useGlobalModel } from '@/lib/context/ModelContext';
 import { MarkdownRenderer } from '@/components/MarkdownRenderer';
 import {
   MermaidDiagram,
@@ -49,7 +49,7 @@ export default function WritingAssistantPage() {
     | 'track_changes'
   >('expand');
   const [style, setStyle] = useState('professional');
-  const [model, setModel] = useState('');
+  const { selectedModel: model } = useGlobalModel();
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ActionResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -87,14 +87,11 @@ export default function WritingAssistantPage() {
   const [fromOutliner, setFromOutliner] = useState(false);
   const [outlineTitle, setOutlineTitle] = useState<string | null>(null);
 
-  // Load saved model, theme, and outline content on mount
+  // Load saved theme and outline content on mount
   useEffect(() => {
     // Give React time to hydrate
     const timer = setTimeout(() => {
       if (typeof window !== 'undefined') {
-        const savedModel = localStorage.getItem('selectedModel');
-        if (savedModel) setModel(savedModel);
-
         const savedTheme = localStorage.getItem('writing-theme');
         if (savedTheme) setTheme(savedTheme as 'dark' | 'light');
 
@@ -148,13 +145,6 @@ export default function WritingAssistantPage() {
 
     return () => clearTimeout(timer);
   }, []);
-
-  const handleModelChange = (modelId: string) => {
-    setModel(modelId);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('selectedModel', modelId);
-    }
-  };
 
   const toggleTheme = () => {
     const newTheme = theme === 'dark' ? 'light' : 'dark';
@@ -791,14 +781,9 @@ export default function WritingAssistantPage() {
               >
                 AI Model
               </h2>
-              <ModelSelector
-                value={model}
-                onChange={handleModelChange}
-                label=""
-                showHealth={true}
-                className="w-full"
-                autoSelectBest={true}
-              />
+              <div className={`text-sm ${theme === 'dark' ? 'text-slate-400' : 'text-gray-600'}`}>
+                {model || 'Select a model from the navigation bar'}
+              </div>
             </div>
 
             {/* Input Text */}

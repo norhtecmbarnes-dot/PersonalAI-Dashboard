@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { ModelSelector } from '@/components/ModelSelector';
+import { useGlobalModel } from '@/lib/context/ModelContext';
 
 type SpreadsheetAction = 'analyze' | 'formula' | 'clean' | 'chart' | 'predict' | 'generate-data';
 type PresentationAction =
@@ -16,11 +16,11 @@ type PresentationAction =
   | 'table';
 
 export default function OfficeAIPage() {
+  const { selectedModel } = useGlobalModel();
   const [activeTab, setActiveTab] = useState<'spreadsheet' | 'presentation'>('spreadsheet');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
-  const [selectedModel, setSelectedModel] = useState<string>('');
 
   // Spreadsheet state
   const [spreadsheetAction, setSpreadsheetAction] = useState<SpreadsheetAction>('analyze');
@@ -345,13 +345,6 @@ export default function OfficeAIPage() {
             </p>
           </div>
           <div className="flex gap-2 items-center">
-            <ModelSelector
-              value={selectedModel}
-              onChange={setSelectedModel}
-              label="AI Model"
-              showHealth={true}
-              className="w-64"
-            />
             <Link
               href="/office"
               className="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600"

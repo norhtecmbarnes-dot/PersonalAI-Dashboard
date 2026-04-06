@@ -1,19 +1,20 @@
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
-import "./globals.css";
-import { TopNav } from "@/components/TopNav";
+import type { Metadata } from 'next';
+import { Inter } from 'next/font/google';
+import './globals.css';
+import { TopNav } from '@/components/TopNav';
+import { ModelProvider } from '@/lib/context/ModelContext';
 
-const inter = Inter({ 
-  subsets: ["latin"],
+const inter = Inter({
+  subsets: ['latin'],
   display: 'swap',
   variable: '--font-inter',
 });
 
 export const metadata: Metadata = {
-  title: "AI Research Assistant",
-  description: "Your intelligent companion for research and analysis",
-  authors: [{ name: "AI Research Team" }],
-  keywords: ["AI", "chatbot", "research"],
+  title: 'AI Research Assistant',
+  description: 'Your intelligent companion for research and analysis',
+  authors: [{ name: 'AI Research Team' }],
+  keywords: ['AI', 'chatbot', 'research'],
 };
 
 export default function RootLayout({
@@ -24,8 +25,10 @@ export default function RootLayout({
   return (
     <html lang="en" className="bg-slate-900">
       <body className={`${inter.variable} font-sans`}>
-        <TopNav />
-        {children}
+        <ModelProvider>
+          <TopNav />
+          {children}
+        </ModelProvider>
       </body>
     </html>
   );

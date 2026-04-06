@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { NoteEditor, NotesList } from '@/components/NoteEditor';
 import { NotesBoard } from '@/components/NotesBoard';
-import { ModelSelector } from '@/components/ModelSelector';
+import { useGlobalModel } from '@/lib/context/ModelContext';
 
 interface Note {
   id: string;
@@ -21,27 +21,11 @@ interface Note {
 }
 
 export default function NotesPage() {
+  const { selectedModel } = useGlobalModel();
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | undefined>();
   const [viewMode, setViewMode] = useState<'board' | 'list'>('board');
-  const [selectedModel, setSelectedModel] = useState('');
   const [refreshKey, setRefreshKey] = useState(0);
-
-  const handleModelChange = (modelId: string) => {
-    setSelectedModel(modelId);
-    // Persist to localStorage for consistency across tabs
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('selectedModel', modelId);
-    }
-  };
-
-  // Load saved model on mount
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('selectedModel');
-      if (saved) setSelectedModel(saved);
-    }
-  }, []);
 
   const handleNewNote = () => {
     setEditingNote(undefined);

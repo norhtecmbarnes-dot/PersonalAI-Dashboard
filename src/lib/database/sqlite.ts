@@ -3983,7 +3983,7 @@ export class SQLDatabase {
 
   // Model preferences
   getDefaultModel(): string {
-    return this.getSetting('default_model') || 'ollama/qwen3.5:9b';
+    return this.getSetting('default_model') || 'ollama/llama3.2:latest';
   }
 
   setDefaultModel(modelId: string): void {
@@ -4005,12 +4005,12 @@ export class SQLDatabase {
     };
   } {
     return {
-      defaultModel: this.getSetting('default_model') || 'ollama/qwen3.5:9b',
+      defaultModel: this.getSetting('default_model') || 'ollama/llama3.2:latest',
       autoRoute: this.getSetting('auto_route_models') === 'true',
       preferLocal: this.getSetting('prefer_local_models') !== 'false',
       cloudForChat: this.getSetting('cloud_for_chat') === 'true',
       taskModels: {
-        local_light: this.getSetting('model_local_light') || 'ollama/angglam.slim',
+        local_light: this.getSetting('model_local_light') || 'ollama/llama3.2:latest',
         local_write: this.getSetting('model_local_write') || 'ollama/qwen3.5:9b',
         local_code: this.getSetting('model_local_code') || 'ollama/qwen3.5:9b',
         cloud_light: this.getSetting('model_cloud_light') || 'ollama/kimi-k2.5',
