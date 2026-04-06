@@ -75,7 +75,6 @@ export function TopNav() {
             <NavLink href="/tasks">Tasks</NavLink>
             <NavLink href="/notes">Notes</NavLink>
             <NavLink href="/writing-studio">Writing</NavLink>
-            <NavLink href="/outline-creator">Outliner</NavLink>
             <NavLink href="/office">Office</NavLink>
             <NavLink href="/builder">Builder</NavLink>
             <NavLink href="/brand-workspace">Brands</NavLink>

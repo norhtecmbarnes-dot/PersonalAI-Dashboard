@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { ManuscriptEditor } from '@/components/ManuscriptEditor';
 import { bookWriterPlugin } from '@/plugins/book-writer';
+import { useGlobalModel } from '@/lib/context/ModelContext';
 import type { TrackedChange } from '@/types/collab-editor';
 
 interface BookChapter {
@@ -36,6 +37,13 @@ export default function WritingStudioPage() {
   const [bookProject, setBookProject] = useState<BookProject | null>(null);
   const [showBookPanel, setShowBookPanel] = useState(false);
   const [showChatPanel, setShowChatPanel] = useState(false);
+  const [showOutlinePanel, setShowOutlinePanel] = useState(false);
+  const [outlineTopic, setOutlineTopic] = useState('');
+  const [outlineType, setOutlineType] = useState<
+    'essay' | 'blog' | 'article' | 'report' | 'general'
+  >('general');
+  const [outlineResult, setOutlineResult] = useState<string | null>(null);
+  const [outlineLoading, setOutlineLoading] = useState(false);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [chatInput, setChatInput] = useState('');
   const [changes, setChanges] = useState<TrackedChange[]>([]);
@@ -43,8 +51,7 @@ export default function WritingStudioPage() {
   const [selectedBrandId, setSelectedBrandId] = useState<string | null>(null);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [availableBrands, setAvailableBrands] = useState<{ id: string; name: string }[]>([]);
-  const [selectedModel, setSelectedModel] = useState('kimi-k2.5');
-  const [availableModels, setAvailableModels] = useState<string[]>([]);
+  const { selectedModel } = useGlobalModel();
   const [showSettings, setShowSettings] = useState(false);
   const [defaultFont, setDefaultFont] = useState('Merriweather, Georgia, serif');
   const [defaultFontSize, setDefaultFontSize] = useState('12pt');
@@ -146,28 +153,8 @@ export default function WritingStudioPage() {
         'kimi-k2.5:cloud', // Cloud model
         'glm-5:cloud', // Cloud thinking
       ];
-
-      // Filter to only writing-friendly models that are available
-      const availableWritingModels = writingModels.filter(m => allModels.includes(m));
-
-      if (availableWritingModels.length > 0) {
-        setAvailableModels(availableWritingModels);
-        setSelectedModel(availableWritingModels[0]);
-      } else if (allModels.length > 0) {
-        setAvailableModels(allModels.slice(0, 10)); // Limit to 10 models
-        setSelectedModel(allModels[0]);
-      } else {
-        // Fallback: use your actual available models
-        const fallbackModels = ['glm-4.7-flash:latest', 'qwen3.5:9b', 'phi4:latest'];
-        setAvailableModels(fallbackModels);
-        setSelectedModel('glm-4.7-flash:latest');
-      }
     } catch (e) {
       console.warn('Error loading models:', e);
-      // Fallback on error - use your actual models
-      const fallbackModels = ['glm-4.7-flash:latest', 'qwen3.5:9b', 'phi4:latest'];
-      setAvailableModels(fallbackModels);
-      setSelectedModel('glm-4.7-flash:latest');
     }
   };
 
@@ -220,6 +207,45 @@ export default function WritingStudioPage() {
       chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
     }
   }, [chatMessages, isLoading]);
+
+  // Generate outline function
+  const generateOutline = async () => {
+    if (!outlineTopic.trim()) return;
+
+    setOutlineLoading(true);
+    setOutlineResult(null);
+
+    try {
+      const response = await fetch('/api/writing', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'outline',
+          topic: outlineTopic,
+          type: outlineType,
+          model: selectedModel,
+        }),
+      });
+
+      const data = await response.json();
+      if (data.result) {
+        setOutlineResult(data.result);
+      }
+    } catch (error) {
+      console.error('Error generating outline:', error);
+      setOutlineResult('Error generating outline. Please try again.');
+    } finally {
+      setOutlineLoading(false);
+    }
+  };
+
+  const applyOutlineToContent = () => {
+    if (outlineResult) {
+      setContent(outlineResult);
+      setOutlineResult(null);
+      setShowOutlinePanel(false);
+    }
+  };
 
   // Auto-save version history every 5 minutes
   useEffect(() => {
@@ -935,21 +961,6 @@ export default function WritingStudioPage() {
           )}
         </div>
         <div className="flex items-center gap-3">
-          {/* Model Selector */}
-          {availableModels.length > 0 && (
-            <select
-              value={selectedModel}
-              onChange={e => setSelectedModel(e.target.value)}
-              className={`px-3 py-1.5 rounded-lg text-sm ${isDarkTheme ? 'bg-slate-800 text-slate-300' : 'bg-gray-200 text-gray-700'}`}
-              title="Select AI model for writing"
-            >
-              {availableModels.map(model => (
-                <option key={model} value={model}>
-                  {model}
-                </option>
-              ))}
-            </select>
-          )}
           {/* Brand Voice Selector */}
           {availableBrands.length > 0 && (
             <select
@@ -973,7 +984,13 @@ export default function WritingStudioPage() {
             onClick={() => setShowBookPanel(!showBookPanel)}
             className={`px-3 py-1.5 rounded-lg text-sm ${showBookPanel ? 'bg-purple-600 text-white' : isDarkTheme ? 'bg-slate-800 text-slate-300' : 'bg-gray-200 text-gray-700'}`}
           >
-            📖 Book
+            📚 Book {showBookPanel ? 'ON' : 'OFF'}
+          </button>
+          <button
+            onClick={() => setShowOutlinePanel(!showOutlinePanel)}
+            className={`px-3 py-1.5 rounded-lg text-sm ${showOutlinePanel ? 'bg-blue-600 text-white' : isDarkTheme ? 'bg-slate-800 text-slate-300' : 'bg-gray-200 text-gray-700'}`}
+          >
+            📝 Outline {showOutlinePanel ? 'ON' : 'OFF'}
           </button>
           <button
             onClick={() => setShowChatPanel(!showChatPanel)}
@@ -1149,6 +1166,81 @@ export default function WritingStudioPage() {
                     <div className="text-xs truncate">{chapter.title}</div>
                   </button>
                 ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Outline Panel */}
+        {showOutlinePanel && (
+          <div
+            className={`w-80 border-l flex flex-col ${isDarkTheme ? 'bg-slate-900/80 border-slate-800' : 'bg-gray-50 border-gray-200'}`}
+          >
+            <div className={`p-4 border-b ${isDarkTheme ? 'border-slate-700' : 'border-gray-300'}`}>
+              <h3
+                className={`text-lg font-semibold ${isDarkTheme ? 'text-white' : 'text-gray-900'}`}
+              >
+                📝 Outline Generator
+              </h3>
+            </div>
+            <div className="flex-1 overflow-auto p-4">
+              <div className="space-y-4">
+                <div>
+                  <label
+                    className={`text-sm font-medium ${isDarkTheme ? 'text-slate-300' : 'text-gray-700'}`}
+                  >
+                    Topic
+                  </label>
+                  <input
+                    type="text"
+                    value={outlineTopic}
+                    onChange={e => setOutlineTopic(e.target.value)}
+                    placeholder="Enter your topic..."
+                    className={`w-full mt-1 px-3 py-2 rounded-lg text-sm ${isDarkTheme ? 'bg-slate-800 text-white border-slate-600' : 'bg-white text-gray-900 border-gray-300'} border focus:ring-2 focus:ring-blue-500`}
+                  />
+                </div>
+                <div>
+                  <label
+                    className={`text-sm font-medium ${isDarkTheme ? 'text-slate-300' : 'text-gray-700'}`}
+                  >
+                    Type
+                  </label>
+                  <select
+                    value={outlineType}
+                    onChange={e => setOutlineType(e.target.value as any)}
+                    className={`w-full mt-1 px-3 py-2 rounded-lg text-sm ${isDarkTheme ? 'bg-slate-800 text-white border-slate-600' : 'bg-white text-gray-900 border-gray-300'} border`}
+                  >
+                    <option value="general">General Outline</option>
+                    <option value="essay">Essay</option>
+                    <option value="blog">Blog Post</option>
+                    <option value="article">Article</option>
+                    <option value="report">Report</option>
+                  </select>
+                </div>
+                <button
+                  onClick={generateOutline}
+                  disabled={!outlineTopic.trim() || outlineLoading}
+                  className={`w-full py-2 px-4 rounded-lg text-sm font-medium ${outlineLoading || !outlineTopic.trim() ? 'bg-slate-600 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-500'} text-white`}
+                >
+                  {outlineLoading ? 'Generating...' : 'Generate Outline'}
+                </button>
+                {outlineResult && (
+                  <div
+                    className={`p-3 rounded-lg ${isDarkTheme ? 'bg-slate-800' : 'bg-white'} border ${isDarkTheme ? 'border-slate-600' : 'border-gray-200'}`}
+                  >
+                    <div
+                      className={`prose prose-sm max-w-none ${isDarkTheme ? 'prose-invert' : ''}`}
+                    >
+                      <ReactMarkdown>{outlineResult}</ReactMarkdown>
+                    </div>
+                    <button
+                      onClick={applyOutlineToContent}
+                      className="mt-3 w-full py-2 px-4 bg-green-600 hover:bg-green-500 text-white text-sm rounded-lg"
+                    >
+                      Apply to Document
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
           </div>
