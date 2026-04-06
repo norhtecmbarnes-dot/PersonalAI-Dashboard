@@ -90,22 +90,16 @@ Generate 3-5 optimized search terms that would help find relevant information to
 Return ONLY a JSON array of strings, nothing else. Example: ["term1", "term2", "term3"]`;
 
     try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'ollama/qwen3.5:9b',
-          message: prompt,
-        }),
+      const { chatCompletion } = await import('@/lib/models/sdk.server');
+      const result = await chatCompletion({
+        model: 'ollama/qwen3.5:9b',
+        messages: [{ role: 'user', content: prompt }],
       });
 
-      if (response.ok) {
-        const data = await response.json();
-        const content = data.message?.content || data.message || '';
-        const match = content.match(/\[[\s\S]*\]/);
-        if (match) {
-          return JSON.parse(match[0]);
-        }
+      const content = result.message?.content || '';
+      const match = content.match(/\[[\s\S]*\]/);
+      if (match) {
+        return JSON.parse(match[0]);
       }
     } catch (error) {
       console.error('Error generating search terms:', error);
