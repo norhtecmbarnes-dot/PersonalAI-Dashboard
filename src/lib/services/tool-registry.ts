@@ -5,6 +5,9 @@ import {
   calculateTool,
   webSearchTool,
   webFetchTool,
+  calendarAddEventTool,
+  calendarGetEventsTool,
+  calendarDeleteEventTool,
 } from './tools';
 
 interface ToolCallRecord {
@@ -39,22 +42,24 @@ class ToolRegistry {
     this.registerTool(calculateTool);
     this.registerTool(webSearchTool);
     this.registerTool(webFetchTool);
+    this.registerTool(calendarAddEventTool);
+    this.registerTool(calendarGetEventsTool);
+    this.registerTool(calendarDeleteEventTool);
 
+    // Register remaining inline tools (to be extracted)
     this.registerTool({
-      name: 'sql_query',
-      description: 'Execute a SQL query on the database',
+      name: 'document_read',
+      description: 'Read a document from storage',
       parameters: {
-        query: { type: 'string', description: 'SQL SELECT query', required: true },
+        id: { type: 'string', description: 'Document ID', required: true },
       },
       execute: async params => {
-        const { sqlDatabase } = await import('@/lib/database/sqlite');
-        sqlDatabase.initialize();
-        try {
-          const results = await sqlDatabase.all(params.query);
-          return { success: true, data: results };
-        } catch (error) {
-          return { success: false, error: error instanceof Error ? error.message : 'Query failed' };
+        const { DocumentStore } = await import('@/lib/storage/documents');
+        const doc = DocumentStore.getById(params.id);
+        if (doc) {
+          return { success: true, data: doc };
         }
+        return { success: false, error: 'Document not found' };
       },
     });
 
