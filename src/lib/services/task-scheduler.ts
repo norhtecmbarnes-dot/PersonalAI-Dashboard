@@ -200,6 +200,10 @@ class TaskScheduler {
 
   private readonly TASK_EXPIRY = 90 * 24 * 60 * 60 * 1000; // 90 days
 
+  // Aging task notification threshold (tasks older than this will prompt user)
+  private readonly TASK_AGING_THRESHOLD = 60 * 24 * 60 * 60 * 1000; // 60 days - prompt before expiry
+  private readonly TASK_AGING_REVIEW_KEY = 'task_aging_review_pending';
+
   // Concurrency protection
   private runningTasks: Set<string> = new Set();
   private readonly MAX_CONCURRENT_TASKS = 3;
@@ -1440,6 +1444,178 @@ Return JSON array: [{"category": "user|decision|knowledge", "content": "...", "i
 
   cleanupOldResults(daysToKeep: number = 30): void {
     sqlDatabase.cleanupOldTaskResults(daysToKeep);
+  }
+
+  // Task aging management - get tasks that need user review before expiration
+  getTasksNeedingReview(): Array<ScheduledTask & { age: number; daysUntilExpiry: number }> {
+    const now = Date.now();
+    const tasks = sqlDatabase.getScheduledTasks(false);
+
+    return tasks
+      .filter(task => {
+        // Only non-permanent tasks that haven't been flagged for review
+        if (task.permanent) return false;
+        if (task.config?.reviewPending) return false;
+
+        const age = now - task.createdAt;
+        return age >= this.TASK_AGING_THRESHOLD && age < this.TASK_EXPIRY;
+      })
+      .map(task => ({
+        ...task,
+        age: now - task.createdAt,
+        daysUntilExpiry: Math.ceil(
+          (this.TASK_EXPIRY - (now - task.createdAt)) / (24 * 60 * 60 * 1000)
+        ),
+      }))
+      .sort((a, b) => a.daysUntilExpiry - b.daysUntilExpiry);
+  }
+
+  // Get all tasks pending user review decision
+  getPendingReviewTasks(): ScheduledTask[] {
+    const tasks = sqlDatabase.getScheduledTasks(false);
+    return tasks.filter(task => task.config?.reviewPending === true);
+  }
+
+  // Mark a task for review - user will be prompted
+  markTaskForReview(taskId: string): boolean {
+    const task = sqlDatabase.getScheduledTaskById(taskId);
+    if (!task) return false;
+
+    sqlDatabase.updateScheduledTask(taskId, {
+      config: {
+        ...task.config,
+        reviewPending: true,
+        reviewDate: Date.now(),
+      },
+    });
+    return true;
+  }
+
+  // Process user's decision on an aging task
+  processAgingTaskDecision(
+    taskId: string,
+    decision: 'keep' | 'modify' | 'delete' | 'snooze',
+    modifications?: { name?: string; schedule?: string; description?: string }
+  ): { success: boolean; message: string } {
+    const task = sqlDatabase.getScheduledTaskById(taskId);
+    if (!task) {
+      return { success: false, message: 'Task not found' };
+    }
+
+    switch (decision) {
+      case 'keep':
+        // Reset the aging timer - extend the task's life
+        sqlDatabase.updateScheduledTask(taskId, {
+          config: {
+            ...task.config,
+            reviewPending: false,
+            keptAt: Date.now(),
+            // Reset creation date to effectively reset the aging clock
+          },
+        });
+        // Update createdAt to reset aging
+        sqlDatabase.run('UPDATE scheduled_tasks SET created_at = ? WHERE id = ?', [
+          Date.now(),
+          taskId,
+        ]);
+        return { success: true, message: `Task "${task.name}" kept. Aging timer reset.` };
+
+      case 'modify':
+        if (!modifications) {
+          return { success: false, message: 'Modifications required for modify decision' };
+        }
+        sqlDatabase.updateScheduledTask(taskId, {
+          name: modifications.name || task.name,
+          schedule: modifications.schedule || task.schedule,
+          description: modifications.description || task.description,
+          config: {
+            ...task.config,
+            reviewPending: false,
+            modifiedAt: Date.now(),
+          },
+        });
+        // Reset creation date for modified tasks
+        sqlDatabase.run('UPDATE scheduled_tasks SET created_at = ? WHERE id = ?', [
+          Date.now(),
+          taskId,
+        ]);
+        return { success: true, message: `Task "${task.name}" modified and aging timer reset.` };
+
+      case 'delete':
+        if (task.permanent) {
+          return { success: false, message: 'Cannot delete permanent task' };
+        }
+        sqlDatabase.deleteScheduledTask(taskId);
+        return { success: true, message: `Task "${task.name}" deleted.` };
+
+      case 'snooze':
+        // Snooze for 30 days before asking again
+        sqlDatabase.updateScheduledTask(taskId, {
+          config: {
+            ...task.config,
+            reviewPending: false,
+            snoozedAt: Date.now(),
+            snoozeCount: (task.config?.snoozeCount || 0) + 1,
+          },
+        });
+        sqlDatabase.run('UPDATE scheduled_tasks SET created_at = ? WHERE id = ?', [
+          Date.now() - (this.TASK_AGING_THRESHOLD - 30 * 24 * 60 * 60 * 1000),
+          taskId,
+        ]);
+        return { success: true, message: `Task "${task.name}" snoozed for 30 days.` };
+
+      default:
+        return { success: false, message: 'Invalid decision' };
+    }
+  }
+
+  // Run automatic task aging check - returns tasks that need review
+  runTaskAgingCheck(): { needsReview: number; pendingDecision: number; tasks: any[] } {
+    const tasksNeedingReview = this.getTasksNeedingReview();
+    const pendingTasks = this.getPendingReviewTasks();
+
+    // Auto-mark tasks that need review
+    for (const task of tasksNeedingReview) {
+      this.markTaskForReview(task.id);
+    }
+
+    return {
+      needsReview: tasksNeedingReview.length,
+      pendingDecision: pendingTasks.length,
+      tasks: tasksNeedingReview.map(t => ({
+        id: t.id,
+        name: t.name,
+        type: t.taskType,
+        age: Math.floor(t.age / (24 * 60 * 60 * 1000)),
+        daysUntilExpiry: t.daysUntilExpiry,
+        enabled: t.enabled,
+      })),
+    };
+  }
+
+  // Batch process multiple aging decisions
+  processBatchAgingDecisions(
+    decisions: Array<{
+      taskId: string;
+      decision: 'keep' | 'modify' | 'delete' | 'snooze';
+      modifications?: any;
+    }>
+  ): { success: number; failed: number; results: any[] } {
+    const results = [];
+    let success = 0;
+    let failed = 0;
+
+    for (const d of decisions) {
+      const result = this.processAgingTaskDecision(d.taskId, d.decision, d.modifications);
+      results.push({ taskId: d.taskId, ...result });
+      if (result.success) {
+        success++;
+      } else {
+        failed++;
+      }
+    }
+
+    return { success, failed, results };
   }
 }
 

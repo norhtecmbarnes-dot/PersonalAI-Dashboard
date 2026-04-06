@@ -7,7 +7,7 @@ import { sqlDatabase } from '@/lib/database/sqlite';
 export async function GET(request: Request) {
   try {
     sqlDatabase.initialize();
-    
+
     const { searchParams } = new URL(request.url);
     const action = searchParams.get('action');
 
@@ -79,7 +79,21 @@ export async function GET(request: Request) {
         return NextResponse.json({ tasks: dueTasks, count: dueTasks.length });
       }
 
-      default:
+      case 'aging-review': {
+        // Get tasks that need review before expiration
+        const reviewData = taskScheduler.runTaskAgingCheck();
+        return NextResponse.json({
+          ...reviewData,
+          message: `${reviewData.tasks.length} tasks need review before they expire`,
+        });
+      }
+
+      case 'pending-review':
+        {
+          // Get all tasks pending user decision
+          const tasks = taskScheduler.getPendingReviewTasks();
+          return NextResponse.json({ tasks, count: tasks.length });
+        }
         return NextResponse.json({
           endpoints: {
             'GET ?action=list': 'List all tasks',
@@ -164,10 +178,13 @@ export async function POST(request: Request) {
 
         const deleted = taskScheduler.deleteTask(data.id);
         if (!deleted) {
-          return NextResponse.json({ 
-            error: 'Cannot delete permanent task or task not found',
-            hint: 'Set permanent=false to allow deletion'
-          }, { status: 400 });
+          return NextResponse.json(
+            {
+              error: 'Cannot delete permanent task or task not found',
+              hint: 'Set permanent=false to allow deletion',
+            },
+            { status: 400 }
+          );
         }
         return NextResponse.json({ success: true });
       }
@@ -212,7 +229,51 @@ export async function POST(request: Request) {
       case 'cleanup': {
         const daysToKeep = data.daysToKeep || 30;
         taskScheduler.cleanupOldResults(daysToKeep);
-        return NextResponse.json({ success: true, message: `Cleaned up results older than ${daysToKeep} days` });
+        return NextResponse.json({
+          success: true,
+          message: `Cleaned up results older than ${daysToKeep} days`,
+        });
+      }
+
+      case 'aging-review': {
+        // Get tasks that need review before expiration
+        const reviewData = taskScheduler.runTaskAgingCheck();
+        return NextResponse.json({
+          ...reviewData,
+        });
+      }
+
+      case 'aging-decision': {
+        // Process user's decision on aging task
+        if (!data.taskId || !data.decision) {
+          return NextResponse.json(
+            { error: 'taskId and decision (keep/modify/delete/snooze) are required' },
+            { status: 400 }
+          );
+        }
+
+        const result = taskScheduler.processAgingTaskDecision(
+          data.taskId,
+          data.decision,
+          data.modifications
+        );
+        return NextResponse.json(result);
+      }
+
+      case 'aging-batch': {
+        // Process multiple aging decisions at once
+        if (!data.decisions || !Array.isArray(data.decisions)) {
+          return NextResponse.json({ error: 'decisions array is required' }, { status: 400 });
+        }
+
+        const result = taskScheduler.processBatchAgingDecisions(data.decisions);
+        return NextResponse.json({ ...result });
+      }
+
+      case 'pending-review': {
+        // Get all tasks pending user decision
+        const tasks = taskScheduler.getPendingReviewTasks();
+        return NextResponse.json({ tasks, count: tasks.length });
       }
 
       default:

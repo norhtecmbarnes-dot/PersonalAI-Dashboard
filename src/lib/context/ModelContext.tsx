@@ -203,6 +203,7 @@ export function ModelProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Load persisted model on mount
   useEffect(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
@@ -211,6 +212,7 @@ export function ModelProvider({ children }: { children: ReactNode }) {
     refreshModels();
   }, []);
 
+  // Persist selection whenever it changes
   useEffect(() => {
     if (typeof window !== 'undefined' && selectedModel && initialized) {
       localStorage.setItem(STORAGE_KEY, selectedModel);

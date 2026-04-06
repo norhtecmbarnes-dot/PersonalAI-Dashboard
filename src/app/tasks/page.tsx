@@ -45,6 +45,15 @@ interface TaskStats {
   inactive: number;
 }
 
+interface AgingTask {
+  id: string;
+  name: string;
+  type: string;
+  age: number;
+  daysUntilExpiry: number;
+  enabled: boolean;
+}
+
 export default function TasksPage() {
   const [tasks, setTasks] = useState<ScheduledTask[]>([]);
   const [schedulerStatus, setSchedulerStatus] = useState<{ isRunning: boolean } | null>(null);
@@ -65,6 +74,8 @@ export default function TasksPage() {
   const [filter, setFilter] = useState<'all' | 'duplicates' | 'expired' | 'inactive' | 'neverRun'>(
     'all'
   );
+  const [agingTasks, setAgingTasks] = useState<AgingTask[]>([]);
+  const [showAgingReview, setShowAgingReview] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -74,16 +85,19 @@ export default function TasksPage() {
 
   const loadData = async () => {
     try {
-      const [tasksRes, statusRes] = await Promise.all([
+      const [tasksRes, statusRes, agingRes] = await Promise.all([
         fetch('/api/tasks?action=list'),
         fetch('/api/tasks?action=status'),
+        fetch('/api/tasks?action=aging-review'),
       ]);
 
       const tasksData = await tasksRes.json();
       const statusData = await statusRes.json();
+      const agingData = await agingRes.json();
 
       setTasks(tasksData.tasks || []);
       setSchedulerStatus(statusData);
+      setAgingTasks(agingData.tasks || []);
       calculateStats(tasksData.tasks || []);
     } catch (error) {
       console.error('Error loading tasks:', error);
@@ -301,6 +315,47 @@ export default function TasksPage() {
     }
   };
 
+  const handleAgingDecision = async (
+    taskId: string,
+    decision: 'keep' | 'modify' | 'delete' | 'snooze'
+  ) => {
+    try {
+      const response = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'aging-decision', taskId, decision }),
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        setAgingTasks(prev => prev.filter(t => t.id !== taskId));
+        loadData();
+      }
+    } catch (error) {
+      console.error('Error processing aging decision:', error);
+    }
+  };
+
+  const handleBatchAgingDecisions = async (
+    decisions: Array<{ taskId: string; decision: string }>
+  ) => {
+    try {
+      const response = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'aging-batch', decisions }),
+      });
+
+      const result = await response.json();
+      if (result.success) {
+        setAgingTasks([]);
+        loadData();
+      }
+    } catch (error) {
+      console.error('Error processing batch aging:', error);
+    }
+  };
+
   const getTaskWarnings = (task: ScheduledTask): string[] => {
     const warnings: string[] = [];
     if (isPotentialDuplicate(task)) {
@@ -330,6 +385,15 @@ export default function TasksPage() {
             <p className="text-gray-400 mt-1">Automate recurring tasks with natural language</p>
           </div>
           <div className="flex gap-3 items-center">
+            {agingTasks.length > 0 && (
+              <button
+                onClick={() => setShowAgingReview(true)}
+                className="px-4 py-2 rounded bg-yellow-900/50 text-yellow-300 hover:bg-yellow-900/70 transition-colors flex items-center gap-2"
+              >
+                <span className="animate-pulse">⚠️</span>
+                {agingTasks.length} tasks need review
+              </button>
+            )}
             <div
               className={`px-4 py-2 rounded ${schedulerStatus?.isRunning ? 'bg-green-900/50 text-green-300' : 'bg-red-900/50 text-red-300'}`}
             >
@@ -337,6 +401,84 @@ export default function TasksPage() {
             </div>
           </div>
         </div>
+
+        {/* Task Aging Review Modal */}
+        {showAgingReview && agingTasks.length > 0 && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-gray-800 rounded-lg p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold text-white">Tasks Needing Review</h2>
+                <button
+                  onClick={() => setShowAgingReview(false)}
+                  className="text-gray-400 hover:text-white"
+                >
+                  ✕
+                </button>
+              </div>
+              <p className="text-gray-400 mb-4">
+                These tasks are aging and will expire soon. Please decide what to do with them.
+              </p>
+              <div className="space-y-4">
+                {agingTasks.map(task => (
+                  <div key={task.id} className="bg-gray-700 rounded-lg p-4">
+                    <div className="flex justify-between items-start mb-2">
+                      <div>
+                        <h3 className="text-white font-medium">{task.name}</h3>
+                        <p className="text-sm text-gray-400">
+                          Type: {task.type} • Age: {task.age} days • Expires in{' '}
+                          {task.daysUntilExpiry} days
+                        </p>
+                      </div>
+                      {task.enabled && (
+                        <span className="text-xs px-2 py-1 bg-green-900/50 text-green-300 rounded">
+                          Active
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex gap-2 mt-3">
+                      <button
+                        onClick={() => handleAgingDecision(task.id, 'keep')}
+                        className="px-3 py-1.5 bg-green-600 hover:bg-green-500 text-white text-sm rounded transition-colors"
+                      >
+                        Keep (Reset Age)
+                      </button>
+                      <button
+                        onClick={() => handleAgingDecision(task.id, 'snooze')}
+                        className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-sm rounded transition-colors"
+                      >
+                        Snooze 30 Days
+                      </button>
+                      <button
+                        onClick={() => handleAgingDecision(task.id, 'delete')}
+                        className="px-3 py-1.5 bg-red-600 hover:bg-red-500 text-white text-sm rounded transition-colors"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-4 flex justify-end gap-2">
+                <button
+                  onClick={() =>
+                    handleBatchAgingDecisions(
+                      agingTasks.map(t => ({ taskId: t.id, decision: 'keep' }))
+                    )
+                  }
+                  className="px-4 py-2 bg-green-700 hover:bg-green-600 text-white rounded transition-colors"
+                >
+                  Keep All
+                </button>
+                <button
+                  onClick={() => setShowAgingReview(false)}
+                  className="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white rounded transition-colors"
+                >
+                  Later
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Natural Language Task Creation */}
         <TaskInstruction onTaskCreated={loadData} />
