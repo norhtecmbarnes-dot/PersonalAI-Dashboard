@@ -1,6 +1,80 @@
 import { sqlDatabase } from '@/lib/database/sqlite';
 import { router } from '@/lib/models/model-router';
 import fs from 'fs';
+import {
+  executeIntelligenceTask,
+  executeSecurityTask,
+  executeResearchTask,
+  executeReflectionTask,
+  executeBrandTask,
+  executeWebCheckTask,
+  executeMemoryCaptureTask,
+  executeMemoryArchiveTask,
+  executeRLTrainingTask,
+  executeCleanupTask,
+  executeCleanupDuplicateTasksTask,
+  executeSecurityFixTask,
+  executeTelegramBriefingTask,
+  executeCustomTask,
+} from './tasks/handlers';
+
+async function executeTaskInternal(task: ScheduledTask): Promise<TaskExecutionResult> {
+  try {
+    let result: TaskExecutionResult;
+
+    switch (task.taskType) {
+      case 'intelligence':
+        result = await executeIntelligenceTask(task);
+        break;
+      case 'security':
+        result = await executeSecurityTask(task);
+        break;
+      case 'research':
+        result = await executeResearchTask(task);
+        break;
+      case 'reflection':
+        result = await executeReflectionTask(task);
+        break;
+      case 'brand_task':
+        result = await executeBrandTask(task);
+        break;
+      case 'web_check':
+        result = await executeWebCheckTask(task);
+        break;
+      case 'memory_capture':
+        result = await executeMemoryCaptureTask(task);
+        break;
+      case 'memory_archive':
+        result = await executeMemoryArchiveTask(task);
+        break;
+      case 'rl_training':
+        result = await executeRLTrainingTask(task);
+        break;
+      case 'cleanup':
+        result = await executeCleanupTask(task);
+        break;
+      case 'cleanup_duplicate_tasks':
+        result = await executeCleanupDuplicateTasksTask(task);
+        break;
+      case 'security_fix':
+        result = await executeSecurityFixTask(task);
+        break;
+      case 'telegram_briefing':
+        result = await executeTelegramBriefingTask(task);
+        break;
+      case 'custom':
+        result = await executeCustomTask(task);
+        break;
+      default:
+        throw new Error(`Unknown task type: ${task.taskType}`);
+    }
+
+    return result;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    return { success: false, error: errorMessage };
+  }
+}
 
 export interface ScheduledTask {
   id: string;
@@ -562,7 +636,7 @@ class TaskScheduler {
       });
 
       // Race between task execution and timeout
-      const result = await Promise.race([this.executeTaskInternal(task), timeoutPromise]);
+      const result = await Promise.race([executeTaskInternal(task), timeoutPromise]);
 
       // Clear timeout on success
       if (timeoutId) {
@@ -600,702 +674,6 @@ class TaskScheduler {
     } finally {
       // Always remove from running set
       this.runningTasks.delete(task.id);
-    }
-  }
-
-  private async executeTaskInternal(task: ScheduledTask): Promise<TaskExecutionResult> {
-    try {
-      let result: TaskExecutionResult;
-
-      switch (task.taskType) {
-        case 'intelligence':
-          result = await this.executeIntelligenceTask(task);
-          break;
-        case 'security':
-          result = await this.executeSecurityTask(task);
-          break;
-        case 'research':
-          result = await this.executeResearchTask(task);
-          break;
-        case 'reflection':
-          result = await this.executeReflectionTask(task);
-          break;
-        case 'brand_task':
-          result = await this.executeBrandTask(task);
-          break;
-        case 'web_check':
-          result = await this.executeWebCheckTask(task);
-          break;
-        case 'memory_capture':
-          result = await this.executeMemoryCaptureTask(task);
-          break;
-        case 'memory_archive':
-          result = await this.executeMemoryArchiveTask(task);
-          break;
-        case 'rl_training':
-          result = await this.executeRLTrainingTask(task);
-          break;
-        case 'cleanup':
-          result = await this.executeCleanupTask(task);
-          break;
-        case 'cleanup_duplicate_tasks':
-          result = await this.executeCleanupDuplicateTasksTask(task);
-          break;
-        case 'security_fix':
-          result = await this.executeSecurityFixTask(task);
-          break;
-        case 'telegram_briefing':
-          result = await this.executeTelegramBriefingTask(task);
-          break;
-        case 'custom':
-          result = await this.executeCustomTask(task);
-          break;
-        default:
-          throw new Error(`Unknown task type: ${task.taskType}`);
-      }
-
-      return result;
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      return { success: false, error: errorMessage };
-    }
-  }
-
-  private async executeIntelligenceTask(task: ScheduledTask): Promise<TaskExecutionResult> {
-    const { intelligenceService } = await import('@/lib/intelligence/report-generator');
-
-    const report = await intelligenceService.generateReport();
-    const articleCount =
-      report.newsSummary?.spaceDomainAwareness?.length ||
-      0 + (report.newsSummary?.commercialSpace?.length || 0);
-
-    // Send Telegram notification for intelligence report
-    try {
-      const { sendIntelligenceNotification, getNotificationConfig } =
-        await import('@/lib/integrations/telegram-notify');
-      const notifConfig = await getNotificationConfig();
-      if (notifConfig.enabled && notifConfig.intelligence) {
-        await sendIntelligenceNotification({
-          articles: articleCount,
-          opportunities: report.bidOpportunities?.samGov?.length || 0,
-        });
-      }
-    } catch (e) {
-      console.log('[TaskScheduler] Telegram notification failed:', e);
-    }
-
-    return {
-      success: true,
-      result: `Intelligence report generated with ${articleCount} articles`,
-      data: { articleCount, reportId: report.id },
-    };
-  }
-
-  private async executeSecurityTask(task: ScheduledTask): Promise<TaskExecutionResult> {
-    const { securityAgent } = await import('@/lib/agent/security-agent');
-
-    const report = await securityAgent.performSecurityScan();
-
-    // Send Telegram notification for security scan results
-    try {
-      const { sendSecurityNotification, getNotificationConfig } =
-        await import('@/lib/integrations/telegram-notify');
-      const notifConfig = await getNotificationConfig();
-      if (notifConfig.enabled && notifConfig.security) {
-        const criticalCount = report.findings?.filter(f => f.severity === 'critical').length || 0;
-        const highCount = report.findings?.filter(f => f.severity === 'high').length || 0;
-        await sendSecurityNotification({
-          count: report.findings?.length || 0,
-          riskScore: report.riskScore,
-          critical: criticalCount,
-          high: highCount,
-        });
-      }
-    } catch (e) {
-      console.log('[TaskScheduler] Telegram notification failed:', e);
-    }
-
-    return {
-      success: true,
-      result: `Security scan completed. Risk score: ${report.riskScore}`,
-      data: { riskScore: report.riskScore, findings: report.findings?.length || 0 },
-    };
-  }
-
-  private async executeResearchTask(task: ScheduledTask): Promise<TaskExecutionResult> {
-    const { researchAgent } = await import('@/lib/agent/research-agent');
-
-    const report = await researchAgent.performResearch();
-
-    return {
-      success: true,
-      result: `Research completed. Found ${report.totalFindings} articles`,
-      data: { findings: report.totalFindings },
-    };
-  }
-
-  private async executeReflectionTask(task: ScheduledTask): Promise<TaskExecutionResult> {
-    const { metricsService } = await import('@/lib/services/metrics');
-    const { codeHealthService } = await import('@/lib/services/code-health');
-    const { selfImprovementService } = await import('@/lib/services/self-improvement');
-
-    const metrics = metricsService.getAggregatedMetrics('day');
-    const codeHealth = await codeHealthService.analyzeCodeHealth();
-    const report = await selfImprovementService.generateReport(metrics, codeHealth);
-
-    return {
-      success: true,
-      result: `Self-reflection completed. Score: ${report.healthScore}`,
-      data: { score: report.healthScore, insights: report.insights?.length || 0 },
-    };
-  }
-
-  private async executeBrandTask(task: ScheduledTask): Promise<TaskExecutionResult> {
-    if (!task.brandId) {
-      return { success: false, error: 'Brand task requires brandId' };
-    }
-
-    const { brandWorkspace } = await import('@/lib/services/brand-workspace');
-    const brand = await brandWorkspace.getBrandById(task.brandId);
-
-    if (!brand) {
-      return { success: false, error: 'Brand not found' };
-    }
-
-    // Create a chat session and execute the prompt
-    const projects = await brandWorkspace.getProjects(task.brandId);
-    const project = projects[0];
-
-    if (!project) {
-      return { success: false, error: 'No project found for brand' };
-    }
-
-    const session = await brandWorkspace.createChatSession(project.id, task.brandId, task.name);
-    const context = await brandWorkspace.buildContextForChat(task.brandId, project.id);
-
-    // For now, just return success - actual chat would happen through API
-    return {
-      success: true,
-      result: `Brand task initialized for ${brand.name}`,
-      data: { sessionId: session.id, brandId: task.brandId },
-    };
-  }
-
-  private async executeWebCheckTask(task: ScheduledTask): Promise<TaskExecutionResult> {
-    // Web check now returns placeholder without making external HTTP calls
-    // Only runs when explicitly triggered (schedule: manual)
-    return {
-      success: true,
-      result: 'Web check is disabled. Use manual search via chat for current information.',
-      data: {
-        message: 'External web checking disabled to reduce system traffic',
-        suggestion: 'Use the web search feature in chat for current information',
-      },
-    };
-  }
-
-  private async executeRLTrainingTask(task: ScheduledTask): Promise<TaskExecutionResult> {
-    try {
-      const { rlTrainer } = await import('@/lib/agent/rl-trainer');
-      const { agent } = await import('@/lib/agent/self-improvement');
-
-      // Check if RL is enabled
-      if (!agent.isRLEnabled()) {
-        return {
-          success: false,
-          error: 'RL training is disabled in agent config',
-        };
-      }
-
-      // Run training session
-      const result = await rlTrainer.runTrainingSession();
-      const stats = rlTrainer.getStats();
-
-      // Get recommendations
-      const recommendations = await rlTrainer.getRecommendations();
-
-      return {
-        success: true,
-        result: `RL training complete: ${result.pairsProcessed} pairs, ${result.lessonsExtracted} lessons, ${result.memoriesUpdated} memories updated. Total conversations: ${stats.totalConversations}, Avg score: ${stats.averageScore.toFixed(2)}`,
-        data: {
-          pairsProcessed: result.pairsProcessed,
-          lessonsExtracted: result.lessonsExtracted,
-          memoriesUpdated: result.memoriesUpdated,
-          stats,
-          recommendations,
-        },
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'RL training failed',
-      };
-    }
-  }
-
-  private async executeCustomTask(task: ScheduledTask): Promise<TaskExecutionResult> {
-    if (!task.prompt) {
-      return { success: false, error: 'Custom task requires a prompt' };
-    }
-
-    // Execute custom prompt through chat API
-    try {
-      const baseUrl =
-        typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
-      const response = await fetch(`${baseUrl}/api/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: router.getModelId('chat'),
-          message: task.prompt,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`Chat API returned ${response.status}`);
-      }
-
-      const data = await response.json();
-      const content = data.message?.content || data.message || data.response || '';
-
-      return {
-        success: true,
-        result: content.substring(0, 500) + (content.length > 500 ? '...' : ''),
-        data: { fullResponse: content },
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to execute custom task',
-      };
-    }
-  }
-
-  private async executeMemoryCaptureTask(task: ScheduledTask): Promise<TaskExecutionResult> {
-    try {
-      const { sqlDatabase } = await import('@/lib/database/sqlite');
-      const { streamChatCompletion } = await import('@/lib/models/sdk.server');
-
-      // Get recent chat messages from last 10 minutes
-      const recentMessages = await sqlDatabase.all(
-        `
-        SELECT * FROM chat_messages 
-        WHERE timestamp > ? 
-        ORDER BY timestamp DESC 
-        LIMIT 50
-      `,
-        [Date.now() - 10 * 60 * 1000]
-      );
-
-      if (recentMessages.length === 0) {
-        return { success: true, result: 'No recent messages to capture' };
-      }
-
-      // Analyze with AI to extract important facts
-      const prompt = `Analyze these recent chat messages and extract important facts, decisions, and preferences to save to memory.
-
-Messages:
-${recentMessages.map(m => `${m.role}: ${m.content}`).join('\n')}
-
-Extract:
-1. User facts (name, preferences, interests)
-2. Important decisions made
-3. Key topics discussed
-4. Action items or tasks mentioned
-
-Return JSON array: [{"category": "user|decision|knowledge", "content": "...", "importance": 5}]`;
-
-      const result = await streamChatCompletion({
-        model: router.getModelId('memory_capture'),
-        messages: [{ role: 'user', content: prompt }],
-      });
-
-      const response = result.message?.content || String(result.message);
-
-      // Parse and save memories
-      try {
-        const jsonMatch = response.match(/\[[\s\S]*\]/);
-        if (jsonMatch) {
-          const memories = JSON.parse(jsonMatch[0]);
-          for (const memory of memories.slice(0, 5)) {
-            await sqlDatabase.run(
-              `
-              INSERT INTO memory (id, content, category, importance, source, created_at)
-              VALUES (?, ?, ?, ?, ?, ?)
-            `,
-              [
-                Date.now().toString(36) + Math.random().toString(36).substr(2, 9),
-                memory.content,
-                memory.category || 'knowledge',
-                memory.importance || 5,
-                'memory_capture',
-                Date.now(),
-              ]
-            );
-          }
-        }
-      } catch (e) {
-        console.log('[MemoryCapture] Failed to parse memories:', e);
-      }
-
-      return {
-        success: true,
-        result: `Captured from ${recentMessages.length} messages`,
-        data: { messageCount: recentMessages.length },
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Memory capture failed',
-      };
-    }
-  }
-
-  private async executeMemoryArchiveTask(task: ScheduledTask): Promise<TaskExecutionResult> {
-    try {
-      const { sqlDatabase } = await import('@/lib/database/sqlite');
-
-      // Archive memories older than 30 days with low importance
-      const cutoffDate = Date.now() - 30 * 24 * 60 * 60 * 1000;
-
-      const oldMemories = await sqlDatabase.all(
-        `
-        SELECT * FROM memory 
-        WHERE created_at < ? AND importance <= 5
-        ORDER BY created_at ASC
-        LIMIT 100
-      `,
-        [cutoffDate]
-      );
-
-      if (oldMemories.length === 0) {
-        return { success: true, result: 'No memories to archive' };
-      }
-
-      // Archive memories by marking them as archived
-      let archivedCount = 0;
-      for (const memory of oldMemories) {
-        try {
-          await sqlDatabase.run(
-            `
-            UPDATE memory 
-            SET category = 'archived', 
-                importance = 1,
-                updated_at = ?
-            WHERE id = ?
-          `,
-            [Date.now(), memory.id]
-          );
-          archivedCount++;
-        } catch (e) {
-          console.log('[MemoryArchive] Failed to archive:', memory.id, e);
-        }
-      }
-
-      return {
-        success: true,
-        result: `Archived ${archivedCount} memories`,
-        data: { archivedCount },
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Memory archive failed',
-      };
-    }
-  }
-
-  private async executeCleanupDuplicateTasksTask(
-    task: ScheduledTask
-  ): Promise<TaskExecutionResult> {
-    try {
-      sqlDatabase.initialize();
-
-      // Get all tasks from both tables
-      const regularTasks = sqlDatabase.getTasks();
-      const scheduledTasks = sqlDatabase.getScheduledTasks();
-
-      const duplicates: Array<{ table: string; id: string; title: string; createdAt: number }> = [];
-
-      // Check regular tasks for duplicates
-      const taskMap = new Map<string, number>();
-      for (const t of regularTasks) {
-        const key = t.title.toLowerCase().trim();
-        if (taskMap.has(key)) {
-          // Found duplicate - older one should be removed
-          if (t.createdAt < taskMap.get(key)!) {
-            duplicates.push({ table: 'tasks', id: t.id, title: t.title, createdAt: t.createdAt });
-          }
-        } else {
-          taskMap.set(key, t.createdAt);
-        }
-      }
-
-      // Check scheduled tasks for duplicates (by name + type)
-      const schedMap = new Map<string, { id: string; createdAt: number }>();
-      for (const t of scheduledTasks) {
-        const key = `${t.task_type}:${t.name}`.toLowerCase().trim();
-        if (schedMap.has(key)) {
-          const existing = schedMap.get(key)!;
-          if (t.createdAt < existing.createdAt) {
-            duplicates.push({
-              table: 'scheduled_tasks',
-              id: t.id,
-              title: t.name,
-              createdAt: t.createdAt,
-            });
-          }
-        } else {
-          schedMap.set(key, { id: t.id, createdAt: t.createdAt });
-        }
-      }
-
-      // Remove duplicates
-      let removedCount = 0;
-      for (const dup of duplicates) {
-        try {
-          if (dup.table === 'tasks') {
-            sqlDatabase.deleteTask(dup.id);
-            removedCount++;
-          } else {
-            sqlDatabase.deleteScheduledTask(dup.id);
-            removedCount++;
-          }
-        } catch (e) {
-          // Skip if can't delete
-        }
-      }
-
-      return {
-        success: true,
-        result: `Found and removed ${duplicates.length} duplicate tasks. ${removedCount} removed.`,
-        data: { found: duplicates.length, removed: removedCount },
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to cleanup duplicates',
-      };
-    }
-  }
-
-  private async executeSecurityFixTask(task: ScheduledTask): Promise<TaskExecutionResult> {
-    try {
-      // Import security agent
-      const { securityAgent } = await import('@/lib/agent/security-agent');
-
-      // Run security scan
-      const scanResult = await securityAgent.performSecurityScan();
-
-      const fixes: string[] = [];
-      const autoFixable: string[] = [];
-      const manualFixes: string[] = [];
-
-      // Analyze findings and determine what can be auto-fixed
-      for (const finding of scanResult.findings || []) {
-        if (this.canAutoFix(finding.category)) {
-          autoFixable.push(finding.category);
-          fixes.push(`Auto-fixed: ${finding.description}`);
-        } else {
-          manualFixes.push(finding.description);
-        }
-      }
-
-      // Apply auto-fixes
-      for (const fixType of autoFixable) {
-        await this.applySecurityFix(fixType);
-      }
-
-      const result = `Security scan complete. ${fixes.length} issues auto-fixed. ${manualFixes.length} require manual attention. Risk score: ${scanResult.riskScore}`;
-
-      return {
-        success: true,
-        result,
-        data: {
-          autoFixed: fixes.length,
-          manualNeeded: manualFixes.length,
-          riskScore: scanResult.riskScore,
-          details: fixes,
-        },
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Security fix task failed',
-      };
-    }
-  }
-
-  private canAutoFix(findingType: string): boolean {
-    // Auto-fixable issues
-    const autoFixable = [
-      'rate-limit-missing',
-      'input-validation-missing',
-      'sanitization-missing',
-      'expired-token',
-      'weak-crypto',
-    ];
-    return autoFixable.includes(findingType);
-  }
-
-  private async applySecurityFix(fixType: string): Promise<void> {
-    // Apply specific security fixes based on type
-    switch (fixType) {
-      case 'rate-limit-missing':
-        // Rate limiting would be applied via middleware - log for now
-        console.log('[SecurityFix] Rate limiting fix noted - requires middleware update');
-        break;
-      case 'input-validation-missing':
-        console.log(
-          '[SecurityFix] Input validation fix noted - already implemented in validation.ts'
-        );
-        break;
-      case 'sanitization-missing':
-        console.log('[SecurityFix] Sanitization fix noted - already implemented in sanitization');
-        break;
-      default:
-        console.log(`[SecurityFix] Unknown fix type: ${fixType}`);
-    }
-  }
-
-  private async executeTelegramBriefingTask(task: ScheduledTask): Promise<TaskExecutionResult> {
-    try {
-      const { sendBriefingNotification, getNotificationConfig, isTelegramEnabled } =
-        await import('@/lib/integrations/telegram-notify');
-      const { intelligenceService } = await import('@/lib/intelligence/report-generator');
-      const { sqlDatabase } = await import('@/lib/database/sqlite');
-
-      // Check if Telegram is enabled
-      if (!(await isTelegramEnabled())) {
-        return {
-          success: false,
-          error: 'Telegram not configured or disabled',
-        };
-      }
-
-      const notifConfig = await getNotificationConfig();
-      if (!notifConfig.enabled || !notifConfig.dailyBriefing) {
-        return {
-          success: true,
-          result: 'Telegram briefing notifications disabled',
-        };
-      }
-
-      // Get intelligence report
-      let intelligenceReport;
-      try {
-        intelligenceReport = await intelligenceService.generateReport();
-      } catch (e) {
-        intelligenceReport = intelligenceService.getLastReport();
-      }
-
-      // Get recent task results
-      const recentResults = sqlDatabase.getAllRecentTaskResults(5);
-      const successfulResults = recentResults.filter(r => r.success);
-
-      // Get upcoming events
-      const now = Date.now();
-      const future = now + 7 * 24 * 60 * 60 * 1000;
-      const events = sqlDatabase.getEvents(now, future);
-
-      // Prepare briefing data
-      const briefing = {
-        topNews: (intelligenceReport?.newsSummary?.spaceDomainAwareness || [])
-          .slice(0, 3)
-          .map((article: any) => ({
-            title: article.title,
-            summary: article.summary?.slice(0, 100) || '',
-            url: article.url,
-          })),
-        taskReports: {
-          completed: successfulResults.length,
-          recentReports: recentResults.slice(0, 5).map(r => ({
-            taskName: r.task_name || r.task_id,
-            success: !!r.success,
-          })),
-        },
-        upcomingEvents: (events || []).slice(0, 3).map((e: any) => ({
-          title: e.title,
-          date: new Date(e.startDate).toLocaleDateString(),
-        })),
-      };
-
-      // Send notification
-      const sent = await sendBriefingNotification(briefing);
-
-      return {
-        success: sent,
-        result: sent ? 'Daily briefing sent to Telegram' : 'Failed to send briefing to Telegram',
-        data: {
-          newsCount: briefing.topNews.length,
-          taskCount: briefing.taskReports.completed,
-          eventCount: briefing.upcomingEvents.length,
-        },
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to send Telegram briefing',
-      };
-    }
-  }
-
-  private async executeCleanupTask(task: ScheduledTask): Promise<TaskExecutionResult> {
-    // Skip file system operations in Edge Runtime - only run in Node.js
-    if (typeof process === 'undefined' || typeof process.cwd !== 'function') {
-      console.log('[TaskScheduler] Cleanup skipped - not in Node.js runtime');
-      return {
-        success: true,
-        result: 'Cleanup skipped - file system operations require Node.js runtime',
-      };
-    }
-
-    try {
-      const results: string[] = [];
-
-      // Note: File cleanup operations have been disabled to avoid Edge Runtime errors
-      // File system cleanup (logs, reports) should be done manually or via Node.js-only scripts
-
-      // 1. Vacuum SQLite database
-      try {
-        sqlDatabase.vacuum();
-        results.push('Database optimized (VACUUM)');
-      } catch (e) {
-        // Database vacuum is optional
-      }
-
-      // 4. Clean old task results (>90 days)
-      try {
-        const ninetyDaysAgo = Date.now() - 90 * 24 * 60 * 60 * 1000;
-        const oldTasks = sqlDatabase
-          .getScheduledTasks(false)
-          .filter(t => t.lastRun && t.lastRun < ninetyDaysAgo && !t.permanent);
-
-        let tasksCleaned = 0;
-        for (const task of oldTasks) {
-          if (task.runCount === 0) {
-            sqlDatabase.deleteTask(task.id);
-            tasksCleaned++;
-          }
-        }
-
-        if (tasksCleaned > 0 && process.env.NODE_ENV === 'development') {
-          results.push(`Removed ${tasksCleaned} old unused tasks`);
-        }
-      } catch (e) {
-        // Task cleanup is optional - fail silently
-      }
-
-      return {
-        success: true,
-        result: results.length > 0 ? results.join(', ') : 'No cleanup needed',
-        data: { actions: results },
-      };
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Cleanup failed',
-      };
     }
   }
 
