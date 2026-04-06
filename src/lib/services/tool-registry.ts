@@ -1,4 +1,11 @@
 import type { Tool, ToolResult, ToolRegistryStats } from '@/types/tools';
+import {
+  vectorSearchTool,
+  sqlQueryTool,
+  calculateTool,
+  webSearchTool,
+  webFetchTool,
+} from './tools';
 
 interface ToolCallRecord {
   tool: string;
@@ -26,29 +33,12 @@ class ToolRegistry {
   }
 
   private registerBuiltInTools(): void {
-    this.registerTool({
-      name: 'vector_search',
-      description: 'Search the vector knowledge base for relevant information',
-      parameters: {
-        query: { type: 'string', description: 'Search query', required: true },
-        limit: { type: 'number', description: 'Max results (default 5)', required: false },
-        threshold: {
-          type: 'number',
-          description: 'Similarity threshold 0-1 (default 0.3)',
-          required: false,
-        },
-      },
-      execute: async params => {
-        const { VectorStore } = await import('@/lib/storage/vector');
-        VectorStore.initialize();
-        const results = VectorStore.search(
-          params.query,
-          params.limit || 5,
-          params.threshold || 0.3
-        );
-        return { success: true, data: results };
-      },
-    });
+    // Register extracted tools
+    this.registerTool(vectorSearchTool);
+    this.registerTool(sqlQueryTool);
+    this.registerTool(calculateTool);
+    this.registerTool(webSearchTool);
+    this.registerTool(webFetchTool);
 
     this.registerTool({
       name: 'sql_query',
