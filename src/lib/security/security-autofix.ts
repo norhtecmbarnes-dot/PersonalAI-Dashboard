@@ -113,28 +113,30 @@ Return ONLY valid JSON (no markdown):
   "confidence": "high|medium|low"
 }`;
 
-      // Use Cloud model via chat API for complex security fixes
-      const baseUrl =
-        typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
-      const response = await fetch(`${baseUrl}/api/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini', // Use Cloud model for code generation
-          message: prompt,
-        }),
+      // Use Cloud model via model router for complex security fixes
+      const { chatCompletion } = await import('@/lib/models/sdk.server');
+      const { router } = await import('@/lib/models/model-router');
+
+      // Get cloud model for code generation (uses user's configured cloud provider)
+      const model = router.getModelId('chat') || 'qwen3.5:9b';
+
+      const llmResponse = await chatCompletion({
+        model: model,
+        messages: [
+          {
+            role: 'system',
+            content:
+              'You are a security expert that fixes code vulnerabilities. Return ONLY valid JSON.',
+          },
+          { role: 'user', content: prompt },
+        ],
       });
 
-      if (!response.ok) {
-        throw new Error(`Chat API returned ${response.status}`);
-      }
-
-      const data = await response.json();
-      const content = data.message?.content || data.response || '';
+      const content = llmResponse.message?.content || String(llmResponse.message) || '';
 
       // Parse response
-      const result = this.parseLLMResponse(content);
-      return result;
+      const fixResult = this.parseLLMResponse(content);
+      return fixResult;
     } catch (error) {
       console.error('[SecurityAutofix] LLM fix failed:', error);
       return {
