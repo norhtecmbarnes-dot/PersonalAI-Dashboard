@@ -20,7 +20,11 @@ async function handleMessage(message: any) {
   const text = message.text?.trim() || '';
   const user = message.from;
 
-  console.log('[Telegram Polling] Received message:', { chatId, text: text.substring(0, 50), user: user?.username || user?.id });
+  console.log('[Telegram Polling] Received message:', {
+    chatId,
+    text: text.substring(0, 50),
+    user: user?.username || user?.id,
+  });
 
   if (!user) {
     console.log('[Telegram Polling] No user info, skipping');
@@ -29,8 +33,11 @@ async function handleMessage(message: any) {
 
   try {
     const prefs = await loadTelegramConfig();
-    console.log('[Telegram Polling] Config loaded:', { hasConfig: !!prefs, enabled: prefs?.enabled });
-    
+    console.log('[Telegram Polling] Config loaded:', {
+      hasConfig: !!prefs,
+      enabled: prefs?.enabled,
+    });
+
     if (!prefs || !prefs.enabled) {
       console.log('[Telegram Polling] Bot not enabled, skipping');
       return;
@@ -97,18 +104,23 @@ You can also just send me a message and I'll respond using AI!`;
     if (text.startsWith('/search ')) {
       console.log('[Telegram Polling] Handling /search command');
       const query = text.replace('/search ', '').trim();
-      
+
       try {
         const results = await performWebSearch(query);
-        
+
         if (results.length === 0) {
-          await telegramService.sendMessage(chatId, 'No search results found. Try a different query.', 'Markdown');
+          await telegramService.sendMessage(
+            chatId,
+            'No search results found. Try a different query.',
+            'Markdown'
+          );
           return;
         }
-        
-        const formattedResults = results.slice(0, 5).map((r, i) => 
-          `${i + 1}. *${r.title}*\n   ${r.url}\n   ${r.excerpt?.slice(0, 100)}...`
-        ).join('\n\n');
+
+        const formattedResults = results
+          .slice(0, 5)
+          .map((r, i) => `${i + 1}. *${r.title}*\n   ${r.url}\n   ${r.excerpt?.slice(0, 100)}...`)
+          .join('\n\n');
 
         const response = `*Search Results for:* "${query}"\n\n${formattedResults}`;
         await telegramService.sendMessage(chatId, response, 'Markdown');
@@ -116,7 +128,11 @@ You can also just send me a message and I'll respond using AI!`;
         console.error('[Telegram Polling] Search error:', error);
         // If search fails (no API key), just do a simple chat response
         const aiResponse = await getAIResponse(`Search for: ${query}`);
-        await telegramService.sendMessage(chatId, `I couldn't search the web (no search API configured), but here's what I know:\n\n${aiResponse}`, 'Markdown');
+        await telegramService.sendMessage(
+          chatId,
+          `I couldn't search the web (no search API configured), but here's what I know:\n\n${aiResponse}`,
+          'Markdown'
+        );
       }
       return;
     }
@@ -124,15 +140,17 @@ You can also just send me a message and I'll respond using AI!`;
     console.log('[Telegram Polling] Getting AI response for:', text.substring(0, 50));
     const aiResponse = await getAIResponse(text);
     console.log('[Telegram Polling] AI response received:', aiResponse.substring(0, 100));
-    
+
     console.log('[Telegram Polling] Sending response to Telegram');
     const sent = await telegramService.sendMessage(chatId, aiResponse, 'Markdown');
     console.log('[Telegram Polling] Message sent:', sent);
-    
   } catch (error) {
     console.error('[Telegram Polling] Error in handleMessage:', error);
     try {
-      await telegramService.sendMessage(chatId, 'Sorry, I encountered an error processing your message. Please try again.');
+      await telegramService.sendMessage(
+        chatId,
+        'Sorry, I encountered an error processing your message. Please try again.'
+      );
     } catch (sendError) {
       console.error('[Telegram Polling] Failed to send error message:', sendError);
     }
@@ -141,55 +159,76 @@ You can also just send me a message and I'll respond using AI!`;
 
 async function getAIResponse(message: string): Promise<string> {
   console.log('[Telegram Polling] getAIResponse called with:', message.substring(0, 50));
-  
+
   try {
     // Get user's default model preference - use whatever they have configured
     console.log('[Telegram Polling] Initializing database...');
     sqlDatabase.initialize();
-    
+
     console.log('[Telegram Polling] Getting model preferences...');
     const modelPrefs = sqlDatabase.getModelPreferences();
     console.log('[Telegram Polling] Model preferences:', modelPrefs);
-    
+
     // Use the user's configured default model, or let the system choose
     let model = modelPrefs.defaultModel;
     console.log('[Telegram Polling] Default model from prefs:', model);
-    
+
     // If no default model is set, let the SDK choose the best available
     if (!model) {
       console.log('[Telegram Polling] No default model, checking Ollama...');
       const ollamaModels = await getOllamaModels();
       console.log('[Telegram Polling] Available Ollama models:', ollamaModels.length);
-      
+
       if (ollamaModels.length > 0) {
         // Prefer qwen3.5:9b if available, otherwise use first available
-        const preferredModel = ollamaModels.find(m => m.name.includes('qwen3.5:9b')) || ollamaModels[0];
-        model = preferredModel.name.startsWith('ollama/') ? preferredModel.name : `ollama/${preferredModel.name}`;
+        const preferredModel =
+          ollamaModels.find(m => m.name.includes('qwen3.5:9b')) || ollamaModels[0];
+        model = preferredModel.name.startsWith('ollama/')
+          ? preferredModel.name
+          : `ollama/${preferredModel.name}`;
         console.log('[Telegram Polling] Selected model:', model);
       } else {
         console.log('[Telegram Polling] No Ollama models available');
         return 'No AI models available. Please check that Ollama is running and has models installed.';
       }
     }
-    
+
     // Final fallback
     if (!model) {
       model = 'ollama/qwen3.5:9b';
       console.log('[Telegram Polling] Using fallback model:', model);
     }
-    
+
+    const systemPrompt = `You are the AI assistant for the PersonalAI Dashboard - a self-improving AI operating system.
+
+Your capabilities:
+- You run automated tasks: intelligence reports, security scans, research, and self-reflection
+- You learn from conversations and improve over time
+- You can search the web, manage documents, calendar events, and notes
+- You send notifications via Telegram about important events
+
+When users ask about your capabilities:
+- Mention you're part of a dashboard that runs automated tasks
+- You can help with research, analysis, writing, coding, and organization
+- The system self-improves by analyzing performance and learning from interactions
+
+Be helpful, concise, and friendly. Use markdown formatting when appropriate.`;
+
     // The SDK will handle routing to the appropriate provider (Ollama, GLM, OpenRouter, etc.)
     console.log('[Telegram Polling] Calling chatCompletion with model:', model);
     const result = await chatCompletion({
       model: model,
-      messages: [{ role: 'user', content: message }],
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: message },
+      ],
     });
 
     console.log('[Telegram Polling] chatCompletion result:', result ? 'success' : 'null');
-    
+
     let content = result.message?.content || 'Sorry, I could not generate a response.';
     console.log('[Telegram Polling] Response content:', content.substring(0, 100));
-    
+
     if (typeof content === 'object') {
       content = JSON.stringify(content);
     }
@@ -248,11 +287,11 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   const prefs = await loadTelegramConfig();
-  
+
   if (!prefs?.botToken) {
-    return NextResponse.json({ 
-      polling: false, 
-      error: 'Bot not configured' 
+    return NextResponse.json({
+      polling: false,
+      error: 'Bot not configured',
     });
   }
 
