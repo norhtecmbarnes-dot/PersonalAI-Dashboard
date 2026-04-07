@@ -46,3 +46,8 @@ export { deletePromptTool } from './delete-prompt-tool';
 
 // Note extraction
 export { extractFromNoteTool } from './extract-from-note-tool';
+
+// Canvas & Visualization
+export { canvasCreateTool } from './canvas-create-tool';
+export { mermaidDiagramTool } from './mermaid-diagram-tool';
+export { pythonDiagramTool } from './python-diagram-tool';
