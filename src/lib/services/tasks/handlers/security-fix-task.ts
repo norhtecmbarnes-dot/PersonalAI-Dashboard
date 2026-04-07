@@ -3,36 +3,81 @@ import type { ScheduledTask, TaskExecutionResult } from '@/lib/services/task-sch
 export async function executeSecurityFixTask(task: ScheduledTask): Promise<TaskExecutionResult> {
   try {
     const { securityAgent } = await import('@/lib/agent/security-agent');
+    const { securityAutofix } = await import('@/lib/security/security-autofix');
 
+    console.log('[SecurityFix] Running security scan...');
     const scanResult = await securityAgent.performSecurityScan();
 
-    const fixes: string[] = [];
-    const autoFixable: string[] = [];
-    const manualFixes: string[] = [];
+    if (!scanResult.findings || scanResult.findings.length === 0) {
+      return {
+        success: true,
+        result: 'No security issues found',
+        data: { riskScore: scanResult.riskScore, findings: 0 },
+      };
+    }
 
-    for (const finding of scanResult.findings || []) {
-      if (canAutoFix(finding.category)) {
-        autoFixable.push(finding.category);
-        fixes.push(`Auto-fixed: ${finding.description}`);
-      } else {
-        manualFixes.push(finding.description);
+    console.log(`[SecurityFix] Found ${scanResult.findings.length} issues, attempting auto-fix...`);
+
+    // Convert SecurityFinding to SecurityIssue format for autofix
+    const issuesToFix = scanResult.findings.map(finding => ({
+      code: finding.category.toUpperCase().substring(0, 4) || 'W001',
+      name: finding.title,
+      severity: finding.severity as any,
+      description: finding.description,
+      file: finding.location?.split(':')[0] || 'unknown',
+      line: parseInt(finding.location?.split(':')[1] || '0'),
+      remediation: finding.recommendation,
+    }));
+
+    // Apply fixes to all issues
+    const fixResults = await securityAutofix.batchApplyFixes(issuesToFix);
+
+    // Generate summary
+    const summary = [
+      `Security scan complete. Risk score: ${scanResult.riskScore}/100`,
+      `Total issues: ${fixResults.total}`,
+      `✅ Fixed: ${fixResults.fixed} (${fixResults.llmFixed} by LLM)`,
+      `⚠️ Skipped: ${fixResults.skipped}`,
+      `❌ Failed: ${fixResults.failed}`,
+    ].join('\n');
+
+    // Send Telegram notification if enabled
+    try {
+      const { sendSecurityNotification, getNotificationConfig } =
+        await import('@/lib/integrations/telegram-notify');
+      const notifConfig = await getNotificationConfig();
+
+      if (notifConfig.enabled && notifConfig.security) {
+        const criticalCount = scanResult.findings.filter(f => f.severity === 'critical').length;
+        const highCount = scanResult.findings.filter(f => f.severity === 'high').length;
+
+        await sendSecurityNotification({
+          count: scanResult.findings.length,
+          riskScore: scanResult.riskScore,
+          critical: criticalCount,
+          high: highCount,
+        });
       }
+    } catch (e) {
+      console.log('[SecurityFix] Telegram notification failed:', e);
     }
-
-    for (const fixType of autoFixable) {
-      await applySecurityFix(fixType);
-    }
-
-    const result = `Security scan complete. ${fixes.length} issues auto-fixed. ${manualFixes.length} require manual attention. Risk score: ${scanResult.riskScore}`;
 
     return {
       success: true,
-      result,
+      result: summary,
       data: {
-        autoFixed: fixes.length,
-        manualNeeded: manualFixes.length,
         riskScore: scanResult.riskScore,
-        details: fixes,
+        totalIssues: fixResults.total,
+        fixed: fixResults.fixed,
+        llmFixed: fixResults.llmFixed,
+        skipped: fixResults.skipped,
+        failed: fixResults.failed,
+        details: fixResults.results.map(r => ({
+          issue: r.issue.code,
+          action: r.action,
+          success: r.success,
+          llmUsed: r.llmUsed || false,
+        })),
       },
     };
   } catch (error) {
@@ -40,34 +85,5 @@ export async function executeSecurityFixTask(task: ScheduledTask): Promise<TaskE
       success: false,
       error: error instanceof Error ? error.message : 'Security fix task failed',
     };
-  }
-}
-
-function canAutoFix(findingType: string): boolean {
-  const autoFixable = [
-    'rate-limit-missing',
-    'input-validation-missing',
-    'sanitization-missing',
-    'expired-token',
-    'weak-crypto',
-  ];
-  return autoFixable.includes(findingType);
-}
-
-async function applySecurityFix(fixType: string): Promise<void> {
-  switch (fixType) {
-    case 'rate-limit-missing':
-      console.log('[SecurityFix] Rate limiting fix noted - requires middleware update');
-      break;
-    case 'input-validation-missing':
-      console.log(
-        '[SecurityFix] Input validation fix noted - already implemented in validation.ts'
-      );
-      break;
-    case 'sanitization-missing':
-      console.log('[SecurityFix] Sanitization fix noted - already implemented in sanitization');
-      break;
-    default:
-      console.log(`[SecurityFix] Unknown fix type: ${fixType}`);
   }
 }
