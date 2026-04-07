@@ -113,29 +113,26 @@ Return ONLY valid JSON (no markdown):
   "confidence": "high|medium|low"
 }`;
 
-      // Use Cloud model via model router for complex security fixes
-      const { chatCompletion } = await import('@/lib/models/sdk.server');
-      const { router } = await import('@/lib/models/model-router');
+      // Use Model Message Bus for intelligent cloud/local orchestration
+      const { getModelBus } = await import('@/lib/services/model-bus');
+      const messageBus = getModelBus();
 
-      // Get cloud model for code generation (uses user's configured cloud provider)
-      const model = router.getModelId('chat') || 'qwen3.5:9b';
+      // Set GLM as preferred cloud model for security fixes
+      messageBus.setPreferredCloudModel('glm-4-flash');
 
-      const llmResponse = await chatCompletion({
-        model: model,
-        messages: [
-          {
-            role: 'system',
-            content:
-              'You are a security expert that fixes code vulnerabilities. Return ONLY valid JSON.',
-          },
-          { role: 'user', content: prompt },
-        ],
+      // Send security fix request through message bus
+      // It will intelligently route to cloud (GLM) or local (Ollama) based on complexity
+      const delegationResult = await messageBus.process({
+        originalQuery: prompt,
+        context: `Security Issue: ${request.issue.code} - ${request.issue.name}\nSeverity: ${request.issue.severity}\nFile: ${request.filePath}`,
+        sourceModel: 'security-autofix',
+        preferredCloudModel: 'glm-4-flash',
       });
 
-      const content = llmResponse.message?.content || String(llmResponse.message) || '';
+      const llmResponse = delegationResult.finalResponse;
 
       // Parse response
-      const fixResult = this.parseLLMResponse(content);
+      const fixResult = this.parseLLMResponse(llmResponse);
       return fixResult;
     } catch (error) {
       console.error('[SecurityAutofix] LLM fix failed:', error);
@@ -147,10 +144,10 @@ Return ONLY valid JSON (no markdown):
     }
   }
 
-  private parseLLMResponse(response: any): SecurityFixResponse {
+  private parseLLMResponse(response: string): SecurityFixResponse {
     try {
       // Extract JSON from response
-      const content = typeof response === 'string' ? response : response.content || '';
+      const content = response;
       const jsonMatch = content.match(/\{[\s\S]*\}/);
 
       if (jsonMatch) {
