@@ -235,6 +235,38 @@ export async function POST(request: Request) {
         });
       }
 
+      case 'cleanup-duplicates': {
+        // Remove duplicate tasks by taskType, keeping only the oldest of each type
+        const tasks = sqlDatabase.getScheduledTasks();
+        const seen = new Map<string, any>();
+        let removedCount = 0;
+
+        // Sort by createdAt to keep oldest (original) tasks
+        const sortedTasks = [...tasks].sort((a, b) => a.createdAt - b.createdAt);
+
+        for (const task of sortedTasks) {
+          const key = task.taskType;
+          if (seen.has(key)) {
+            // Duplicate found - delete it
+            try {
+              sqlDatabase.deleteScheduledTask(task.id);
+              removedCount++;
+            } catch (e) {
+              console.error('[TaskCleanup] Failed to delete duplicate:', task.id);
+            }
+          } else {
+            seen.set(key, task);
+          }
+        }
+
+        return NextResponse.json({
+          success: true,
+          message: `Removed ${removedCount} duplicate tasks`,
+          removed: removedCount,
+          remaining: seen.size,
+        });
+      }
+
       case 'aging-review': {
         // Get tasks that need review before expiration
         const reviewData = taskScheduler.runTaskAgingCheck();
