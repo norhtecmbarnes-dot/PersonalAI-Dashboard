@@ -51,6 +51,7 @@ export class SystemManager {
         { name: 'Security Scanner', status: 'stopped', lastCheck: Date.now() },
         { name: 'Intelligence Service', status: 'stopped', lastCheck: Date.now() },
         { name: 'Memory Service', status: 'stopped', lastCheck: Date.now() },
+        { name: 'Telegram Bot', status: 'stopped', lastCheck: Date.now() },
       ],
     };
   }
@@ -157,6 +158,40 @@ export class SystemManager {
         this.updateServiceStatus('Intelligence Service', 'warning', 'Not active');
       }
 
+      // 6. Start Telegram Bot Polling
+      this.updateServiceStatus('Telegram Bot', 'starting');
+      try {
+        const { telegramService } = await import('@/lib/integrations/telegram');
+        const { loadTelegramConfig } = await import('@/lib/storage/telegram-config');
+        const config = await loadTelegramConfig();
+
+        if (config && config.enabled && config.botToken) {
+          telegramService.setConfig({
+            botToken: config.botToken,
+            enabled: true,
+            webhookUrl: config.webhookUrl,
+            allowedUsers: config.allowedUsers || [],
+            chatWithAI: config.chatWithAI || true,
+          });
+          telegramService.setOnMessage(async message => {
+            console.log('[Telegram] Message received:', message.text);
+          });
+          telegramService.startPolling(3000);
+          this.updateServiceStatus('Telegram Bot', 'running', 'Polling active');
+          console.log('[System] Telegram bot polling started');
+        } else {
+          this.updateServiceStatus('Telegram Bot', 'warning', 'Not configured');
+          console.log('[System] Telegram bot not configured, skipping');
+        }
+      } catch (error) {
+        this.updateServiceStatus(
+          'Telegram Bot',
+          'error',
+          error instanceof Error ? error.message : 'Unknown error'
+        );
+        console.error('[System] Telegram bot failed:', error);
+      }
+
       // Run registered services
       for (const [name, initFn] of Array.from(this.services.entries())) {
         const serviceStatus: ServiceStatus = {
@@ -212,6 +247,17 @@ export class SystemManager {
       console.log('[System] Task scheduler stopped');
     } catch (error) {
       this.updateServiceStatus('Task Scheduler', 'error', 'Failed to stop');
+    }
+
+    // Stop Telegram Bot Polling
+    this.updateServiceStatus('Telegram Bot', 'stopping');
+    try {
+      const { telegramService } = await import('@/lib/integrations/telegram');
+      telegramService.stopPolling();
+      this.updateServiceStatus('Telegram Bot', 'stopped', 'Shutdown');
+      console.log('[System] Telegram bot polling stopped');
+    } catch (error) {
+      this.updateServiceStatus('Telegram Bot', 'stopped', 'Stopped');
     }
 
     // Close Database
