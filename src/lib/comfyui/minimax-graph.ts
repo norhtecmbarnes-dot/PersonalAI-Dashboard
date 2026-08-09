@@ -82,27 +82,28 @@ export function buildMiniMaxH3Graph(shot: MiniMaxH3Shot): Record<string, unknown
   _nodeSeq = 1;
   const graph: Record<string, unknown> = {};
 
+  // Loaders — standard ComfyUI nodes (MiniMax H3 accepts standard MODEL/CLIP/VAE)
   const clipNode = nid('clip');
   graph[clipNode] = {
-    class_type: 'CLIPLoaderMiniMax',
+    class_type: 'CLIPLoader',
     inputs: { clip_name: shot.clip },
   };
 
   const vaeNode = nid('vae');
   graph[vaeNode] = {
-    class_type: 'VAELoaderMiniMax',
+    class_type: 'VAELoader',
     inputs: { vae_name: shot.vae },
   };
 
   const audioVaeNode = nid('audiovae');
   graph[audioVaeNode] = {
-    class_type: 'AudioVAELoaderMiniMax',
+    class_type: 'VAELoader',
     inputs: { vae_name: shot.audioVae },
   };
 
   const modelNode = nid('model');
   graph[modelNode] = {
-    class_type: 'CheckpointLoaderMiniMax',
+    class_type: 'CheckpointLoaderSimple',
     inputs: { ckpt_name: shot.model },
   };
 
@@ -125,6 +126,7 @@ export function buildMiniMaxH3Graph(shot: MiniMaxH3Shot): Record<string, unknown
     clipOut = [loraNode, 1];
   }
 
+  // Positive conditioning (MiniMax H3 ImageToVideo)
   const condNode = nid('cond');
   const condInputs: Record<string, unknown> = {
     clip: [clipOut[0], clipOut[1]],
@@ -155,6 +157,7 @@ export function buildMiniMaxH3Graph(shot: MiniMaxH3Shot): Record<string, unknown
     inputs: condInputs,
   };
 
+  // Sigma shift patch
   const sigmaNode = nid('sigma');
   graph[sigmaNode] = {
     class_type: 'MiniMaxH3SigmaShift',
@@ -166,6 +169,7 @@ export function buildMiniMaxH3Graph(shot: MiniMaxH3Shot): Record<string, unknown
   };
   modelOut = [sigmaNode, 0];
 
+  // Negative conditioning
   const negNode = nid('negcond');
   graph[negNode] = {
     class_type: 'MiniMaxH3ImageToVideo',
@@ -179,7 +183,7 @@ export function buildMiniMaxH3Graph(shot: MiniMaxH3Shot): Record<string, unknown
     },
   };
 
-  const latentNode = condNode;
+  // Sample
   const samplerNode = nid('sampler');
   graph[samplerNode] = {
     class_type: 'KSampler',
@@ -187,7 +191,7 @@ export function buildMiniMaxH3Graph(shot: MiniMaxH3Shot): Record<string, unknown
       model: [modelOut[0], modelOut[1]],
       positive: [condNode, 0],
       negative: [negNode, 0],
-      latent_image: [latentNode, 1],
+      latent_image: [condNode, 1],
       seed: shot.seed,
       steps: shot.steps,
       cfg: shot.cfg,
@@ -197,8 +201,9 @@ export function buildMiniMaxH3Graph(shot: MiniMaxH3Shot): Record<string, unknown
     },
   };
 
-  const decodeNode = nid('decode');
-  graph[decodeNode] = {
+  // Decode video frames from the MiniMax H3 latent (NestedTensor → video part)
+  const decodeVideoNode = nid('decodevideo');
+  graph[decodeVideoNode] = {
     class_type: 'VAEDecode',
     inputs: {
       samples: [samplerNode, 0],
@@ -206,14 +211,33 @@ export function buildMiniMaxH3Graph(shot: MiniMaxH3Shot): Record<string, unknown
     },
   };
 
+  // Decode audio from the MiniMax H3 latent (NestedTensor → audio part)
+  const decodeAudioNode = nid('decodeaudio');
+  graph[decodeAudioNode] = {
+    class_type: 'VAEDecodeAudio',
+    inputs: {
+      samples: [samplerNode, 0],
+      vae: [audioVaeNode, 0],
+    },
+  };
+
+  // Combine frames + audio into a video
+  const createVideoNode = nid('createvideo');
+  graph[createVideoNode] = {
+    class_type: 'CreateVideo',
+    inputs: {
+      images: [decodeVideoNode, 0],
+      fps: 24.0,
+      audio: [decodeAudioNode, 0],
+    },
+  };
+
+  // Save the video
   const saveVideoNode = nid('savevideo');
   graph[saveVideoNode] = {
-    class_type: 'SaveMiniMaxH3Video',
+    class_type: 'SaveVideo',
     inputs: {
-      images: [decodeNode, 0],
-      audio: [samplerNode, 1],
-      audio_vae: [audioVaeNode, 0],
-      fps: 24,
+      video: [createVideoNode, 0],
       filename_prefix: 'minimax_h3_director',
     },
   };
@@ -223,7 +247,7 @@ export function buildMiniMaxH3Graph(shot: MiniMaxH3Shot): Record<string, unknown
   graph[lastFrameNode] = {
     class_type: 'ImageFromBatch',
     inputs: {
-      image: [decodeNode, 0],
+      image: [decodeVideoNode, 0],
       batch_index: -1,
       length: 1,
     },
@@ -257,10 +281,10 @@ export function defaultShot(): MiniMaxH3Shot {
     seed: Math.floor(Math.random() * 2_147_483_647),
     sampler: 'euler',
     scheduler: 'normal',
-    model: 'minimax_h3_v1.safetensors',
-    clip: 'minimax_h3_text_encoder.safetensors',
-    vae: 'minimax_h3_vae.safetensors',
-    audioVae: 'minimax_h3_audio_vae.safetensors',
+    model: 'minimax_h3_fl2va_pruned_fp8_scaled.safetensors',
+    clip: 'qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors',
+    vae: 'minimax_h3_video_vae_fp16.safetensors',
+    audioVae: 'minimax_h3_audio_vae_fp32.safetensors',
     loraName: '',
     loraStrengthModel: 1.0,
     loraStrengthClip: 1.0,
