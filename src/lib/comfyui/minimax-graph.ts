@@ -240,7 +240,7 @@ export function buildMiniMaxH3Graph(shot: MiniMaxH3Shot): Record<string, unknown
       video: [createVideoNode, 0],
       filename_prefix: 'minimax_h3_director',
       format: 'auto',
-      codec: { codec: 'auto' },
+      codec: 'auto',
     },
   };
 
