@@ -11,6 +11,21 @@ A complete AI Operating System that runs on your laptop. Includes Research Assis
 **[Building Your AI Dashboard: The Complete Guide](book/Building_Your_AI_Dashboard.pdf)**  
 *From Zero to Enterprise-Grade AI — On Your Own Personal Computer*
 
+## 🎬 MiniMax H3 Director Dashboard
+
+A chat-driven AI video director. Talk to the Auteur in plain English, get MiniMax H3 video with synchronized audio. Includes 4-step prototype mode, shot chaining for long-form video, and an avatar studio (local + cloud).
+
+**[Director Dashboard For Dummies — Full Guide](docs/DIRECTOR-FOR-DUMMIES.md)**
+
+Quick start: double-click `start-director.bat` → open `http://localhost:3000/minimax-h3`
+
+**Key Features:**
+- 🎭 **The Auteur** — AI director persona writes scripts in "Minimax Generation Mode" format
+- ⚡ **Prototype / Final** — 4-step turbo LoRA for fast iteration, 30-step for final quality
+- 🔗 **Shot chaining** — last frame feeds next shot for seamless long-form video
+- 🧑‍💼 **Avatar Studio** — local (Qwen-Image + VocalLab + Wan InfiniteTalk) or cloud (HeyGen)
+- 🚀 **One-click startup** — `start-director.bat` launches Ollama + ComfyUI + dashboard together
+
 ## ✨ Live Screenshots
 
 **AI Research Assistant**  
