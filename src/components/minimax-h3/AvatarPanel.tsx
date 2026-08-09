@@ -12,6 +12,7 @@ import {
   buildLocalAvatarGraph,
 } from '@/lib/comfyui/local-avatar-graph';
 import type { UploadedImage } from '@/lib/comfyui/client';
+import { VoicePicker } from './VoicePicker';
 
 interface AvatarJob {
   id: string;
@@ -31,8 +32,6 @@ interface AvatarJob {
 interface Props {
   comfyOnline: boolean;
 }
-
-const VOICES = ['Ashley', 'Jessica', 'Eric', 'Brian', 'Daniel', 'Lily', 'Adam', 'Bill', 'Sarah', 'Charlie'];
 
 export function AvatarPanel({ comfyOnline }: Props) {
   const [shot, setShot] = useState<AvatarShot>(defaultAvatarShot);
@@ -345,14 +344,12 @@ export function AvatarPanel({ comfyOnline }: Props) {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs text-slate-400 mb-1">Voice (VocalLab)</label>
-                <select
+                <VoicePicker
                   value={localShot.voice}
-                  onChange={e => setLocalShot(s => ({ ...s, voice: e.target.value }))}
-                  className="w-full bg-slate-700 text-white rounded px-2 py-2 text-sm border border-slate-600"
-                >
-                  {VOICES.map(v => <option key={v} value={v}>{v}</option>)}
-                </select>
+                  provider="vocallab"
+                  onChange={(voiceId) => setLocalShot(s => ({ ...s, voice: voiceId }))}
+                  label="Voice (searchable)"
+                />
               </div>
               <div>
                 <label className="block text-xs text-slate-400 mb-1">Video length (frames)</label>
@@ -505,14 +502,12 @@ export function AvatarPanel({ comfyOnline }: Props) {
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs text-slate-400 mb-1">Voice (VocalLab)</label>
-            <select
+            <VoicePicker
               value={shot.voice}
-              onChange={e => setShot(s => ({ ...s, voice: e.target.value }))}
-              className="w-full bg-slate-700 text-white rounded px-2 py-2 text-sm border border-slate-600"
-            >
-              {VOICES.map(v => <option key={v} value={v}>{v}</option>)}
-            </select>
+              provider="vocallab"
+              onChange={(voiceId) => setShot(s => ({ ...s, voice: voiceId }))}
+              label="Voice (searchable)"
+            />
           </div>
           <div>
             <label className="block text-xs text-slate-400 mb-1">Resolution</label>

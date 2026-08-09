@@ -51,6 +51,10 @@ export default function SettingsPage() {
     required: true,
   });
 
+  // Custom API-key providers (user-defined provider name + key, stored in SQLite)
+  const [customProviders, setCustomProviders] = useState<string[]>([]);
+  const [newProviderName, setNewProviderName] = useState('');
+
   // BitNet state
   const [bitnetPath, setBitnetPath] = useState('');
   const [bitnetEnabled, setBitnetEnabled] = useState(false);
@@ -202,13 +206,21 @@ export default function SettingsPage() {
       // Load from settings API which stores in the settings table
       const response = await fetch('/api/settings');
       const data = await response.json();
+      const keyStatus: Record<string, string> = {};
+      const presetIds = new Set<string>();
+      const known: string[] = [];
       if (data.apiKeys) {
-        const keyStatus: Record<string, string> = {};
         for (const keyInfo of data.apiKeys) {
           keyStatus[keyInfo.provider] = keyInfo.hasKey ? 'configured' : '';
+          known.push(keyInfo.provider);
         }
-        setApiKeys(keyStatus);
       }
+      setApiKeys(keyStatus);
+
+      // Custom providers = stored keys that aren't in the preset list.
+      const presetSet = new Set(Object.keys(keys));
+      const custom = known.filter(p => !presetSet.has(p));
+      setCustomProviders(custom);
     } catch (error) {
       console.error('[REDACTED]');
     } finally {
@@ -529,6 +541,67 @@ export default function SettingsPage() {
                   info: 'Linguix is a grammar and style checker similar to Grammarly. Free tier includes 1,000,000 characters/month. Get your free API key at linguix.com/api',
                   link: 'https://linguix.com/api/',
                 },
+                // Creator Tools — video, voice, and media services
+                {
+                  id: 'vocallab',
+                  name: 'VocalLab',
+                  desc: 'TTS for avatar voices - get key at vocallab.ai',
+                  category: 'Creator',
+                },
+                {
+                  id: 'elevenlabs',
+                  name: 'ElevenLabs',
+                  desc: 'High-quality TTS & voice cloning - get key at elevenlabs.io',
+                  category: 'Creator',
+                },
+                {
+                  id: 'heygen',
+                  name: 'HeyGen',
+                  desc: 'Cloud avatar lip-sync - get key at heygen.com',
+                  category: 'Creator',
+                },
+                {
+                  id: 'runway',
+                  name: 'Runway',
+                  desc: 'Runway ML video generation - get key at runwayml.com/api',
+                  category: 'Creator',
+                },
+                {
+                  id: 'pika',
+                  name: 'Pika',
+                  desc: 'Pika Labs video generation - get key at pika.art',
+                  category: 'Creator',
+                },
+                {
+                  id: 'replicate',
+                  name: 'Replicate',
+                  desc: 'Run open-source models - get key at replicate.com',
+                  category: 'Creator',
+                },
+                {
+                  id: 'fal',
+                  name: 'fal.ai',
+                  desc: 'Fast inference for media models - get key at fal.ai/dashboard/keys',
+                  category: 'Creator',
+                },
+                {
+                  id: 'together',
+                  name: 'Together AI',
+                  desc: 'Open models API - get key at api.together.xyz',
+                  category: 'Creator',
+                },
+                {
+                  id: 'perplexity',
+                  name: 'Perplexity',
+                  desc: 'Search-augmented LLM - get key at perplexity.ai/settings/api',
+                  category: 'Creator',
+                },
+                {
+                  id: 'cohere',
+                  name: 'Cohere',
+                  desc: 'Command models & embeddings - get key at dashboard.cohere.com',
+                  category: 'Creator',
+                },
               ].map(provider => (
                 <div
                   key={provider.id}
@@ -596,6 +669,91 @@ export default function SettingsPage() {
                   </div>
                 </div>
               ))}
+            </div>
+
+            {/* Custom Providers — let creators add their own API services */}
+            <div className="mt-8 pt-6 border-t border-gray-700">
+              <h3 className="text-lg font-semibold text-white mb-2">Custom Providers</h3>
+              <p className="text-gray-400 text-sm mb-4">
+                Add an API key for any service not listed above. Use a lowercase identifier
+                (e.g., <code className="bg-gray-900 px-1 rounded">my_service</code>) — services in
+                the dashboard can read this key through the shared key resolver.
+              </p>
+
+              {customProviders.length > 0 && (
+                <div className="space-y-3 mb-4">
+                  {customProviders.map(provider => (
+                    <div
+                      key={provider}
+                      className="flex items-center justify-between bg-gray-900 rounded p-3"
+                    >
+                      <div>
+                        <span className="text-white font-medium">{provider}</span>
+                        {apiKeys[provider] === 'configured' && (
+                          <span className="ml-2 text-xs text-green-400 bg-green-900/30 px-2 py-1 rounded">
+                            ● Configured
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        <input
+                          type="password"
+                          value={keys[provider] || ''}
+                          onChange={e => setKeys({ ...keys, [provider]: e.target.value })}
+                          placeholder="Enter new key to update..."
+                          className="px-3 py-1.5 bg-gray-800 border border-gray-700 rounded text-white text-sm"
+                        />
+                        <button
+                          onClick={() => saveApiKey(provider)}
+                          disabled={saving || !keys[provider]}
+                          className="px-3 py-1.5 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-600 text-white rounded text-sm"
+                        >
+                          Save
+                        </button>
+                        <button
+                          onClick={() => clearApiKey(provider)}
+                          className="px-3 py-1.5 bg-red-600/50 hover:bg-red-600 text-red-200 hover:text-white rounded text-sm"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={newProviderName}
+                  onChange={e => setNewProviderName(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_'))}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' && newProviderName && !saving) {
+                      setKeys({ ...keys, [newProviderName]: '' });
+                      setCustomProviders([...customProviders, newProviderName]);
+                      setNewProviderName('');
+                    }
+                  }}
+                  placeholder="provider_name (lowercase, underscores ok)"
+                  className="flex-1 px-4 py-2 bg-gray-900 border border-gray-700 rounded text-white"
+                />
+                <button
+                  onClick={() => {
+                    if (!newProviderName) return;
+                    if (customProviders.includes(newProviderName) || keys[newProviderName] !== undefined) {
+                      setMessage({ type: 'error', text: 'That provider already exists' });
+                      return;
+                    }
+                    setKeys({ ...keys, [newProviderName]: '' });
+                    setCustomProviders([...customProviders, newProviderName]);
+                    setNewProviderName('');
+                  }}
+                  disabled={!newProviderName}
+                  className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white rounded"
+                >
+                  + Add Provider
+                </button>
+              </div>
             </div>
           </div>
         )}

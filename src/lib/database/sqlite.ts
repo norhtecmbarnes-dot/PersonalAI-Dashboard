@@ -8,6 +8,36 @@ import { embeddingService } from '../services/embedding-service';
 let db: SqlJsDatabase | null = null;
 let dbPath: string = '';
 
+// Providers we always surface in the Settings UI even before any key is saved,
+// so users see the integration options. User-added custom providers are merged
+// in at runtime by getAllApiKeys() from the api_keys category.
+export const KNOWN_API_KEY_PROVIDERS = [
+  'ollama',
+  'openrouter',
+  'tavily',
+  'brave',
+  'serpapi',
+  'glm',
+  'deepseek',
+  'sam',
+  'openai',
+  'anthropic',
+  'gemini',
+  'groq',
+  'mistral',
+  'linguix',
+  'vocallab',
+  'elevenlabs',
+  'heygen',
+  'runway',
+  'pika',
+  'replicate',
+  'fal',
+  'together',
+  'perplexity',
+  'cohere',
+];
+
 function initDb(): SqlJsDatabase {
   if (db) return db;
 
@@ -3772,23 +3802,14 @@ export class SQLDatabase {
   }
 
   getAllApiKeys(): { provider: string; hasKey: boolean }[] {
-    const providers = [
-      'ollama',
-      'openrouter',
-      'tavily',
-      'brave',
-      'serpapi',
-      'glm',
-      'deepseek',
-      'sam',
-      'openai',
-      'anthropic',
-      'gemini',
-      'groq',
-      'mistral',
-      'linguix',
-    ];
-    return providers.map(provider => ({
+    // Scan the api_keys category so user-added custom providers are included,
+    // not just the hardcoded presets known at build time.
+    const stored = this.getSettingsByCategory('api_keys');
+    const providers = new Set<string>(KNOWN_API_KEY_PROVIDERS);
+    for (const key of Object.keys(stored)) {
+      if (key.startsWith('api_key_')) providers.add(key.slice('api_key_'.length));
+    }
+    return Array.from(providers).map(provider => ({
       provider,
       hasKey: !!this.getApiKey(provider),
     }));

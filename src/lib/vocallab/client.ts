@@ -1,7 +1,9 @@
 const VOCALLAB_BASE = 'https://api.vocallab.ai/api';
 
+import { resolveApiKey } from '@/lib/services/api-key-resolver';
+
 export function getVocalLabKey(): string | undefined {
-  return process.env.VOCALLAB_API_KEY;
+  return resolveApiKey('vocallab', 'VOCALLAB_API_KEY');
 }
 
 export interface VocalLabTtsParams {

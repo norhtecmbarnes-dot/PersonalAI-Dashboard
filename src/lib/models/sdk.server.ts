@@ -36,7 +36,10 @@ export interface ListModelsResponse {
 
 export const OLLAMA_API_URL = process.env.OLLAMA_API_URL || 'http://localhost:11434/api';
 
-// API Keys - loaded from database or env
+// API Keys - loaded from database (with env-var fallback).
+// The Settings UI stores keys under api_key_<provider> in the settings table.
+// Env vars remain the production escape hatch; a DB key takes precedence so that
+// users can change providers without restarting the server.
 let CACHED_KEYS: {
   openrouter?: string;
   deepseek?: string;
@@ -57,18 +60,33 @@ async function loadApiKeys(): Promise<void> {
     return;
   }
 
-  // Only load from environment variables, not from database
-  // This prevents accidentally using API keys that were previously configured
-  // but are no longer desired
+  const fromDb = (provider: string): string | undefined => {
+    try {
+      // Indirect so webpack does not statically bundle better-sqlite3 into
+      // client builds that import this module via chatCompletion().
+      const mod = (eval('require') as (id: string) => unknown)('@/lib/database/sqlite') as {
+        sqlDatabase: { initialize: () => void; getApiKey: (p: string) => string | null };
+      };
+      mod.sqlDatabase.initialize();
+      const key = mod.sqlDatabase.getApiKey(provider);
+      return key && key.length > 0 ? key : undefined;
+    } catch {
+      return undefined;
+    }
+  };
+
+  const dbKey = (provider: string, envVar: string): string | undefined =>
+    fromDb(provider) || process.env[envVar];
+
   CACHED_KEYS = {
-    openrouter: process.env.OPENROUTER_API_KEY,
-    deepseek: process.env.DEEPSEEK_API_KEY,
-    glm: process.env.GLM_API_KEY,
-    openai: process.env.OPENAI_API_KEY,
-    anthropic: process.env.ANTHROPIC_API_KEY,
-    gemini: process.env.GEMINI_API_KEY,
-    groq: process.env.GROQ_API_KEY,
-    mistral: process.env.MISTRAL_API_KEY,
+    openrouter: dbKey('openrouter', 'OPENROUTER_API_KEY'),
+    deepseek: dbKey('deepseek', 'DEEPSEEK_API_KEY'),
+    glm: dbKey('glm', 'GLM_API_KEY'),
+    openai: dbKey('openai', 'OPENAI_API_KEY'),
+    anthropic: dbKey('anthropic', 'ANTHROPIC_API_KEY'),
+    gemini: dbKey('gemini', 'GEMINI_API_KEY'),
+    groq: dbKey('groq', 'GROQ_API_KEY'),
+    mistral: dbKey('mistral', 'MISTRAL_API_KEY'),
     lastLoad: now,
   };
 }
@@ -98,6 +116,14 @@ function getMistralKey(): string | undefined {
 }
 
 function getOllamaKey(): string | undefined {
+  try {
+    const mod = (eval('require') as (id: string) => unknown)('@/lib/database/sqlite') as {
+      sqlDatabase: { initialize: () => void; getApiKey: (p: string) => string | null };
+    };
+    mod.sqlDatabase.initialize();
+    const key = mod.sqlDatabase.getApiKey('ollama');
+    if (key && key.length > 0) return key;
+  } catch {}
   return process.env.OLLAMA_API_KEY;
 }
 
