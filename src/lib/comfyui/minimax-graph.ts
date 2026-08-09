@@ -82,11 +82,11 @@ export function buildMiniMaxH3Graph(shot: MiniMaxH3Shot): Record<string, unknown
   _nodeSeq = 1;
   const graph: Record<string, unknown> = {};
 
-  // Loaders — standard ComfyUI nodes (MiniMax H3 accepts standard MODEL/CLIP/VAE)
+  // Loaders — standard ComfyUI nodes
   const clipNode = nid('clip');
   graph[clipNode] = {
     class_type: 'CLIPLoader',
-    inputs: { clip_name: shot.clip },
+    inputs: { clip_name: shot.clip, type: 'minimax' },
   };
 
   const vaeNode = nid('vae');
@@ -103,8 +103,8 @@ export function buildMiniMaxH3Graph(shot: MiniMaxH3Shot): Record<string, unknown
 
   const modelNode = nid('model');
   graph[modelNode] = {
-    class_type: 'CheckpointLoaderSimple',
-    inputs: { ckpt_name: shot.model },
+    class_type: 'UNETLoader',
+    inputs: { unet_name: shot.model, weight_dtype: 'default' },
   };
 
   // Apply LoRA (e.g. LightX2V 4-step turbo) to both model and CLIP when configured.
@@ -239,6 +239,8 @@ export function buildMiniMaxH3Graph(shot: MiniMaxH3Shot): Record<string, unknown
     inputs: {
       video: [createVideoNode, 0],
       filename_prefix: 'minimax_h3_director',
+      format: 'auto',
+      codec: { codec: 'auto' },
     },
   };
 

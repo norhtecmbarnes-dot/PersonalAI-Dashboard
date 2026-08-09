@@ -9,16 +9,17 @@
 ## Table of Contents
 
 1. [What Is the Director Dashboard?](#1-what-is-the-director-dashboard)
-2. [What You Need Before You Start](#2-what-you-need-before-you-start)
-3. [One-Click Startup](#3-one-click-startup)
-4. [Your First Video: A 5-Minute Walkthrough](#4-your-first-video-a-5-minute-walkthrough)
-5. [Talking to the Auteur](#5-talking-to-the-auteur)
-6. [Prototype vs. Final Mode](#6-prototype-vs-final-mode)
-7. [Making Long-Form Videos (Shot Chaining)](#7-making-long-form-videos-shot-chaining)
-8. [Avatar Studio: Talking Heads and UGC](#8-avatar-studio-talking-heads-and-ugc)
-9. [The Shot Config Drawer](#9-the-shot-config-drawer)
-10. [Troubleshooting](#10-troubleshooting)
-11. [Glossary](#11-glossary)
+2. [Ollama: Your AI Brain](#2-ollama-your-ai-brain)
+3. [What You Need Before You Start](#3-what-you-need-before-you-start)
+4. [One-Click Startup](#4-one-click-startup)
+5. [Your First Video: A 5-Minute Walkthrough](#5-your-first-video-a-5-minute-walkthrough)
+6. [Talking to the Auteur](#6-talking-to-the-auteur)
+7. [Prototype vs. Final Mode](#7-prototype-vs-final-mode)
+8. [Making Long-Form Videos (Shot Chaining)](#8-making-long-form-videos-shot-chaining)
+9. [Avatar Studio: Talking Heads and UGC](#9-avatar-studio-talking-heads-and-ugc)
+10. [The Shot Config Drawer](#10-the-shot-config-drawer)
+11. [Troubleshooting](#11-troubleshooting)
+12. [Glossary](#12-glossary)
 
 ---
 
@@ -44,7 +45,175 @@ right in the dashboard.
 
 ---
 
-## 2. What You Need Before You Start
+## 2. Ollama: Your AI Brain
+
+### What Is Ollama?
+
+Ollama is a free, open-source program that runs AI language models on your own
+computer. Think of it as a "model player" — like a music player, but for AI.
+You download a model once, and Ollama runs it locally. No internet needed after
+that. No subscription. No per-message billing. Your data never leaves your machine.
+
+The Director Dashboard uses Ollama as the Auteur's brain — the thing that reads
+your plain-English instructions and writes the scripts and video prompts. Without
+Ollama, the Auteur can't think.
+
+### How to Install Ollama
+
+**Windows (most common):**
+
+1. Go to [ollama.com](https://ollama.com)
+2. Click **Download for Windows**
+3. Run the installer (`OllamaSetup.exe`)
+4. That's it — Ollama is now running in your system tray
+
+**Mac:**
+
+```bash
+curl https://ollama.ai/install.sh | sh
+```
+
+**Linux:**
+
+```bash
+curl -fsSL https://ollama.ai/install.sh | sh
+```
+
+> **💡 Tip: You can verify Ollama is running** by opening your browser and going
+> to `http://localhost:11434`. You should see "Ollama is running."
+
+### Downloading Your First Model
+
+Ollama models are like apps — you download them once and they're stored on your
+computer. Open a terminal (Command Prompt on Windows) and type:
+
+```bash
+ollama pull gemma3:4b
+```
+
+This downloads Gemma 3 4B (about 2.5 GB). Once it finishes, you can run it:
+
+```bash
+ollama run gemma3:4b
+```
+
+Type a question, press Enter, and the model responds. That's Ollama in action.
+
+### Available Models
+
+Ollama has hundreds of models. Here are the ones that matter for the Director
+Dashboard, from smallest to largest:
+
+| Model | Size (download) | RAM needed | Good for | Speed |
+|---|---|---|---|---|
+| `gemma3:4b` | 2.5 GB | 8 GB | Quick chat, simple prompts | Very fast |
+| `llama3.2:3b` | 2.0 GB | 8 GB | Fast, basic scripts | Very fast |
+| `gemma3:12b` | 7 GB | 16 GB | Good balance of quality and speed | Fast |
+| `llama4:scout` | 20 GB | 32 GB | High-quality creative writing | Medium |
+| `llama4:maverick` | 40 GB | 64 GB | Best quality, complex scripts | Slow |
+| `glm-5.2` | varies | 16 GB+ | The author's preferred model | Medium |
+
+> **💡 Tip: Start small.** Download `gemma3:4b` first. It's fast and will let you
+> test the dashboard immediately. You can always download a bigger model later
+> for better quality scripts.
+
+> **⚠️ Warning: Bigger models need more RAM.** If you have 16 GB of RAM, don't
+> try to run `llama4:maverick` — your computer will freeze. Pick a model that
+> fits your hardware.
+
+### Free Cloud Models (no GPU needed)
+
+Don't have a powerful computer? Ollama also offers **free cloud models** through
+[ollama.com](https://ollama.com/settings/keys). You get a limited number of free
+requests per month — enough to try the dashboard and decide if it's worth
+investing in hardware.
+
+To use cloud models:
+
+1. Sign up at [ollama.com](https://ollama.com)
+2. Go to Settings → API Keys
+3. Create a free key
+4. Put it in your `.env.local`:
+   ```
+   OLLAMA_API_KEY=ollama-your-key-here
+   ```
+5. Cloud models will now appear in the dashboard's model selector
+
+> **💡 Tip: Free cloud models are perfect for trying the dashboard.** You can
+> write scripts and design shots without any local GPU. When you're ready to
+> do serious work, download a local model so you're not limited by rate limits.
+
+### The $20/month Ollama Cloud Option
+
+For serious work without buying expensive hardware, Ollama offers a **$20/month**
+cloud plan. Here's why that's a good deal:
+
+| Plan | Claude API (Anthropic) | OpenAI API | Ollama Cloud ($20/mo) |
+|---|---|---|---|
+| **Cost** | Pay per token (~$0.01-0.03 per message) | Pay per token (~$0.01-0.06 per message) | Flat $20/month, unlimited* |
+| **10 messages/day** | ~$3-9/month | ~$3-18/month | $20/month |
+| **100 messages/day** | ~$30-90/month | ~$30-180/month | $20/month |
+| **Privacy** | Data sent to Anthropic | Data sent to OpenAI | Data sent to Ollama cloud |
+| **Best model** | Claude Opus 4 | GPT-5 | Llama 4, GLM, Gemma, etc. |
+
+If you use the Auteur more than ~10 times a day, the $20/month Ollama plan is
+**significantly cheaper** than Claude or OpenAI's pay-per-token APIs. And you
+get access to many different models, not just one company's lineup.
+
+> **⏱️ Remember: Flat-rate means predictable costs.** With Claude or OpenAI,
+> a long creative writing session can cost $5-10 in a single sitting. With
+> Ollama's $20 plan, you pay the same whether you write 5 scripts or 500.
+
+### Any LLM Works
+
+The Director Dashboard is **model-agnostic**. It doesn't care which AI model
+runs the Auteur — it just sends text to Ollama and gets text back. This means:
+
+- **Switch models any time** — use a small fast model for quick prototyping,
+  a big smart model for final script polish
+- **Use cloud models** — Gemini, OpenAI, Claude, Groq, Mistral, DeepSeek,
+  GLM, OpenRouter are all supported (add API keys in Settings)
+- **Mix and match** — the Model Message Bus automatically picks the right model
+  for each task (small for triage, big for creative writing)
+- **Future-proof** — when a new model comes out, just `ollama pull` it and
+  select it in the dashboard. No code changes needed.
+
+### The Author's Preferred Setup
+
+Michael C. Barnes, the author of this series, uses:
+
+- **GLM 5.2** as his primary model (good balance of intelligence and speed)
+- **Open Code** instead of Claude Code for AI-assisted development
+- **Ollama** to launch everything — the command `ollama launch opencode` starts
+  his entire development environment
+
+> **💡 Tip: What is Open Code?** Open Code is an open-source AI coding assistant
+> (like Claude Code or GitHub Copilot) that runs locally and works with any LLM.
+> The author prefers it because it's free, private, and works with GLM 5.2 —
+> no Anthropic or OpenAI subscription required. Get it at
+> [opencode.ai](https://opencode.ai).
+
+The author's typical workflow:
+
+```bash
+# 1. Start Ollama (if not already running)
+ollama serve
+
+# 2. Launch Open Code for development
+ollama launch opencode
+
+# 3. Start the Director Dashboard
+cd PersonalAI-Dashboard
+start-director.bat
+```
+
+> **💡 Tip: You don't need Open Code to use the Director Dashboard.** Open Code
+> is for *building* the dashboard. If you're just *using* it, you only need
+> Ollama + ComfyUI + the dashboard itself.
+
+---
+
+## 3. What You Need Before You Start
 
 ### Hardware
 
@@ -71,12 +240,12 @@ You need these in your ComfyUI `models/` folders:
 ComfyUI/
 └── models/
     ├── diffusion_models/
-    │   └── minimax_h3_v1.safetensors          ← the video model
+    │   └── minimax_h3_fl2va_pruned_fp8_scaled.safetensors  ← the video model
     ├── text_encoders/
-    │   └── minimax_h3_text_encoder.safetensors  ← the text encoder
+    │   └── qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors     ← the text encoder
     ├── vae/
-    │   ├── minimax_h3_vae.safetensors          ← video VAE
-    │   └── minimax_h3_audio_vae.safetensors     ← audio VAE
+    │   ├── minimax_h3_video_vae_fp16.safetensors            ← video VAE
+    │   └── minimax_h3_audio_vae_fp32.safetensors            ← audio VAE
     └── loras/
         └── minimax_h3_fl2v_lightx2v_turbo_4step_v0.1_comfy.safetensors  ← 4-step turbo (optional but recommended)
 ```
@@ -106,7 +275,7 @@ If you want to use the Avatar Studio, you need a VocalLab API key:
 
 ---
 
-## 3. One-Click Startup
+## 4. One-Click Startup
 
 ### The Easy Way (recommended)
 
@@ -147,7 +316,7 @@ Then open `http://localhost:3000/minimax-h3` in your browser.
 
 ---
 
-## 4. Your First Video: A 5-Minute Walkthrough
+## 5. Your First Video: A 5-Minute Walkthrough
 
 Ready to make your first video? Here's the quick version:
 
@@ -193,7 +362,7 @@ it moves to **Rushes** at the bottom of the screen with a video player.
 
 ---
 
-## 5. Talking to the Auteur
+## 6. Talking to the Auteur
 
 The Auteur understands plain English. Here are some things you can say:
 
@@ -233,7 +402,7 @@ The Auteur understands plain English. Here are some things you can say:
 
 ---
 
-## 6. Prototype vs. Final Mode
+## 7. Prototype vs. Final Mode
 
 This is the most important concept in the dashboard. Learn it and you'll save hours.
 
@@ -270,7 +439,7 @@ Click the **⚡ Prototype** or **🎬 Final** button in the header bar.
 
 ---
 
-## 7. Making Long-Form Videos (Shot Chaining)
+## 8. Making Long-Form Videos (Shot Chaining)
 
 ### What is shot chaining?
 
@@ -306,7 +475,7 @@ Each chained shot shows:
 
 ---
 
-## 8. Avatar Studio: Talking Heads and UGC
+## 9. Avatar Studio: Talking Heads and UGC
 
 The Avatar Studio creates talking-head videos — a face that lip-syncs to speech.
 
@@ -347,7 +516,7 @@ The Avatar Studio creates talking-head videos — a face that lip-syncs to speec
 
 ---
 
-## 9. The Shot Config Drawer
+## 10. The Shot Config Drawer
 
 Click the **⚙ Shot config** button in the top-right corner to open the config drawer.
 
@@ -385,7 +554,7 @@ If your ComfyUI model files have different names than the defaults:
 
 ---
 
-## 10. Troubleshooting
+## 11. Troubleshooting
 
 ### "ComfyUI Offline" in the header
 
@@ -469,7 +638,7 @@ ollama pull gemma3:12b         # good balance
 
 ---
 
-## 11. Glossary
+## 12. Glossary
 
 | Term | What it means |
 |---|---|
