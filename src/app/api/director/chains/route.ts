@@ -2,10 +2,12 @@ export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
 import { NextResponse } from 'next/server';
+import { sqlDatabase } from '@/lib/database/sqlite';
 import * as lib from '@/lib/director/asset-library';
 
 export async function GET() {
   try {
+    sqlDatabase.initialize();
     const chains = lib.listChains();
     return NextResponse.json({ ok: true, chains });
   } catch (error) {
@@ -18,6 +20,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    sqlDatabase.initialize();
     const body = await request.json();
     const { action, data } = body;
 
