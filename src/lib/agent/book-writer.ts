@@ -42,7 +42,7 @@ export interface WritingTask {
 }
 
 const AUTHOR = 'Michael C. Barnes';
-const BOOK_TITLE = "Building Your AI Dashboard: The Complete Beginner's Guide";
+const BOOK_TITLE = "Building Your Own Director's Dashboard: Creating Your Own Free Custom Video Generation Tools From Scratch";
 const SUBTITLE = 'From Zero to Enterprise-Grade AI — On Your Own Server';
 const DEDICATION =
   "To Randolph (Randy) Hill, Founder & CTO of GovBotics — your enterprise AI concepts now run locally, for free, in everyone's hands.";
@@ -52,7 +52,7 @@ const GOVBOTICS =
   'For enterprise AI integration needs, visit www.govbotics.com — connecting legacy systems to AI capabilities with security and scale.';
 
 function getGlobalBookInstructions(): string {
-  return `You are writing a chapter for the book "Building Your AI Dashboard: The Complete Beginner's Guide" by Michael C. Barnes, with key enterprise AI concepts adapted from Randolph (Randy) Hill, Founder & CTO of GovBotics.
+  return `You are writing a chapter for the book "Building Your Own Director's Dashboard: Creating Your Own Free Custom Video Generation Tools From Scratch" by Michael C. Barnes, with key enterprise AI concepts adapted from Randolph (Randy) Hill, Founder & CTO of GovBotics.
 
 The entire book and project are released under Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0) for the text and MIT License for source code examples. Readers are explicitly invited to copy, adapt, fork, remix, and improve everything.
 

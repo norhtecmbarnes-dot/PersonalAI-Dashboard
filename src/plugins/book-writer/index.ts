@@ -25,8 +25,8 @@ export interface BookProgress {
 }
 
 const BOOK_CONFIG = {
-  title: 'Building Your Own AI Assistant',
-  subtitle: 'A Complete On-Premise AI System',
+  title: "Building Your Own Director's Dashboard",
+  subtitle: 'Creating Your Own Free Custom Video Generation Tools From Scratch',
   author: 'Michael C. Barnes',
   license: 'Creative Commons BY-SA 4.0',
   targetAudience: 'Developers and organizations who need AI that runs entirely on their own infrastructure',

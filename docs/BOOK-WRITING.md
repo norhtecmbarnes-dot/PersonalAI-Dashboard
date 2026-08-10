@@ -81,7 +81,7 @@ The Book Writer Service is a singleton that writes a book one chapter at a time.
 
 | Field | Value |
 |-------|-------|
-| Title | "Building Your AI Dashboard: The Complete Beginner's Guide" |
+| Title | "Building Your Own Director's Dashboard: Creating Your Own Free Custom Video Generation Tools From Scratch" |
 | Subtitle | "From Zero to Enterprise-Grade AI — On Your Own Server" |
 | Author | Michael C. Barnes |
 | License | CC BY-SA 4.0 (text) + MIT (code) |
