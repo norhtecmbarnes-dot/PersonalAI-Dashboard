@@ -13,6 +13,7 @@ import {
 } from '@/lib/comfyui/local-avatar-graph';
 import type { UploadedImage } from '@/lib/comfyui/client';
 import { VoicePicker } from './VoicePicker';
+import { ClonePanel } from './ClonePanel';
 
 interface AvatarJob {
   id: string;
@@ -40,7 +41,7 @@ export function AvatarPanel({ comfyOnline }: Props) {
   const [submitting, setSubmitting] = useState(false);
   const [vocallabStatus, setVocallabStatus] = useState<{ ok: boolean; points?: number; error?: string } | null>(null);
   const [generatingTts, setGeneratingTts] = useState(false);
-  const [avatarMode, setAvatarMode] = useState<'heygen' | 'local'>('local');
+  const [avatarMode, setAvatarMode] = useState<'heygen' | 'local' | 'clone'>('local');
   const [localShot, setLocalShot] = useState<LocalAvatarShot>(defaultLocalAvatarShot);
 
   // Check VocalLab status on mount
@@ -270,9 +271,17 @@ export function AvatarPanel({ comfyOnline }: Props) {
         >
           ☁️ HeyGen Avatar (cloud)
         </button>
+        <button
+          onClick={() => setAvatarMode('clone')}
+          className={`px-3 py-1.5 text-sm rounded font-medium ${avatarMode === 'clone' ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-400 hover:text-white'}`}
+        >
+          🧬 Duix Clone (offline)
+        </button>
       </div>
 
-      {avatarMode === 'local' ? (
+      {avatarMode === 'clone' ? (
+        <ClonePanel />
+      ) : avatarMode === 'local' ? (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Local avatar config */}
           <div className="bg-slate-800/60 rounded-lg border border-slate-700 p-4 space-y-4">
