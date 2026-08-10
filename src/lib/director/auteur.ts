@@ -41,9 +41,11 @@ export function parseAuteurScript(text: string): ParsedScript {
   let shotMatch: RegExpExecArray | null;
   while ((shotMatch = shotRegex.exec(text)) !== null) {
     const block = shotMatch[1];
-    const promptMatch = block.match(/\*\*MINIMAX PROMPT \(Visual\):\*\*\s*([^\n]+(?:\n(?!\s*\*\*(?:SOUND DESIGN|DIALOGUE))[^\n]*)*)/i);
-    const soundMatch = block.match(/\*\*SOUND DESIGN \(Audio Node\):\*\*\s*([^\n]+(?:\n(?!\s*\*\*(?:MINIMAX PROMPT|DIALOGUE|SOUND DESIGN))[^\n]*)*)/i);
-    const dialogueMatch = block.match(/\*\*DIALOGUE \(TTS\/Lip-Sync Node\):\*\*\s*([^\n]+(?:\n(?!\s*\*\*(?:MINIMAX PROMPT|SOUND DESIGN|DIALOGUE|SHOT))[^\n]*)*)/i);
+    // Accept multiple formats: **MINIMAX PROMPT (Visual):**, **MINIMAX PROMPT:**, *MINIMAX PROMPT (Visual):*, MINIMAX PROMPT:
+    const promptMatch = block.match(/\*{0,2}MINIMAX PROMPT(?:\s*\(Visual\))?\*{0,2}:\s*([^\n]+(?:\n(?!\s*\*{0,2}(?:SOUND DESIGN|DIALOGUE|NARRATOR|SHOT))[^n]*)*)/i);
+    const soundMatch = block.match(/\*{0,2}SOUND DESIGN(?:\s*\(Audio Node\))?\*{0,2}:\s*([^\n]+(?:\n(?!\s*\*{0,2}(?:MINIMAX PROMPT|DIALOGUE|NARRATOR|SOUND DESIGN|SHOT))[^n]*)*)/i);
+    // Accept DIALOGUE, NARRATOR VOICEOVER, and plain DIALOGUE: formats
+    const dialogueMatch = block.match(/(?:\*{0,2}DIALOGUE(?:\s*\(TTS\/Lip-Sync Node\))?\*{0,2}:|\*{0,2}NARRATOR VOICEOVER\*{0,2}:)\s*([^\n]+(?:\n(?!\s*\*{0,2}(?:MINIMAX PROMPT|SOUND DESIGN|DIALOGUE|SHOT|NARRATOR))[^n]*)*)/i);
 
     const prompt = promptMatch?.[1]?.trim().replace(/\s+/g, ' ');
     if (!prompt) continue;
@@ -137,6 +139,7 @@ For every scene you write, you must output using this exact structure:
 *   **MINIMAX PROMPT (Visual):** [The dense, comma-separated string optimized for the ComfyUI text-to-video node. Maximum 75 words. Highly descriptive.]
 *   **SOUND DESIGN (Audio Node):** [Ambient noises, foley, and score cues.]
 *   **DIALOGUE (TTS/Lip-Sync Node):** [Character Name]: "The exact spoken line."
+*   *NARRATOR VOICEOVER:* "Narration text for narrator-driven videos." (use this instead of DIALOGUE for narrated content)
 
 ### SHOT 2
 *   **MINIMAX PROMPT (Visual):** [...]
