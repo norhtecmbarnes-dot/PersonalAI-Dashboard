@@ -2,7 +2,7 @@
 
 **A friendly, step-by-step guide to directing AI-generated video with your dashboard.**
 
-*Part of the "Building Your Own Director's Dashboard" book series by Michael C. Barnes*
+*Part of the "Building Your Own AI Dashboard" book series by Michael C. Barnes — this volume covers building a Director's Dashboard for AI video generation.*
 
 ---
 
@@ -842,8 +842,9 @@ ollama pull gemma3:12b         # good balance
 
 ---
 
-*This guide is part of the "Building Your Own Director's Dashboard" series by Michael C. Barnes,
-author of 6 books on Generative AI. The full 384-page book is included free in the
+*This guide is part of the "Building Your Own AI Dashboard" series by Michael C. Barnes,
+author of 6 books on Generative AI. This volume focuses on building a Director's Dashboard
+for free, custom AI video generation. The full 384-page book is included free in the
 [PersonalAI-Dashboard repository](https://github.com/norhtecmbarnes-dot/PersonalAI-Dashboard).*
 
 *For technical details on the ComfyUI API integration, see the source code in

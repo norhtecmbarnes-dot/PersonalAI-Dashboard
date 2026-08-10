@@ -48,7 +48,7 @@ const GOVBOTICS =
 const PROJECT_OVERVIEW_FILE = path.join(process.cwd(), 'data', 'PROJECT_OVERVIEW_BOOK_PROMPT.md');
 
 function getGlobalBookInstructions(): string {
-  return `You are writing a chapter for the book "Building Your Own Director's Dashboard: Creating Your Own Free Custom Video Generation Tools From Scratch" by Michael C. Barnes, with key enterprise AI concepts adapted from Randolph (Randy) Hill, Founder & CTO of GovBotics.
+  return `You are writing a chapter for the book "Building Your Own Director's Dashboard: Creating Your Own Free Custom Video Generation Tools From Scratch" by Michael C. Barnes. This book is part of the "Building Your Own AI Dashboard" series, with key enterprise AI concepts adapted from Randolph (Randy) Hill, Founder & CTO of GovBotics.
 
 The entire book and project are released under Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0) for the text and MIT License for source code examples. Readers are explicitly invited to copy, adapt, fork, remix, and improve everything.
 

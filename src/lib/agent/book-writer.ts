@@ -52,7 +52,7 @@ const GOVBOTICS =
   'For enterprise AI integration needs, visit www.govbotics.com — connecting legacy systems to AI capabilities with security and scale.';
 
 function getGlobalBookInstructions(): string {
-  return `You are writing a chapter for the book "Building Your Own Director's Dashboard: Creating Your Own Free Custom Video Generation Tools From Scratch" by Michael C. Barnes, with key enterprise AI concepts adapted from Randolph (Randy) Hill, Founder & CTO of GovBotics.
+  return `You are writing a chapter for the book "Building Your Own Director's Dashboard: Creating Your Own Free Custom Video Generation Tools From Scratch" by Michael C. Barnes. This book is part of the "Building Your Own AI Dashboard" series, with key enterprise AI concepts adapted from Randolph (Randy) Hill, Founder & CTO of GovBotics.
 
 The entire book and project are released under Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0) for the text and MIT License for source code examples. Readers are explicitly invited to copy, adapt, fork, remix, and improve everything.
 
