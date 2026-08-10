@@ -584,17 +584,18 @@ Character refs work alongside everything else:
 
 The Avatar Studio creates talking-head videos — a face that lip-syncs to speech.
 
-### Two modes
+### Three modes
 
-| | 🏠 Local Avatar | ☁️ HeyGen Avatar |
-|---|---|---|
-| **Runs on** | Your GPU (free) | HeyGen cloud (paid) |
-| **Face** | Qwen-Image generates from text, or upload a photo | Upload a photo |
-| **Voice** | VocalLab TTS | VocalLab TTS or HeyGen's built-in voices |
-| **Lip-sync** | Wan InfiniteTalk (open source) | HeyGen Avatar IV (cloud) |
-| **Quality** | Good, improving | Excellent |
-| **Speed** | Slow (minutes) | Fast (seconds) |
-| **Cost** | Free | Uses Comfy credits |
+| | 🏠 Local Avatar | ☁️ HeyGen Avatar | 🧬 Duix Clone |
+|---|---|---|---|
+| **Runs on** | Your GPU (free) | HeyGen cloud (paid) | Duix Docker stack (free) |
+| **Face** | Qwen-Image generates from text, or upload a photo | Upload a photo | Clone a real person from a training video |
+| **Voice** | VocalLab TTS | VocalLab TTS or HeyGen's built-in voices | Fish-speech TTS (cloned from training audio) |
+| **Lip-sync** | Wan InfiniteTalk (open source) | HeyGen Avatar IV (cloud) | Duix face2face (open source) |
+| **Quality** | Good, improving | Excellent | Very good (depends on training video) |
+| **Speed** | Slow (minutes) | Fast (seconds) | Slow (minutes) |
+| **Cost** | Free | Uses Comfy credits | Free (runs offline) |
+| **Best for** | AI-generated characters | Quick professional avatars | Cloning a real person |
 
 ### Local Avatar: step by step
 
@@ -618,6 +619,55 @@ The Avatar Studio creates talking-head videos — a face that lip-syncs to speec
 > **💡 Tip: You can also use the Auteur to write avatar scripts.** In the main
 > Director chat, say "make an avatar video" and the Auteur will switch you to the
 > Avatar Studio tab and suggest a script.
+
+### Duix Clone: step by step
+
+The **🧬 Duix Clone** tab clones a real person's face and voice from a training
+video, then drives the clone with text. Everything runs offline via Docker —
+no cloud API, no per-video billing.
+
+**Prerequisites:**
+
+1. Install Docker and Docker Compose
+2. Clone the Duix.Avatar repository and start its Docker stack:
+   ```bash
+   cd duix-avatar/deploy
+   docker-compose up -d
+   ```
+3. This starts two services:
+   - **TTS (fish-speech)** on port 18180
+   - **Video (face2face)** on port 8383
+
+**Cloning a person:**
+
+1. Click the **🧑‍💼 Avatar Studio** tab at the top
+2. Click **🧬 Duix Clone**
+3. Check the **Duix status** indicator — both TTS and Video should show green
+4. **Upload a training video** (15-60 seconds of the person speaking clearly)
+5. **Pick a language** (8 supported: English, Chinese, Japanese, Korean, Spanish, French, German, Portuguese)
+6. **Type a script** — what you want the clone to say
+7. Click **Generate clone video**
+8. The dashboard will:
+   - Extract audio from your training video (using bundled ffmpeg)
+   - Send the audio to Duix for ASR transcription (preprocessing)
+   - Synthesize cloned speech via fish-speech TTS
+   - Submit a lip-sync job to Duix face2face
+   - Poll until the video is ready
+9. The result video appears in the results panel — click to play or download
+
+> **⚠️ Warning: Duix Docker must be running.** If the status indicator shows red,
+> the Docker stack isn't up. Start it with `docker-compose up -d` in the Duix
+> deploy folder.
+
+> **💡 Tip: Training video quality matters.** Use a 15-60 second clip with:
+> - Clear, well-lit face filling most of the frame
+> - Person speaking naturally (not reading)
+> - Minimal background noise
+> - Steady camera (no handheld shake)
+
+> **💡 Tip: The clone improves over time.** You can re-train with better video
+> or longer clips. The cloned voice model persists in the Duix Docker volumes
+> across restarts.
 
 ---
 
@@ -760,6 +810,7 @@ ollama pull gemma3:12b         # good balance
 | **Wan InfiniteTalk** | An open-source lip-sync model that animates a face to match audio. |
 | **Qwen-Image** | An open-source image model used to generate avatar faces from text. |
 | **HeyGen** | A cloud avatar service (paid) that does high-quality lip-sync. |
+| **Duix.Avatar** | A fully-offline digital human cloning toolkit. Clone a real person's face + voice from a video, then drive with text. Runs via Docker. |
 | **Seed** | A number that controls randomness. Same seed + same prompt = same video. Click 🎲 to reroll. |
 | **CFG** | "Classifier-free guidance" — how strictly the model follows your prompt. High = more literal. |
 | **Sigma shift** | Controls the noise schedule for video vs. audio streams. Auto-set by Prototype/Final mode. |
@@ -781,6 +832,7 @@ ollama pull gemma3:12b         # good balance
 │  MODE:     ⚡ Prototype (fast) / 🎬 Final (quality)  │
 │  CONFIG:   Click ⚙ Shot config (top right)          │
 │  AVATAR:   Click 🧑‍💼 Avatar Studio tab              │
+│            🏠 Local · ☁️ HeyGen · 🧬 Duix Clone     │
 │  REFS:     🎭 Refs ON → drop photos in slots → &lt;Picture N&gt; │
 │                                                     │
 │  PROTOTYPE FIRST → REVIEW → FINAL ONLY GOOD SHOTS   │

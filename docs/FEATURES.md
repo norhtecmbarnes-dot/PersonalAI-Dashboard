@@ -526,6 +526,96 @@ Response + Conversation Log
 
 ---
 
+## Director Dashboard (MiniMax H3)
+
+### Overview
+
+A film-director-style interface for generating AI video with synchronized audio from text prompts. Uses MiniMax H3 video model via ComfyUI, with an AI "Auteur" persona that writes scripts and designs shots.
+
+### Features
+
+| Feature | Description |
+|---------|-------------|
+| **Auteur AI** | Ollama-powered director persona that writes scripts, designs shots, and manages the creative pipeline |
+| **Prototype/Final modes** | 4-step fast preview (turbo LoRA) vs. 30-step quality render |
+| **Shot chaining** | Feed each shot's last frame into the next for seamless long-form video |
+| **Character refs (ref2va)** | Up to 3 reference photos per shot for face/identity consistency. Use `<Picture 1>`–`<Picture 3>` tags in prompts |
+| **Avatar Studio** | Three talking-head modes: Local (Qwen-Image + Wan InfiniteTalk), HeyGen (cloud), Duix Clone (offline) |
+| **Duix Clone** | Fully offline digital human cloning from a training video. Fish-speech TTS + face2face lip-sync via Docker |
+| **Shot Config drawer** | Full control over resolution, duration, steps, CFG, sampler, sigma shift, model filenames, LoRA |
+
+### Routes
+
+| Route | Purpose |
+|-------|---------|
+| `/minimax-h3` | Director Dashboard main page |
+| `/book-writer` | Standalone book writer dashboard |
+
+### API Endpoints
+
+| Endpoint | Purpose |
+|----------|---------|
+| `/api/comfyui/*` | ComfyUI integration (queue, status, history, upload) |
+| `/api/vocallab/*` | VocalLab TTS for avatar voices |
+| `/api/duix/status` | Check Duix Docker stack availability |
+| `/api/duix/clone` | Upload training video, extract audio, preprocess |
+| `/api/duix/tts` | Synthesize cloned speech via fish-speech |
+| `/api/duix/video` | Submit and poll Duix face2face lip-sync jobs |
+
+### Files
+
+| File | Role |
+|------|------|
+| `src/lib/comfyui/minimax-graph.ts` | ComfyUI workflow graph builder (text-to-video + ref2va) |
+| `src/lib/director/auteur.ts` | Auteur AI persona and prompt engineering |
+| `src/components/minimax-h3/AvatarPanel.tsx` | Avatar Studio with 3 modes |
+| `src/components/minimax-h3/ClonePanel.tsx` | Duix Clone UI |
+| `src/components/minimax-h3/CharacterRefSlots.tsx` | Character reference photo slots |
+| `src/lib/duix/client.ts` | Duix HTTP client (TTS + video endpoints) |
+
+### Documentation
+
+- `docs/DIRECTOR-FOR-DUMMIES.md` — Full beginner-friendly guide (13 sections)
+- `docs/BOOK-WRITING.md` — Complete writing pipeline documentation
+
+---
+
+## Book Writing System
+
+### Overview
+
+An AI-powered writing pipeline with three layers: autonomous book writer, interactive Writing Studio, and a de-AI-ification filter.
+
+### Components
+
+| Component | Description |
+|-----------|-------------|
+| **Book Writer Service** | Server-side singleton that writes a 20-chapter book one chapter at a time. SQLite-backed. Uses `glm-4-flash` with de-AI-ify post-processing. |
+| **Book Writer Plugin** | Client-side book writer for Writing Studio's Book Panel. localStorage-backed. 21 chapters focused on on-premise deployment. |
+| **Writing Studio** | Full interactive writing editor at `/writing-studio` with AI actions, streaming, outline generator, research chat, brand voice, templates, version history, Mermaid diagrams, and DOCX/PDF export. |
+| **De-AI-ify Filter** | 47-pattern deterministic filter that removes AI clichés, transitions, hedging, buzzwords, and robotic patterns. Scores text 0-10 on human-likeness. |
+| **Editor Review** | Tracked-changes system with AI-generated reasons for each edit. Accept/reject UI. |
+
+### Files
+
+| File | Role |
+|------|------|
+| `src/lib/agent/book-writer.ts` | Server-side book writer (SQLite) |
+| `src/plugins/book-writer/index.ts` | Client-side book writer plugin (localStorage) |
+| `src/lib/writing/de-ai-ify.ts` | De-AI-ification filter (47 patterns) |
+| `src/app/writing-studio/page.tsx` | Writing Studio interactive editor |
+| `src/app/api/writing/route.ts` | 25+ writing actions (non-streaming) |
+| `src/app/api/writing/stream/route.ts` | SSE streaming writing actions |
+| `src/app/api/writing/export/route.ts` | DOCX/PDF export |
+| `src/app/api/book-writer/route.ts` | Autonomous book writer control |
+| `src/app/api/editor-review/route.ts` | Tracked changes review |
+
+### Documentation
+
+- `docs/BOOK-WRITING.md` — Complete documentation of the writing pipeline
+
+---
+
 ## Changelog
 
 ### 2026-03-03
@@ -535,3 +625,10 @@ Response + Conversation Log
 - Built AI security scanner (15+ vulnerabilities)
 - Added `/feedback`, `/rl`, `/security` commands
 - Created comprehensive documentation
+
+### 2026-08-09
+- Added character reference slots (ref2va) with up to 3 photos and Refs ON/OFF toggle
+- Added Duix.Avatar clone integration as 3rd avatar mode (offline, Docker-based)
+- Added ffmpeg-static dependency for audio extraction
+- Created BOOK-WRITING.md documentation for the full writing pipeline
+- Updated DIRECTOR-FOR-DUMMIES.md with character refs, Duix Clone, and 3-mode avatar table
