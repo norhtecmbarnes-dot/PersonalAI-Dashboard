@@ -933,6 +933,77 @@ export class SQLDatabase {
       )
     `);
 
+    // Director Asset Library tables
+    db.run(`
+      CREATE TABLE IF NOT EXISTS director_characters (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT,
+        ref_image_name TEXT,
+        ref_image_subfolder TEXT,
+        ref_image_type TEXT,
+        tags TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      )
+    `);
+
+    db.run(`
+      CREATE TABLE IF NOT EXISTS director_scenes (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT,
+        image_name TEXT,
+        image_subfolder TEXT,
+        image_type TEXT,
+        prompt TEXT,
+        tags TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      )
+    `);
+
+    db.run(`
+      CREATE TABLE IF NOT EXISTS director_shots (
+        id TEXT PRIMARY KEY,
+        chain_id TEXT,
+        shot_index INTEGER DEFAULT 0,
+        prompt TEXT NOT NULL,
+        negative_prompt TEXT,
+        character_ids TEXT,
+        scene_id TEXT,
+        first_frame_name TEXT,
+        first_frame_subfolder TEXT,
+        first_frame_type TEXT,
+        last_frame_name TEXT,
+        last_frame_subfolder TEXT,
+        last_frame_type TEXT,
+        video_name TEXT,
+        video_subfolder TEXT,
+        video_type TEXT,
+        seed INTEGER,
+        status TEXT DEFAULT 'pending',
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      )
+    `);
+
+    db.run(`
+      CREATE TABLE IF NOT EXISTS director_chains (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        description TEXT,
+        shot_ids TEXT,
+        status TEXT DEFAULT 'planning',
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      )
+    `);
+
+    db.run(`CREATE INDEX IF NOT EXISTS idx_director_shots_chain ON director_shots(chain_id)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_director_characters_name ON director_characters(name)`);
+    db.run(`CREATE INDEX IF NOT EXISTS idx_director_scenes_name ON director_scenes(name)`);
+
     // Model Budget table
     db.run(`
       CREATE TABLE IF NOT EXISTS model_budget (
@@ -3742,6 +3813,18 @@ export class SQLDatabase {
     const result = db.exec('SELECT value FROM settings WHERE key = ?', [key]);
     if (result.length === 0 || result[0].values.length === 0) return null;
     return result[0].values[0][0] as string;
+  }
+
+  // Generic SQL methods for external services (e.g., director asset library)
+  runSql(sql: string, params?: (string | number | null | Buffer)[]): void {
+    if (!db) throw new Error('Database not initialized');
+    db.run(sql, params);
+    saveDb();
+  }
+
+  querySql(sql: string, params?: (string | number | null | Buffer)[]): QueryExecResult[] {
+    if (!db) throw new Error('Database not initialized');
+    return db.exec(sql, params);
   }
 
   setSetting(key: string, value: string, category: string = 'general'): void {

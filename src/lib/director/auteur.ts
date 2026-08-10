@@ -153,6 +153,9 @@ You operate a chat-driven control surface. The producer's natural-language messa
 - \`[[ACTION: CREATE_SHOT]]\` — produce a single heavily detailed MiniMax H3 video prompt (one SHOT block). Used when the producer asks for a shot, a clip, a render, a visual, b-roll, or "make/generate a video."
 - \`[[ACTION: LOAD_IMAGE]]\` — acknowledge that the producer is loading a reference image (first/last frame) into the shot. You do not upload files; you just describe how the image should anchor the shot and remind them to attach it.
 - \`[[ACTION: LOAD_REFS]]\` — the producer is loading one or more character reference photos into the character ref slots. You do not upload files; you just tell the producer to drop each character's photo into slot 1, 2, or 3 (matching the order you reference them in the prompt), ensure Refs is ON, and write the prompt using \`<Picture 1>\`, \`<Picture 2>\`, \`<Picture 3>\` tags in place of describing each character's appearance. Describe the *scene, lighting, camera, and action* in the prompt — let the reference image carry the character's identity.
+- \`[[ACTION: SAVE_CHARACTER]]\` — the producer wants to save the current character reference into the asset library for reuse across shots. Acknowledge and confirm the character name.
+- \`[[ACTION: SAVE_SCENE]]\` — the producer wants to save the current scene/first-frame image into the asset library for reuse. Acknowledge and confirm the scene name.
+- \`[[ACTION: CHAIN]]\` — the producer wants to chain multiple shots together into a seamless long-form video. The system will render each shot, automatically capture the last frame, and use it as the first frame for the next shot. No manual frame handoff is needed. When writing a CHAIN, output all SHOT blocks in the script and remind the producer that chaining handles the frame continuity automatically.
 - \`[[ACTION: RENDER]]\` — the producer has approved the current shot and wants to render now. The dashboard operates in two modes: **Prototype** (4-step LoRA, ~7x faster, for iterating and reviewing the cut) and **Final** (full 30-step, for the finished render). By default the dashboard starts in Prototype mode. When the producer says "render," "preview," "prototype," or "try it," they usually want Prototype. When they say "final," "final cut," "full quality," or "render the real thing," they want Final. Confirm which mode you are queuing and summarize what will be produced.
 - \`[[ACTION: AVATAR]]\` — the producer wants to create a talking-head / UGC avatar video. This uses VocalLab for text-to-speech and HeyGen Talking Photo for lip-sync animation. Used when the producer says "avatar," "talking head," "presenter," "UGC," "lip-sync," or "talking photo." Suggest they switch to the Avatar Studio tab, provide a photo, and write the script. The DASHBOARD PROMPT block should describe the visual framing of the avatar shot (lighting, background, camera angle on the subject) rather than a MiniMax H3 video prompt.
 
@@ -166,9 +169,9 @@ Do not wrap any block in a code fence.`;
   return soul ? `${header}\n\n--- SOUL ---\n${soul}` : header;
 }
 
-export type AuteurAction = 'WRITE_SCRIPT' | 'CREATE_SHOT' | 'LOAD_IMAGE' | 'LOAD_REFS' | 'RENDER' | 'AVATAR' | null;
+export type AuteurAction = 'WRITE_SCRIPT' | 'CREATE_SHOT' | 'LOAD_IMAGE' | 'LOAD_REFS' | 'SAVE_CHARACTER' | 'SAVE_SCENE' | 'CHAIN' | 'RENDER' | 'AVATAR' | null;
 
 export function parseAuteurAction(text: string): AuteurAction {
-  const m = text.match(/\[\[ACTION:\s*(WRITE_SCRIPT|CREATE_SHOT|LOAD_IMAGE|LOAD_REFS|RENDER|AVATAR)\s*\]\]/i);
+  const m = text.match(/\[\[ACTION:\s*(WRITE_SCRIPT|CREATE_SHOT|LOAD_IMAGE|LOAD_REFS|SAVE_CHARACTER|SAVE_SCENE|CHAIN|RENDER|AVATAR)\s*\]\]/i);
   return (m?.[1] as AuteurAction) || null;
 }

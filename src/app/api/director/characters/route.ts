@@ -1,0 +1,48 @@
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
+import { NextResponse } from 'next/server';
+import * as lib from '@/lib/director/asset-library';
+
+export async function GET() {
+  try {
+    const characters = lib.listCharacters();
+    return NextResponse.json({ ok: true, characters });
+  } catch (error) {
+    return NextResponse.json(
+      { ok: false, error: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const { action, data } = body;
+
+    switch (action) {
+      case 'create': {
+        const character = lib.createCharacter(data || {});
+        return NextResponse.json({ ok: true, character });
+      }
+      case 'update': {
+        if (!data?.id) return NextResponse.json({ ok: false, error: 'id required' }, { status: 400 });
+        lib.updateCharacter(data.id, data);
+        return NextResponse.json({ ok: true });
+      }
+      case 'delete': {
+        if (!data?.id) return NextResponse.json({ ok: false, error: 'id required' }, { status: 400 });
+        lib.deleteCharacter(data.id);
+        return NextResponse.json({ ok: true });
+      }
+      default:
+        return NextResponse.json({ ok: false, error: 'Invalid action' }, { status: 400 });
+    }
+  } catch (error) {
+    return NextResponse.json(
+      { ok: false, error: error instanceof Error ? error.message : 'Unknown error' },
+      { status: 500 }
+    );
+  }
+}

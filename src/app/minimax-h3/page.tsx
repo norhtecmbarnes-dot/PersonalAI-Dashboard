@@ -21,6 +21,7 @@ import { useGlobalModel } from '@/lib/context/ModelContext';
 import { MarkdownRenderer } from '@/components/MarkdownRenderer';
 import { AvatarPanel } from '@/components/minimax-h3/AvatarPanel';
 import { CharacterRefSlots } from '@/components/minimax-h3/CharacterRefSlots';
+import { AssetLibrary } from '@/components/minimax-h3/AssetLibrary';
 
 interface RenderJob {
   id: string;
@@ -48,7 +49,7 @@ interface ComfyStatus {
   queuePending: number;
 }
 
-type Action = 'WRITE_SCRIPT' | 'CREATE_SHOT' | 'LOAD_IMAGE' | 'LOAD_REFS' | 'RENDER' | 'AVATAR' | null;
+type Action = 'WRITE_SCRIPT' | 'CREATE_SHOT' | 'LOAD_IMAGE' | 'LOAD_REFS' | 'SAVE_CHARACTER' | 'SAVE_SCENE' | 'CHAIN' | 'RENDER' | 'AVATAR' | null;
 
 interface AuteurShotData {
   prompt: string;
@@ -74,7 +75,7 @@ const STORAGE_KEY = 'minimax_h3_director_jobs_v1';
 
 export default function MiniMaxH3DirectorPage() {
   const { selectedModel, ollamaHealthy, initialized } = useGlobalModel();
-  const [activeTab, setActiveTab] = useState<'director' | 'avatar'>('director');
+  const [activeTab, setActiveTab] = useState<'director' | 'avatar' | 'assets'>('director');
   const [shot, setShot] = useState<MiniMaxH3Shot>(defaultShot);
   const [jobs, setJobs] = useState<RenderJob[]>([]);
   const [status, setStatus] = useState<ComfyStatus>({
@@ -82,6 +83,34 @@ export default function MiniMaxH3DirectorPage() {
     queueRunning: 0,
     queuePending: 0,
   });
+  const [procBusy, setProcBusy] = useState(false);
+  const [procMsg, setProcMsg] = useState<string | null>(null);
+
+  const controlComfy = useCallback(async (action: 'start' | 'stop' | 'restart') => {
+    setProcBusy(true);
+    setProcMsg(null);
+    try {
+      const res = await fetch('/api/comfyui/process', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action }),
+      });
+      const data = await res.json();
+      if (!data.success && data.error) {
+        setProcMsg(data.error);
+      } else if (action === 'start') {
+        setProcMsg('Starting ComfyUI… (30-90s to load models)');
+      } else if (action === 'stop') {
+        setProcMsg('ComfyUI stopped');
+      } else if (action === 'restart') {
+        setProcMsg('Restarting ComfyUI…');
+      }
+    } catch (e) {
+      setProcMsg(e instanceof Error ? e.message : 'Failed');
+    } finally {
+      setProcBusy(false);
+    }
+  }, []);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const pollRef = useRef<Map<string, number>>(new Map());
@@ -490,6 +519,10 @@ export default function MiniMaxH3DirectorPage() {
       if (action === 'RENDER') {
         submitShot({ ...shot, prompt: parsedShot?.prompt || shot.prompt });
       }
+      // If the Auteur emitted CHAIN with multiple shots, start a chained render.
+      if (action === 'CHAIN' && parsedShots && parsedShots.length > 0) {
+        renderChainedShots(parsedShots, shot);
+      }
       // If the Auteur suggests an avatar, switch to the Avatar Studio tab.
       if (action === 'AVATAR') {
         setActiveTab('avatar');
@@ -507,7 +540,7 @@ export default function MiniMaxH3DirectorPage() {
     } finally {
       setStreaming(false);
     }
-  }, [input, attachedImage, streaming, selectedModel, messages, shot, submitShot]);
+  }, [input, attachedImage, streaming, selectedModel, messages, shot, submitShot, renderChainedShots]);
 
   // ----- Derived -----
   const fmtBytes = (b?: number) => {
@@ -705,6 +738,33 @@ export default function MiniMaxH3DirectorPage() {
               >
                 {status.online ? '● ComfyUI Online' : '● Offline'}
               </span>
+              <button
+                onClick={() => controlComfy('start')}
+                disabled={procBusy || status.online}
+                title="Start ComfyUI process"
+                className={`text-xs px-2 py-1 rounded ${procBusy || status.online ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-green-700 text-green-100 hover:bg-green-600'}`}
+              >
+                ▶ Start
+              </button>
+              <button
+                onClick={() => controlComfy('stop')}
+                disabled={procBusy || !status.online}
+                title="Stop ComfyUI process"
+                className={`text-xs px-2 py-1 rounded ${procBusy || !status.online ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-red-700 text-red-100 hover:bg-red-600'}`}
+              >
+                ■ Stop
+              </button>
+              <button
+                onClick={() => controlComfy('restart')}
+                disabled={procBusy || !status.online}
+                title="Restart ComfyUI process"
+                className={`text-xs px-2 py-1 rounded ${procBusy || !status.online ? 'bg-slate-700 text-slate-500 cursor-not-allowed' : 'bg-yellow-700 text-yellow-100 hover:bg-yellow-600'}`}
+              >
+                ↻ Restart
+              </button>
+              {procMsg && (
+                <span className="text-xs text-slate-400">{procMsg}</span>
+              )}
               {status.online && (
                 <span className="text-xs text-slate-400">
                   Queue: {status.queueRunning} running / {status.queuePending} pending
@@ -797,11 +857,25 @@ export default function MiniMaxH3DirectorPage() {
           >
             🧑‍💼 Avatar Studio
           </button>
+          <button
+            onClick={() => setActiveTab('assets')}
+            className={`px-4 py-2 text-sm font-medium border-b-2 ${
+              activeTab === 'assets'
+                ? 'border-purple-500 text-white'
+                : 'border-transparent text-slate-400 hover:text-white'
+            }`}
+          >
+            🎭 Assets
+          </button>
         </div>
 
         {activeTab === 'avatar' ? (
           <div className="flex-1 overflow-y-auto p-4">
             <AvatarPanel comfyOnline={status.online} />
+          </div>
+        ) : activeTab === 'assets' ? (
+          <div className="flex-1 overflow-y-auto p-4 max-w-2xl mx-auto">
+            <AssetLibrary />
           </div>
         ) : (
         <>
@@ -1110,6 +1184,12 @@ function actionLabel(action: NonNullable<Action>): string {
       return '🖼 Image';
     case 'LOAD_REFS':
       return '🎭 Refs';
+    case 'SAVE_CHARACTER':
+      return '👤 Save Char';
+    case 'SAVE_SCENE':
+      return '🏞 Save Scene';
+    case 'CHAIN':
+      return '🔗 Chain';
     case 'RENDER':
       return '▶ Render';
     case 'AVATAR':
