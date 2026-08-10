@@ -20,6 +20,7 @@ import {
 import { useGlobalModel } from '@/lib/context/ModelContext';
 import { MarkdownRenderer } from '@/components/MarkdownRenderer';
 import { AvatarPanel } from '@/components/minimax-h3/AvatarPanel';
+import { CharacterRefSlots } from '@/components/minimax-h3/CharacterRefSlots';
 
 interface RenderJob {
   id: string;
@@ -47,7 +48,7 @@ interface ComfyStatus {
   queuePending: number;
 }
 
-type Action = 'WRITE_SCRIPT' | 'CREATE_SHOT' | 'LOAD_IMAGE' | 'RENDER' | 'AVATAR' | null;
+type Action = 'WRITE_SCRIPT' | 'CREATE_SHOT' | 'LOAD_IMAGE' | 'LOAD_REFS' | 'RENDER' | 'AVATAR' | null;
 
 interface AuteurShotData {
   prompt: string;
@@ -737,6 +738,22 @@ export default function MiniMaxH3DirectorPage() {
                 </button>
               </div>
               <button
+                onClick={() => setShot(s => ({ ...s, refsEnabled: !s.refsEnabled }))}
+                className={`px-2 py-1 rounded text-xs font-medium border ${
+                  shot.refsEnabled
+                    ? 'bg-green-800 text-green-200 border-green-600'
+                    : 'bg-slate-700 text-slate-400 border-slate-600 hover:text-white'
+                }`}
+                title={shot.refsEnabled ? 'Character refs ON — prompt can use <Picture 1..3>' : 'Character refs OFF — standard text-to-video'}
+              >
+                🎭 Refs {shot.refsEnabled ? 'ON' : 'OFF'}
+                {(shot.refImages ?? []).filter(r => r && r.name).length > 0 && shot.refsEnabled && (
+                  <span className="ml-1 text-green-300">
+                    ({(shot.refImages ?? []).filter(r => r && r.name).length})
+                  </span>
+                )}
+              </button>
+              <button
                 onClick={rerollSeed}
                 className="px-2 py-1 bg-slate-700 hover:bg-slate-600 rounded text-slate-300"
                 title="Randomize seed"
@@ -1091,6 +1108,8 @@ function actionLabel(action: NonNullable<Action>): string {
       return '🎬 Shot';
     case 'LOAD_IMAGE':
       return '🖼 Image';
+    case 'LOAD_REFS':
+      return '🎭 Refs';
     case 'RENDER':
       return '▶ Render';
     case 'AVATAR':
@@ -1171,6 +1190,15 @@ function ShotConfigDrawer({
               className="w-full bg-slate-900 text-slate-100 rounded p-2 border border-slate-600 text-xs"
             />
           </div>
+          <CharacterRefSlots
+            refs={shot.refImages ?? []}
+            enabled={!!shot.refsEnabled}
+            refImageSize={shot.refImageSize ?? 'match'}
+            onToggleEnabled={enabled => setShot(s => ({ ...s, refsEnabled: enabled }))}
+            onSetRefs={refs => setShot(s => ({ ...s, refImages: refs }))}
+            onSetRefImageSize={size => setShot(s => ({ ...s, refImageSize: size }))}
+            comfyOnline={status.online}
+          />
           <div className="grid grid-cols-2 gap-2">
             <div>
               <label className="block text-xs text-slate-400 mb-1">Resolution</label>

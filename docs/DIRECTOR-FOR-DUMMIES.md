@@ -16,10 +16,11 @@
 6. [Talking to the Auteur](#6-talking-to-the-auteur)
 7. [Prototype vs. Final Mode](#7-prototype-vs-final-mode)
 8. [Making Long-Form Videos (Shot Chaining)](#8-making-long-form-videos-shot-chaining)
-9. [Avatar Studio: Talking Heads and UGC](#9-avatar-studio-talking-heads-and-ugc)
-10. [The Shot Config Drawer](#10-the-shot-config-drawer)
-11. [Troubleshooting](#11-troubleshooting)
-12. [Glossary](#12-glossary)
+9. [Character References: The Same Face Every Time](#9-character-references-the-same-face-every-time)
+10. [Avatar Studio: Talking Heads and UGC](#10-avatar-studio-talking-heads-and-ugc)
+11. [The Shot Config Drawer](#11-the-shot-config-drawer)
+12. [Troubleshooting](#12-troubleshooting)
+13. [Glossary](#13-glossary)
 
 ---
 
@@ -475,7 +476,111 @@ Each chained shot shows:
 
 ---
 
-## 9. Avatar Studio: Talking Heads and UGC
+## 9. Character References: The Same Face Every Time
+
+The hardest thing in AI video is **consistency** — getting the same character
+to appear across multiple shots. The Director Dashboard solves this with
+**Character References** (the "ref2va" path).
+
+### The idea
+
+Instead of describing what your character *looks like* in the prompt, you drop
+a photo of them into a slot. The model uses that photo as the character's face
+throughout the shot. You then write `<Picture 1>` in the prompt where you'd
+normally describe the person, and describe the *scene, lighting, and action*
+around them.
+
+You can load up to **3 character references** per shot:
+- **Slot 1** → `<Picture 1>` in the prompt
+- **Slot 2** → `<Picture 2>` in the prompt
+- **Slot 3** → `<Picture 3>` in the prompt
+
+### Turning it on
+
+There are two ways to enable character refs:
+
+1. **Header bar** — click the **🎭 Refs OFF** button. It turns green and reads
+   **🎭 Refs ON**. Click again to turn it off.
+2. **Shot Config drawer** — open the drawer (⚙ button), and use the **🎭
+   Character refs** panel's ON/OFF toggle.
+
+When Refs are OFF, the dashboard works as normal text-to-video. When Refs are
+ON, the dashboard switches to the ref2va conditioning path automatically.
+
+### Loading character photos
+
+1. Make sure **🎭 Refs ON** is enabled
+2. Open the **Shot Config** drawer (⚙ button)
+3. In the **🎭 Character refs** panel, click any of the three **+ #1 / + #2 /
+   + #3** slots
+4. Pick a photo of your character (a clear face shot works best)
+5. The thumbnail appears in the slot with its number badge
+
+To remove a character, hover the thumbnail and click the red **✕**.
+
+> **💡 Tip: The order matters.** The photo in slot 1 is `<Picture 1>`, slot 2
+> is `<Picture 2>`, and so on. If you swap the photos between slots, update
+> the numbers in your prompt to match.
+
+### Writing the prompt
+
+When refs are loaded, **do not describe the character's appearance**. Use the
+`<Picture N>` tag instead. Describe everything else normally — the scene,
+lighting, camera, and action.
+
+**Without refs (text only):**
+> A tall man with short brown hair and a leather jacket walks through a
+> neon-lit Tokyo alley in the rain, low-angle tracking shot, cinematic.
+
+**With refs (slot 1 = the man's photo):**
+> `<Picture 1>` walks through a neon-lit Tokyo alley in the rain, low-angle
+> tracking shot, cinematic.
+
+Notice how the second prompt says *nothing* about what the man looks like —
+the reference photo carries his identity. You're free to describe the world
+around him.
+
+**Two characters (slots 1 and 2):**
+> `<Picture 1>` and `<Picture 2>` sit across from each other at a small cafe
+> table, mid-afternoon sunlight through the window, 50mm lens, intimate.
+
+### Fidelity: match vs. max
+
+Under the slots you'll see a **Fidelity** toggle:
+
+| | `match` (default) | `max` |
+|---|---|---|
+| **What it does** | Scales each ref to the shot's pixel area | Uses a 2048px short edge for each ref |
+| **Identity fidelity** | Good | Best |
+| **Speed** | Fast | Several times slower |
+
+Start with `match`. If the character's face drifts or loses likeness, switch
+to `max` for the final render.
+
+### Asking the Auteur for help
+
+You can tell the Auteur you're using character refs in plain language:
+
+> "I've put a photo of my lead actress in character slot 1. Write me a shot
+> where she discovers the letter on the kitchen table."
+
+The Auteur will recognize the `[[ACTION: LOAD_REFS]]` intent and write the
+prompt using `<Picture 1>` for you, plus remind you to keep Refs ON.
+
+### Combining refs with other features
+
+Character refs work alongside everything else:
+- **Prototype / Final** — refs work in both modes; prototype first to check
+  likeness, then final for the clean render
+- **Shot chaining** — each shot in a chain can have its own refs, so the same
+  character stays consistent across the whole film
+- **First/last frames** — when refs are ON, first/last frame inputs are
+  disabled (the ref path replaces them); turn refs OFF to use keyframes
+  again
+
+---
+
+## 10. Avatar Studio: Talking Heads and UGC
 
 The Avatar Studio creates talking-head videos — a face that lip-syncs to speech.
 
@@ -516,7 +621,7 @@ The Avatar Studio creates talking-head videos — a face that lip-syncs to speec
 
 ---
 
-## 10. The Shot Config Drawer
+## 11. The Shot Config Drawer
 
 Click the **⚙ Shot config** button in the top-right corner to open the config drawer.
 
@@ -554,7 +659,7 @@ If your ComfyUI model files have different names than the defaults:
 
 ---
 
-## 11. Troubleshooting
+## 12. Troubleshooting
 
 ### "ComfyUI Offline" in the header
 
@@ -638,7 +743,7 @@ ollama pull gemma3:12b         # good balance
 
 ---
 
-## 12. Glossary
+## 13. Glossary
 
 | Term | What it means |
 |---|---|
@@ -650,6 +755,7 @@ ollama pull gemma3:12b         # good balance
 | **Final mode** | Full 30-step rendering. For the finished product. |
 | **LoRA** | A small model patch that modifies a bigger model. The 4-step turbo LoRA makes MiniMax H3 7x faster. |
 | **Shot chaining** | Feeding each shot's last frame into the next shot's first frame for seamless long-form video. |
+| **Character ref / ref2va** | A conditioning path that routes up to 3 reference photos through every sampling step for face/identity consistency. Use `<Picture 1>`–`<Picture 3>` tags in the prompt. |
 | **VocalLab** | A text-to-speech API used for avatar voices. |
 | **Wan InfiniteTalk** | An open-source lip-sync model that animates a face to match audio. |
 | **Qwen-Image** | An open-source image model used to generate avatar faces from text. |
@@ -675,6 +781,7 @@ ollama pull gemma3:12b         # good balance
 │  MODE:     ⚡ Prototype (fast) / 🎬 Final (quality)  │
 │  CONFIG:   Click ⚙ Shot config (top right)          │
 │  AVATAR:   Click 🧑‍💼 Avatar Studio tab              │
+│  REFS:     🎭 Refs ON → drop photos in slots → &lt;Picture N&gt; │
 │                                                     │
 │  PROTOTYPE FIRST → REVIEW → FINAL ONLY GOOD SHOTS   │
 │                                                     │

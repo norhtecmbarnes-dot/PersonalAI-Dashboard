@@ -124,6 +124,7 @@ Minimax h3 does not read traditional screenplays; it requires dense, descriptive
 3. **Cinematic Lexicon:** Use explicit camera terms (e.g., *Dynamic FPV drone shot, rack focus, establishing wide shot, low-angle tracking, 50mm lens, handheld camera shake*).
 4. **Lighting & Texture:** Be obsessive about light and material (e.g., *volumetric fog, harsh rim lighting, chipped chrome plating, wet asphalt reflecting neon*).
 5. **No Negative Negatives:** Tell the model what *is* there, not what *isn't*.
+6. **Character References (ref2va mode):** When the producer has loaded character reference photos into the character ref slots (up to 3), do NOT describe the character's appearance in the prompt. Instead, refer to each character by their slot tag: \`<Picture 1>\` for slot 1, \`<Picture 2>\` for slot 2, \`<Picture 3>\` for slot 3. Describe the scene, lighting, camera, and action around them — the reference image carries the identity. Example: "<Picture 1> walks through a neon-lit Tokyo alley in the rain, low-angle tracking shot, cinematic." Tell the producer to make sure Refs is ON before rendering.
 
 ## OUTPUT FORMAT
 
@@ -151,6 +152,7 @@ You operate a chat-driven control surface. The producer's natural-language messa
 - \`[[ACTION: WRITE_SCRIPT]]\` — produce a script using the Minimax Generation Mode format below. Used when the producer asks for a script, scene, dialogue, or story.
 - \`[[ACTION: CREATE_SHOT]]\` — produce a single heavily detailed MiniMax H3 video prompt (one SHOT block). Used when the producer asks for a shot, a clip, a render, a visual, b-roll, or "make/generate a video."
 - \`[[ACTION: LOAD_IMAGE]]\` — acknowledge that the producer is loading a reference image (first/last frame) into the shot. You do not upload files; you just describe how the image should anchor the shot and remind them to attach it.
+- \`[[ACTION: LOAD_REFS]]\` — the producer is loading one or more character reference photos into the character ref slots. You do not upload files; you just tell the producer to drop each character's photo into slot 1, 2, or 3 (matching the order you reference them in the prompt), ensure Refs is ON, and write the prompt using \`<Picture 1>\`, \`<Picture 2>\`, \`<Picture 3>\` tags in place of describing each character's appearance. Describe the *scene, lighting, camera, and action* in the prompt — let the reference image carry the character's identity.
 - \`[[ACTION: RENDER]]\` — the producer has approved the current shot and wants to render now. The dashboard operates in two modes: **Prototype** (4-step LoRA, ~7x faster, for iterating and reviewing the cut) and **Final** (full 30-step, for the finished render). By default the dashboard starts in Prototype mode. When the producer says "render," "preview," "prototype," or "try it," they usually want Prototype. When they say "final," "final cut," "full quality," or "render the real thing," they want Final. Confirm which mode you are queuing and summarize what will be produced.
 - \`[[ACTION: AVATAR]]\` — the producer wants to create a talking-head / UGC avatar video. This uses VocalLab for text-to-speech and HeyGen Talking Photo for lip-sync animation. Used when the producer says "avatar," "talking head," "presenter," "UGC," "lip-sync," or "talking photo." Suggest they switch to the Avatar Studio tab, provide a photo, and write the script. The DASHBOARD PROMPT block should describe the visual framing of the avatar shot (lighting, background, camera angle on the subject) rather than a MiniMax H3 video prompt.
 
@@ -164,9 +166,9 @@ Do not wrap any block in a code fence.`;
   return soul ? `${header}\n\n--- SOUL ---\n${soul}` : header;
 }
 
-export type AuteurAction = 'WRITE_SCRIPT' | 'CREATE_SHOT' | 'LOAD_IMAGE' | 'RENDER' | 'AVATAR' | null;
+export type AuteurAction = 'WRITE_SCRIPT' | 'CREATE_SHOT' | 'LOAD_IMAGE' | 'LOAD_REFS' | 'RENDER' | 'AVATAR' | null;
 
 export function parseAuteurAction(text: string): AuteurAction {
-  const m = text.match(/\[\[ACTION:\s*(WRITE_SCRIPT|CREATE_SHOT|LOAD_IMAGE|RENDER|AVATAR)\s*\]\]/i);
+  const m = text.match(/\[\[ACTION:\s*(WRITE_SCRIPT|CREATE_SHOT|LOAD_IMAGE|LOAD_REFS|RENDER|AVATAR)\s*\]\]/i);
   return (m?.[1] as AuteurAction) || null;
 }

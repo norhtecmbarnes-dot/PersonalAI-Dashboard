@@ -22,6 +22,9 @@ export interface MiniMaxH3Shot {
   loraName?: string;
   loraStrengthModel?: number;
   loraStrengthClip?: number;
+  refsEnabled?: boolean;
+  refImages?: UploadedImage[];
+  refImageSize?: 'match' | 'max';
 }
 
 export interface UploadedImage {
@@ -126,7 +129,14 @@ export function buildMiniMaxH3Graph(shot: MiniMaxH3Shot): Record<string, unknown
     clipOut = [loraNode, 1];
   }
 
-  // Positive conditioning (MiniMax H3 ImageToVideo)
+  // Positive conditioning. When character references are enabled, use the
+  // ref2va conditioning path (MiniMaxH3ReferenceToVideo) which routes the
+  // reference images through every sampling step for identity fidelity.
+  // Otherwise use the standard t2va / fl2va path (MiniMaxH3ImageToVideo).
+  const refs = shot.refsEnabled && (shot.refImages ?? []).filter(r => r && r.name).length > 0
+    ? (shot.refImages ?? []).filter(r => r && r.name)
+    : null;
+
   const condNode = nid('cond');
   const condInputs: Record<string, unknown> = {
     clip: [clipOut[0], clipOut[1]],
@@ -136,26 +146,50 @@ export function buildMiniMaxH3Graph(shot: MiniMaxH3Shot): Record<string, unknown
     height: shot.height,
     length: shot.length,
   };
-  if (shot.firstFrameFile) {
-    const loadImageNode = nid('loadimage_first');
-    graph[loadImageNode] = {
-      class_type: 'LoadImage',
-      inputs: { image: `${shot.firstFrameFile.subfolder}/${shot.firstFrameFile.name}` },
+
+  if (refs) {
+    // ref2va path: MiniMaxH3ReferenceToVideo. Reference images attach via
+    // Autogrow slots ref_image_0.. ref_image_8. ref_image_size controls
+    // fidelity vs. speed.
+    condInputs.audio_vae = [audioVaeNode, 0];
+    condInputs.ref_image_size = shot.refImageSize ?? 'match';
+    const loadRefNodes: string[] = [];
+    refs.slice(0, 9).forEach((ref, i) => {
+      const loadRef = nid(`loadref_${i}`);
+      graph[loadRef] = {
+        class_type: 'LoadImage',
+        inputs: { image: `${ref.subfolder}/${ref.name}` },
+      };
+      condInputs[`ref_image_${i}`] = [loadRef, 0];
+      loadRefNodes.push(loadRef);
+    });
+    graph[condNode] = {
+      class_type: 'MiniMaxH3ReferenceToVideo',
+      inputs: condInputs,
     };
-    condInputs.first_frame = [loadImageNode, 0];
-  }
-  if (shot.lastFrameFile) {
-    const loadImageNode = nid('loadimage_last');
-    graph[loadImageNode] = {
-      class_type: 'LoadImage',
-      inputs: { image: `${shot.lastFrameFile.subfolder}/${shot.lastFrameFile.name}` },
+  } else {
+    // t2va / fl2va path: optional first/last keyframes anchor geometry only.
+    if (shot.firstFrameFile) {
+      const loadImageNode = nid('loadimage_first');
+      graph[loadImageNode] = {
+        class_type: 'LoadImage',
+        inputs: { image: `${shot.firstFrameFile.subfolder}/${shot.firstFrameFile.name}` },
+      };
+      condInputs.first_frame = [loadImageNode, 0];
+    }
+    if (shot.lastFrameFile) {
+      const loadImageNode = nid('loadimage_last');
+      graph[loadImageNode] = {
+        class_type: 'LoadImage',
+        inputs: { image: `${shot.lastFrameFile.subfolder}/${shot.lastFrameFile.name}` },
+      };
+      condInputs.last_frame = [loadImageNode, 0];
+    }
+    graph[condNode] = {
+      class_type: 'MiniMaxH3ImageToVideo',
+      inputs: condInputs,
     };
-    condInputs.last_frame = [loadImageNode, 0];
   }
-  graph[condNode] = {
-    class_type: 'MiniMaxH3ImageToVideo',
-    inputs: condInputs,
-  };
 
   // Sigma shift patch
   const sigmaNode = nid('sigma');
@@ -169,19 +203,30 @@ export function buildMiniMaxH3Graph(shot: MiniMaxH3Shot): Record<string, unknown
   };
   modelOut = [sigmaNode, 0];
 
-  // Negative conditioning
+  // Negative conditioning. Mirror the positive path's node type so the
+  // conditioning shapes agree; refs are not attached to the negative.
   const negNode = nid('negcond');
-  graph[negNode] = {
-    class_type: 'MiniMaxH3ImageToVideo',
-    inputs: {
-      clip: [clipOut[0], clipOut[1]],
-      vae: [vaeNode, 0],
-      prompt: shot.negativePrompt || 'blurry, low quality, distorted, watermark',
-      width: shot.width,
-      height: shot.height,
-      length: shot.length,
-    },
+  const negInputs: Record<string, unknown> = {
+    clip: [clipOut[0], clipOut[1]],
+    vae: [vaeNode, 0],
+    prompt: shot.negativePrompt || 'blurry, low quality, distorted, watermark',
+    width: shot.width,
+    height: shot.height,
+    length: shot.length,
   };
+  if (refs) {
+    negInputs.audio_vae = [audioVaeNode, 0];
+    negInputs.ref_image_size = shot.refImageSize ?? 'match';
+    graph[negNode] = {
+      class_type: 'MiniMaxH3ReferenceToVideo',
+      inputs: negInputs,
+    };
+  } else {
+    graph[negNode] = {
+      class_type: 'MiniMaxH3ImageToVideo',
+      inputs: negInputs,
+    };
+  }
 
   // Sample
   const samplerNode = nid('sampler');
@@ -290,6 +335,9 @@ export function defaultShot(): MiniMaxH3Shot {
     loraName: '',
     loraStrengthModel: 1.0,
     loraStrengthClip: 1.0,
+    refsEnabled: false,
+    refImages: [],
+    refImageSize: 'match',
   };
   // Default to prototype mode for fast iteration
   return applyTurboPreset(base, TURBO_PRESETS[0]);
