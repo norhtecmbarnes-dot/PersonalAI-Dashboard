@@ -660,19 +660,15 @@ A web-based AI research assistant with modular architecture, supporting both "ou
     - Commercial Space
     - NOAA Office of Commercial Space
     - Joint Commercial Office
-    - Golden Dome (missile defense)
   - Key individual identification from news articles
   - LinkedIn profile search links generation
 
 - **Bid Opportunity Scanning**:
   - **SAM.gov Integration**:
-    - Daily searches for space, missile defense, EO payloads
-    - Keywords: space domain awareness, SDA, SSA, electro-optical, missile defense
+    - Daily searches for opportunities matching the configured company profile
+    - Configurable keywords and NAICS codes
   - **Canada Buys Integration** (`src/lib/integrations/canada-buys.ts`):
-    - Missile defense opportunities
-    - Space domain awareness
-    - Electro-optical payloads
-    - Satellite surveillance
+    - Canadian government contracting opportunities
 
 - **Intelligence API** (`src/app/api/intelligence/route.ts`):
   - Generate reports on demand

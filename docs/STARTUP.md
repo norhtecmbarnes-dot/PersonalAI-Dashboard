@@ -164,11 +164,10 @@ Automated daily scanning for defense/space intelligence:
 - Space Domain Awareness (SDA)
 - Commercial Space / NOAA Office of Commercial Space
 - Joint Commercial Office
-- Golden Dome (missile defense)
 
 **Bid Opportunities:**
-- **SAM.gov**: missile defense, EO payloads, SDA/SSA
-- **Canada Buys**: missile defense, space surveillance
+- **SAM.gov**: opportunities matching your configured company profile
+- **Canada Buys**: Canadian government contracting opportunities
 
 **Usage:**
 1. Go to **Intelligence** page
@@ -357,7 +356,7 @@ The system can self-improve! Use the Features page to:
 ## Example Workflows
 
 ### Defense Contracting Research
-1. Use Intelligence to find missile defense bids
+1. Use Intelligence to find relevant bids
 2. Create brand profile in Workspace
 3. Upload relevant RFPs to brand
 4. Chat with Brand Voice to get answers

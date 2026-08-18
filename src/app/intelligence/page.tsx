@@ -76,7 +76,6 @@ interface IntelligenceReport {
     commercialSpace: NewsArticle[];
     noaaCommercialSpace: NewsArticle[];
     jointCommercialOffice: NewsArticle[];
-    goldenDome: NewsArticle[];
     generatedAt: number;
   };
   keyIndividuals: KeyIndividual[];
@@ -134,7 +133,6 @@ export default function IntelligencePage() {
     { key: 'commercialSpace', label: 'Commercial Space' },
     { key: 'noaaCommercialSpace', label: 'NOAA Commercial Space' },
     { key: 'jointCommercialOffice', label: 'Joint Commercial Office' },
-    { key: 'goldenDome', label: 'Golden Dome' },
   ];
 
   const getArticles = (): NewsArticle[] => {

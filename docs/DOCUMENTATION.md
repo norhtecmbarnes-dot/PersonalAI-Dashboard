@@ -724,12 +724,6 @@ npm run build
 
 Report issues at: https://github.com/norhtecmbarnes-dot/PersonalAI-Dashboard/issues
 
-### Enterprise Support
-
-For enterprise licensing and support:
-- Email: enterprise@govbotics.com
-- Website: https://govbotics.com
-
 ---
 
 ## Changelog

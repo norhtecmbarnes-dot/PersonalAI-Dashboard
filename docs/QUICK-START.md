@@ -247,7 +247,6 @@ Fixed in v2.0.0 - all storage now uses file system.
 
 - **Issues:** https://github.com/norhtecmbarnes-dot/PersonalAI-Dashboard/issues
 - **Docs:** [DOCUMENTATION.md](./docs/DOCUMENTATION.md)
-- **Enterprise:** enterprise@govbotics.com
 
 ---
 

@@ -17,7 +17,6 @@ export interface NewsSummary {
   commercialSpace: Article[];
   noaaCommercialSpace: Article[];
   jointCommercialOffice: Article[];
-  goldenDome: Article[];
   generatedAt: number;
 }
 
@@ -114,7 +113,6 @@ export class IntelligenceService {
         commercialSpace: [],
         noaaCommercialSpace: [],
         jointCommercialOffice: [],
-        goldenDome: [],
         generatedAt: Date.now(),
       },
       keyIndividuals: [],
