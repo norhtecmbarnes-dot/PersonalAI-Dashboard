@@ -15,10 +15,10 @@ export const PLUGINS: Record<string, PluginConfig> = {
     id: 'brand-workspace',
     enabled: true,
     personal: false,
-    name: 'Brand Workspace',
+    name: 'Corporate Vault',
     route: '/brand-workspace',
     icon: 'briefcase',
-    description: 'NotebookLM-style knowledge management',
+    description: 'Company knowledge vault + proposal procurements',
     category: 'productivity',
   },
   'self-improvement': {

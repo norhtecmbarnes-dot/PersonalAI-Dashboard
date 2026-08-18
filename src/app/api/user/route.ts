@@ -11,11 +11,6 @@ interface UserPrefs {
   createdAt: number;
   updatedAt: number;
   hasCompletedSetup: boolean;
-  telegram?: {
-    botToken: string;
-    enabled: boolean;
-    webhookUrl?: string;
-  };
   apiKeys?: Record<string, {
     key: string;
     enabled: boolean;
@@ -25,7 +20,7 @@ interface UserPrefs {
 
 const DEFAULT_PREFS: UserPrefs = {
   userName: 'User',
-  assistantName: 'AI Assistant',
+  assistantName: 'Proposal Genie',
   createdAt: Date.now(),
   updatedAt: Date.now(),
   hasCompletedSetup: false,
@@ -81,7 +76,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { action, userName, assistantName, telegram, apiKeys } = body;
+    const { action, userName, assistantName, apiKeys } = body;
     let preferences = await getPreferences();
 
     switch (action) {
@@ -98,7 +93,7 @@ export async function POST(request: Request) {
         preferences = {
           ...preferences,
           userName: sanitizeString(userName || 'User'),
-          assistantName: sanitizeString(assistantName || 'AI Assistant'),
+          assistantName: sanitizeString(assistantName || 'Proposal Genie'),
           hasCompletedSetup: true,
           updatedAt: Date.now(),
         };
@@ -124,7 +119,6 @@ export async function POST(request: Request) {
           body.assistantName = sanitizeString(body.assistantName);
         }
         
-        // Note: Don't overwrite telegram unless explicitly provided
         const updateData = { ...body, updatedAt: Date.now() };
         // Remove undefined fields to prevent overwriting with undefined
         Object.keys(updateData).forEach(key => {
@@ -145,7 +139,7 @@ export async function POST(request: Request) {
       case 'check': {
         const needsSetup = !preferences.hasCompletedSetup;
         const needsUserName = !preferences.userName || preferences.userName === 'User';
-        const needsAssistantName = !preferences.assistantName || preferences.assistantName === 'AI Assistant';
+        const needsAssistantName = !preferences.assistantName || preferences.assistantName === 'Proposal Genie';
         
         return NextResponse.json({
           success: true,
@@ -154,25 +148,6 @@ export async function POST(request: Request) {
           needsAssistantName,
           preferences,
         });
-      }
-
-      case 'telegram': {
-        if (telegram) {
-          if (telegram.botToken) {
-            const botTokenValidation = validateString(telegram.botToken, 'botToken', { maxLength: 500 });
-            if (!botTokenValidation.valid) {
-              return NextResponse.json({ error: botTokenValidation.error }, { status: 400 });
-            }
-            telegram.botToken = sanitizeString(telegram.botToken);
-          }
-          preferences = {
-            ...preferences,
-            telegram,
-            updatedAt: Date.now(),
-          };
-          await savePreferences(preferences);
-        }
-        return NextResponse.json({ success: true, preferences });
       }
 
       case 'getApiKeys': {
@@ -235,7 +210,7 @@ export async function POST(request: Request) {
 
       default:
         return NextResponse.json(
-          { error: 'Invalid action. Use: setup, update, check, telegram, getApiKeys, setApiKey, removeApiKey' },
+          { error: 'Invalid action. Use: setup, update, check, getApiKeys, setApiKey, removeApiKey' },
           { status: 400 }
         );
     }

@@ -133,10 +133,8 @@ const CURRENT_CAPABILITIES = [
   'workspace',
   'expert-agents',
   'sam-gov',
-  'telegram-bot',
   'feature-requests',
   'agent-zero-docker',
-  'remotion-videos',
 ];
 
 class AgentEcosystemResearch {

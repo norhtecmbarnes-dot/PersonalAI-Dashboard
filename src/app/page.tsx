@@ -57,7 +57,7 @@ export default function Home() {
   const [showCommands, setShowCommands] = useState(false);
   const [userPrefs, setUserPrefs] = useState<UserPreferences>({
     userName: '',
-    assistantName: 'AI Assistant',
+    assistantName: 'Proposal Genie',
     hasCompletedSetup: false,
   });
   const [documents, setDocuments] = useState<Document[]>([]);
@@ -934,7 +934,7 @@ export default function Home() {
         <div className="bg-slate-800/50 backdrop-blur border-b border-slate-700 px-4 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <h1 className="text-xl font-bold text-white">AI Research Assistant</h1>
+              <h1 className="text-xl font-bold text-white">Proposal Genie</h1>
               <span
                 className={`text-xs px-2 py-1 rounded ${ollamaHealthy ? 'bg-green-900/50 text-green-400' : 'bg-red-900/50 text-red-400'}`}
               >

@@ -67,8 +67,8 @@ export async function ollamaWebSearch(
   if (!apiKey) {
     console.log('[REDACTED]');
     console.log('[OllamaWebSearch] To enable web search:');
-    console.log('[OllamaWebSearch] 1. Go to /settings page');
-    console.log('[OllamaWebSearch] 2. Add your Brave Search API key');
+    console.log('[OllamaWebSearch] 1. Go to the Settings page');
+    console.log('[OllamaWebSearch] 2. Add your Ollama API key (free at https://ollama.com/settings/keys)');
     console.log('[OllamaWebSearch] 3. Click Save');
     console.log('[OllamaWebSearch] Falling back to SearXNG...');
     return searXNGSearch(safeQuery, 'http://localhost:8888', options?.maxResults || 5);

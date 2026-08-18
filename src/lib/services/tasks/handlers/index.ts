@@ -10,5 +10,4 @@ export { executeRLTrainingTask } from './rl-training-task';
 export { executeCleanupTask } from './cleanup-task';
 export { executeCleanupDuplicateTasksTask } from './cleanup-duplicate-tasks';
 export { executeSecurityFixTask } from './security-fix-task';
-export { executeTelegramBriefingTask } from './telegram-briefing-task';
 export { executeCustomTask } from './custom-task';

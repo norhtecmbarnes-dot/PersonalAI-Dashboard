@@ -77,10 +77,9 @@ export function TopNav() {
             <NavLink href="/writing-studio">Writing</NavLink>
             <NavLink href="/office">Office</NavLink>
             <NavLink href="/builder">Builder</NavLink>
-            <NavLink href="/minimax-h3">H3 Director</NavLink>
             <NavLink href="/brand-workspace">Brands</NavLink>
-            <NavLink href="/model-leaderboard">Leader</NavLink>
-            <NavLink href="/telegram">Telegram</NavLink>
+            <NavLink href="/canvas">Tracker</NavLink>
+            <NavLink href="/space-invaders">Invaders</NavLink>
             <NavLink href="/settings">Settings</NavLink>
           </div>
 

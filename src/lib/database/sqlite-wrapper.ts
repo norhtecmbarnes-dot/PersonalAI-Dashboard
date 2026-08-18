@@ -21,15 +21,21 @@ export class SqliteWrapper {
 
   run(sql: string, params?: (string | number | null | Buffer)[]): void {
     if (!this.db) throw new Error('Database not initialized');
+    // better-sqlite3 rejects undefined bindings; treat them as NULL so a
+    // single missing field can never silently drop an INSERT/UPDATE.
+    const bound = (params || []).map(p => (p === undefined ? null : p));
     try {
-      if (params && params.length > 0) {
-        this.db.prepare(sql).run(...params);
+      if (bound.length > 0) {
+        this.db.prepare(sql).run(...bound);
       } else {
         this.db.prepare(sql).run();
       }
     } catch (error) {
-      // DDL statements (CREATE TABLE, etc.) may fail with .run() but still work
-      if (!sql.trim().toUpperCase().startsWith('SELECT')) {
+      const trimmedSql = sql.trim().toUpperCase();
+      // Only DDL statements get the exec fallback (idempotent schema setup).
+      // Write statements must never be swallowed — a failed INSERT/UPDATE is
+      // a real error and must surface.
+      if (/^(CREATE|ALTER|DROP|INDEX|PRAGMA)\b/.test(trimmedSql)) {
         try {
           this.db.exec(sql);
         } catch {
@@ -45,9 +51,10 @@ export class SqliteWrapper {
     if (!this.db) throw new Error('Database not initialized');
     
     try {
-      if (params && params.length > 0) {
+      const bound = (params || []).map(p => (p === undefined ? null : p));
+      if (bound.length > 0) {
         const stmt = this.db.prepare(sql);
-        const rows = stmt.all(...params) as Record<string, any>[];
+        const rows = stmt.all(...bound) as Record<string, any>[];
         if (rows.length === 0) {
           const colNames = stmt.columns();
           return [{ columns: colNames.map(c => c.name), values: [] }];

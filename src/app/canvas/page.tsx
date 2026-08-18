@@ -1,158 +1,146 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { chatCompletion } from '@/lib/models/sdk.server';
+import React, { useState, useEffect, useCallback } from 'react';
 
-interface CanvasProject {
+interface TaskItem {
   id: string;
-  name: string;
-  type: 'webpage' | 'dashboard' | 'app' | 'diagram';
-  code: string;
-  preview: string;
-  lastModified: number;
-  diagramType?: 'mermaid' | 'python';
+  projectId: string;
+  section?: string;
+  title: string;
+  assignee?: string;
+  status: 'pending' | 'in_progress' | 'completed';
+  orderIndex: number;
+  notes?: string;
+  createdAt: number;
+  updatedAt: number;
 }
 
-export default function CanvasPage() {
-  const [prompt, setPrompt] = useState('');
-  const [generatedCode, setGeneratedCode] = useState('');
-  const [previewUrl, setPreviewUrl] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [activeTab, setActiveTab] = useState<'preview' | 'code'>('preview');
-  const [projectType, setProjectType] = useState<'webpage' | 'dashboard' | 'app' | 'diagram'>(
-    'webpage'
-  );
-  const [projects, setProjects] = useState<CanvasProject[]>([]);
-  const [currentProject, setCurrentProject] = useState<CanvasProject | null>(null);
-  const [diagramType, setDiagramType] = useState<'mermaid' | 'python'>('mermaid');
+interface Brand {
+  id: string;
+  name: string;
+}
 
-  // Load saved projects
+interface Project {
+  id: string;
+  brandId: string;
+  name: string;
+  status: string;
+  type: string;
+}
+
+type Filter = 'all' | 'pending' | 'in_progress' | 'completed';
+
+const STATUS_ORDER: TaskItem['status'][] = ['pending', 'in_progress', 'completed'];
+
+export default function ProposalTrackerPage() {
+  const [brands, setBrands] = useState<Brand[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [selectedBrandId, setSelectedBrandId] = useState('');
+  const [selectedProjectId, setSelectedProjectId] = useState('');
+  const [tasks, setTasks] = useState<TaskItem[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [generating, setGenerating] = useState(false);
+  const [filter, setFilter] = useState<Filter>('all');
+  const [newTask, setNewTask] = useState({ section: 'General', title: '', assignee: '' });
+
+  // Load companies
   useEffect(() => {
-    const saved = localStorage.getItem('canvas-projects');
-    if (saved) {
-      setProjects(JSON.parse(saved));
-    }
+    fetch('/api/brand-workspace/brands')
+      .then(r => r.json())
+      .then(data => setBrands(data.brands || []))
+      .catch(e => console.error('Failed to load brands:', e));
   }, []);
 
-  // Save projects
+  // Load procurements when a company is picked
   useEffect(() => {
-    localStorage.setItem('canvas-projects', JSON.stringify(projects));
-  }, [projects]);
+    setProjects([]);
+    setSelectedProjectId('');
+    setTasks([]);
+    if (!selectedBrandId) return;
+    fetch(`/api/brand-workspace/projects?brandId=${encodeURIComponent(selectedBrandId)}`)
+      .then(r => r.json())
+      .then(data => setProjects(data.projects || []))
+      .catch(e => console.error('Failed to load projects:', e));
+  }, [selectedBrandId]);
 
-  const generateCode = async () => {
-    if (!prompt.trim()) return;
+  // Load tasks when a procurement is picked
+  const loadTasks = useCallback((projectId: string) => {
+    if (!projectId) {
+      setTasks([]);
+      return;
+    }
+    fetch(`/api/proposal-tasks?projectId=${encodeURIComponent(projectId)}`)
+      .then(r => r.json())
+      .then(data => setTasks(data.tasks || []))
+      .catch(e => console.error('Failed to load tasks:', e));
+  }, []);
 
-    setIsGenerating(true);
+  useEffect(() => {
+    loadTasks(selectedProjectId);
+  }, [selectedProjectId, loadTasks]);
 
+  const api = async (action: string, extra: any = {}) => {
+    const response = await fetch('/api/proposal-tasks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, projectId: selectedProjectId, brandId: selectedBrandId, ...extra }),
+    });
+    return response.json();
+  };
+
+  const generateTasks = async () => {
+    if (!selectedProjectId || !selectedBrandId) return;
+    setGenerating(true);
     try {
-      const systemPrompt = `You are an expert frontend developer. Generate complete, working HTML/CSS/JavaScript code based on the user's request.
-
-Rules:
-- Return ONLY valid HTML code (no markdown, no explanations)
-- Include all CSS in <style> tags
-- Include all JavaScript in <script> tags
-- Make it visually appealing and modern
-- Ensure it's fully functional
-- Use Tailwind CSS via CDN for styling
-- Make it responsive
-
-The code will be rendered directly in an iframe, so it must be complete and self-contained.`;
-
-      const typePrompt =
-        projectType === 'webpage'
-          ? 'Create a beautiful webpage'
-          : projectType === 'dashboard'
-            ? 'Create an interactive dashboard with charts and widgets'
-            : projectType === 'app'
-              ? 'Create a functional web application'
-              : `Create a ${diagramType === 'mermaid' ? 'Mermaid diagram' : 'Python diagram'}`;
-
-      const diagramPrompt =
-        projectType === 'diagram'
-          ? diagramType === 'mermaid'
-            ? 'Generate Mermaid diagram code wrapped in HTML with mermaid.js CDN. Use mermaid.initialize({startOnLoad:true}) and include the diagram in a <div class="mermaid"> element.'
-            : 'Generate Python code for diagram using matplotlib/networkx/plots, wrapped in HTML that displays the result.'
-          : '';
-
-      const result = await chatCompletion({
-        model: 'glm-4-flash',
-        messages: [
-          {
-            role: 'system',
-            content: systemPrompt + (projectType === 'diagram' ? ' ' + diagramPrompt : ''),
-          },
-          { role: 'user', content: `${typePrompt}: ${prompt}` },
-        ],
-      });
-
-      let code = result.message?.content || '';
-
-      // Extract code from markdown if present
-      const codeMatch = code.match(/```html([\s\S]*?)```/);
-      if (codeMatch) {
-        code = codeMatch[1];
+      const data = await api('generate');
+      if (data.success) {
+        setTasks(data.tasks || []);
       } else {
-        // Remove any markdown formatting
-        code = code.replace(/```[\s\S]*?```/g, '').trim();
+        alert(data.error || 'Generation failed');
       }
-
-      setGeneratedCode(code);
-
-      // Create blob URL for preview
-      const blob = new Blob([code], { type: 'text/html' });
-      const url = URL.createObjectURL(blob);
-      setPreviewUrl(url);
-
-      // Save project
-      const newProject: CanvasProject = {
-        id: Date.now().toString(),
-        name: prompt.slice(0, 30) + '...',
-        type: projectType,
-        code,
-        preview: url,
-        lastModified: Date.now(),
-      };
-
-      setProjects(prev => [newProject, ...prev]);
-      setCurrentProject(newProject);
-      setActiveTab('preview');
-    } catch (error) {
-      console.error('Failed to generate code:', error);
-      alert('Failed to generate code. Please try again.');
+    } catch (e) {
+      console.error('Generate tasks error:', e);
+      alert('Failed to generate tasks');
     } finally {
-      setIsGenerating(false);
+      setGenerating(false);
     }
   };
 
-  const downloadCode = () => {
-    if (!generatedCode) return;
-
-    const blob = new Blob([generatedCode], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${projectType}-${Date.now()}.html`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  const cycleStatus = async (task: TaskItem) => {
+    const idx = STATUS_ORDER.indexOf(task.status);
+    const next = STATUS_ORDER[(idx + 1) % STATUS_ORDER.length];
+    const optimistic = tasks.map(t => (t.id === task.id ? { ...t, status: next } : t));
+    setTasks(optimistic);
+    const data = await api('update', { id: task.id, updates: { status: next } });
+    if (!data.success && data.task) setTasks(tasks);
   };
 
-  const loadProject = (project: CanvasProject) => {
-    setCurrentProject(project);
-    setGeneratedCode(project.code);
-    setPreviewUrl(project.preview);
-    setActiveTab('preview');
+  const saveAssignee = async (task: TaskItem, assignee: string) => {
+    const optimistic = tasks.map(t => (t.id === task.id ? { ...t, assignee } : t));
+    setTasks(optimistic);
+    await api('update', { id: task.id, updates: { assignee } });
   };
 
-  const deleteProject = (id: string) => {
-    setProjects(prev => prev.filter(p => p.id !== id));
-    if (currentProject?.id === id) {
-      setCurrentProject(null);
-      setGeneratedCode('');
-      setPreviewUrl('');
+  const deleteTask = async (taskId: string) => {
+    setTasks(prev => prev.filter(t => t.id !== taskId));
+    await api('delete', { id: taskId });
+  };
+
+  const addTask = async () => {
+    if (!newTask.title.trim()) return;
+    const data = await api('add', { task: newTask });
+    if (data.success && data.task) {
+      setTasks(prev => [...prev, data.task]);
+      setNewTask({ section: 'General', title: '', assignee: '' });
     }
   };
+
+  const selectedProject = projects.find(p => p.id === selectedProjectId);
+  const completedCount = tasks.filter(t => t.status === 'completed').length;
+  const progress = tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0;
+
+  const visibleTasks = tasks.filter(t => filter === 'all' || t.status === filter);
+  const sections = Array.from(new Set(visibleTasks.map(t => t.section || 'General')));
 
   return (
     <div className="min-h-screen bg-slate-900 text-white">
@@ -160,240 +148,262 @@ The code will be rendered directly in an iframe, so it must be complete and self
       <nav className="bg-slate-800 border-b border-slate-700 px-6 py-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <svg
-              className="w-8 h-8 text-purple-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
+            <svg className="w-8 h-8 text-purple-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth={2}
-                d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"
+                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
               />
             </svg>
-            <h1 className="text-2xl font-bold">Design Studio</h1>
+            <div>
+              <h1 className="text-2xl font-bold">Proposal Tracker</h1>
+              <p className="text-sm text-slate-400">AI to-do list — who owns each section, and where it stands</p>
+            </div>
           </div>
-          <div className="flex items-center gap-4">
-            <span className="text-sm text-slate-400">
-              {projects.length} project{projects.length !== 1 ? 's' : ''}
+          <div className="flex items-center gap-4 text-sm">
+            <span className="text-slate-400">
+              {completedCount}/{tasks.length} complete
+            </span>
+            <span className={`font-semibold ${progress === 100 && tasks.length > 0 ? 'text-green-400' : 'text-purple-400'}`}>
+              {progress}%
             </span>
           </div>
         </div>
       </nav>
 
-      <div className="flex h-[calc(100vh-73px)]">
-        {/* Sidebar - Projects */}
-        <aside className="w-64 bg-slate-800 border-r border-slate-700 overflow-y-auto">
-          <div className="p-4">
-            <h2 className="text-sm font-semibold text-slate-400 mb-3">Projects</h2>
-            <div className="space-y-2">
-              {projects.map(project => (
+      <div className="flex h-[calc(100vh-81px)]">
+        {/* Sidebar - pick company + procurement */}
+        <aside className="w-72 bg-slate-800 border-r border-slate-700 overflow-y-auto">
+          <div className="p-4 space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 mb-2">Company</label>
+              <select
+                value={selectedBrandId}
+                onChange={e => setSelectedBrandId(e.target.value)}
+                className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none"
+              >
+                <option value="">Select company…</option>
+                {brands.map(b => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-400 mb-2">Procurement</label>
+              <select
+                value={selectedProjectId}
+                onChange={e => setSelectedProjectId(e.target.value)}
+                disabled={!selectedBrandId}
+                className="w-full bg-slate-700 border border-slate-600 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none disabled:opacity-50"
+              >
+                <option value="">Select procurement…</option>
+                {projects.map(p => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <button
+              onClick={generateTasks}
+              disabled={generating || !selectedProjectId}
+              className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-slate-600 disabled:cursor-not-allowed px-4 py-2 rounded font-medium transition-colors text-sm"
+            >
+              {generating ? 'Generating…' : '✨ Generate task list from proposal'}
+            </button>
+
+            <div className="pt-2 border-t border-slate-700">
+              <label className="block text-xs font-semibold text-slate-400 mb-2">Filter</label>
+              <div className="flex flex-wrap gap-1.5">
+                {(['all', 'pending', 'in_progress', 'completed'] as Filter[]).map(f => (
+                  <button
+                    key={f}
+                    onClick={() => setFilter(f)}
+                    className={`px-2.5 py-1 rounded text-xs transition-colors ${
+                      filter === f ? 'bg-purple-600 text-white' : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    }`}
+                  >
+                    {f === 'all' ? 'All' : f === 'in_progress' ? 'In progress' : f.charAt(0).toUpperCase() + f.slice(1)}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Progress bar */}
+            <div className="pt-2 border-t border-slate-700">
+              <div className="flex justify-between text-xs text-slate-400 mb-1">
+                <span>Proposal progress</span>
+                <span>{progress}%</span>
+              </div>
+              <div className="h-2 bg-slate-700 rounded-full overflow-hidden">
                 <div
-                  key={project.id}
-                  className={`p-3 rounded-lg cursor-pointer transition-colors ${
-                    currentProject?.id === project.id
-                      ? 'bg-purple-600/20 border border-purple-500'
-                      : 'bg-slate-700/50 hover:bg-slate-700'
-                  }`}
-                  onClick={() => loadProject(project)}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium truncate">{project.name}</p>
-                      <p className="text-xs text-slate-400 capitalize">{project.type}</p>
-                    </div>
-                    <button
-                      onClick={e => {
-                        e.stopPropagation();
-                        deleteProject(project.id);
-                      }}
-                      className="text-slate-400 hover:text-red-400 p-1"
-                    >
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                        />
-                      </svg>
-                    </button>
-                  </div>
-                </div>
-              ))}
-              {projects.length === 0 && (
-                <p className="text-sm text-slate-500 text-center py-4">
-                  No projects yet. Create one!
-                </p>
-              )}
+                  className="h-full bg-purple-500 transition-all"
+                  style={{ width: `${progress}%` }}
+                />
+              </div>
             </div>
           </div>
         </aside>
 
-        {/* Main Content */}
-        <main className="flex-1 flex flex-col">
-          {/* Input Area */}
-          <div className="p-4 border-b border-slate-700 bg-slate-800/50">
-            <div className="flex gap-3">
-              <select
-                value={projectType}
-                onChange={e => setProjectType(e.target.value as any)}
-                className="bg-slate-700 border border-slate-600 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none"
-              >
-                <option value="webpage">Webpage</option>
-                <option value="dashboard">Dashboard</option>
-                <option value="app">Web App</option>
-                <option value="diagram">Diagram</option>
-              </select>
+        {/* Main content - task list */}
+        <main className="flex-1 overflow-y-auto">
+          {!selectedProjectId ? (
+            <div className="flex items-center justify-center h-full">
+              <p className="text-slate-500 text-center px-8">
+                Pick a company and a procurement to see its proposal task list.
+                <br />
+                Then generate the list from the proposal — or add tasks manually.
+              </p>
+            </div>
+          ) : (
+            <div className="p-6 max-w-4xl mx-auto">
+              <div className="mb-5">
+                <h2 className="text-xl font-semibold">{selectedProject?.name || 'Procurement'}</h2>
+                <p className="text-sm text-slate-400">
+                  Sections below show who is responsible and whether the work is pending, in progress, or done.
+                </p>
+              </div>
 
-              {projectType === 'diagram' && (
-                <select
-                  value={diagramType}
-                  onChange={e => setDiagramType(e.target.value as any)}
-                  className="bg-slate-700 border border-slate-600 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none"
-                >
-                  <option value="mermaid">Mermaid (Flowcharts, Sequence)</option>
-                  <option value="python">Python (Matplotlib, NetworkX)</option>
-                </select>
+              {tasks.length === 0 && (
+                <div className="bg-slate-800 rounded-lg p-8 text-center border border-slate-700">
+                  <p className="text-slate-400 mb-3">
+                    No tasks yet. Generate the list from the proposal to break it into sections with owners.
+                  </p>
+                </div>
               )}
 
-              <input
-                type="text"
-                value={prompt}
-                onChange={e => setPrompt(e.target.value)}
-                placeholder={`Describe your ${projectType}... (e.g., "A landing page for a coffee shop with hero section and contact form")`}
-                className="flex-1 bg-slate-700 border border-slate-600 rounded px-4 py-2 focus:ring-2 focus:ring-purple-500 focus:outline-none"
-                onKeyPress={e => e.key === 'Enter' && generateCode()}
-              />
+              {sections.map(section => {
+                const sectionTasks = visibleTasks.filter(t => (t.section || 'General') === section);
+                const done = sectionTasks.filter(t => t.status === 'completed').length;
+                return (
+                  <div key={section} className="mb-6">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="text-sm font-semibold text-purple-300 uppercase tracking-wide">{section}</h3>
+                      <span className="text-xs text-slate-400">
+                        {done}/{sectionTasks.length} done
+                      </span>
+                    </div>
+                    <div className="space-y-2">
+                      {sectionTasks.map(task => (
+                        <div
+                          key={task.id}
+                          className={`bg-slate-800 rounded-lg p-3 border transition-colors ${
+                            task.status === 'completed'
+                              ? 'border-green-700/50 opacity-70'
+                              : task.status === 'in_progress'
+                              ? 'border-purple-500/50'
+                              : 'border-slate-700'
+                          }`}
+                        >
+                          <div className="flex items-center gap-3">
+                            {/* Cycle: pending → in_progress → completed */}
+                            <button
+                              onClick={() => cycleStatus(task)}
+                              title={`Click to cycle status (currently ${task.status})`}
+                              className={`shrink-0 w-5 h-5 rounded flex items-center justify-center border-2 transition-colors ${
+                                task.status === 'completed'
+                                  ? 'bg-green-500 border-green-500 text-white'
+                                  : task.status === 'in_progress'
+                                  ? 'bg-purple-500/30 border-purple-400'
+                                  : 'border-slate-500 hover:border-purple-400'
+                              }`}
+                            >
+                              {task.status === 'completed' && (
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                                </svg>
+                              )}
+                              {task.status === 'in_progress' && <span className="w-1.5 h-1.5 rounded-full bg-purple-400" />}
+                            </button>
 
-              <button
-                onClick={generateCode}
-                disabled={isGenerating || !prompt.trim()}
-                className="bg-purple-600 hover:bg-purple-700 disabled:bg-slate-600 disabled:cursor-not-allowed px-6 py-2 rounded font-medium transition-colors flex items-center gap-2"
-              >
-                {isGenerating ? (
-                  <>
-                    <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      />
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      />
-                    </svg>
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M13 10V3L4 14h7v7l9-11h-7z"
-                      />
-                    </svg>
-                    Generate
-                  </>
-                )}
-              </button>
+                            <div className="flex-1 min-w-0">
+                              <p
+                                className={`text-sm ${task.status === 'completed' ? 'line-through text-slate-500' : 'text-white'}`}
+                              >
+                                {task.title}
+                              </p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span
+                                  className={`text-[10px] px-1.5 py-0.5 rounded font-medium ${
+                                    task.status === 'completed'
+                                      ? 'bg-green-900/50 text-green-300'
+                                      : task.status === 'in_progress'
+                                      ? 'bg-purple-900/50 text-purple-300'
+                                      : 'bg-slate-700 text-slate-400'
+                                  }`}
+                                >
+                                  {task.status === 'in_progress' ? 'In progress' : task.status.charAt(0).toUpperCase() + task.status.slice(1)}
+                                </span>
+                                <span className="text-xs text-slate-500">Responsible:</span>
+                                <input
+                                  value={task.assignee || ''}
+                                  onChange={e => saveAssignee(task, e.target.value)}
+                                  placeholder="Unassigned"
+                                  className="bg-transparent text-xs text-slate-300 border-b border-dotted border-slate-600 focus:border-purple-400 focus:outline-none w-40"
+                                />
+                              </div>
+                            </div>
 
-              <button
-                onClick={downloadCode}
-                disabled={!generatedCode}
-                className="bg-slate-700 hover:bg-slate-600 disabled:bg-slate-600 disabled:cursor-not-allowed px-4 py-2 rounded font-medium transition-colors"
-                title="Download HTML"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
-                  />
-                </svg>
-              </button>
-            </div>
-          </div>
-
-          {/* Tabs */}
-          <div className="flex border-b border-slate-700 bg-slate-800/30">
-            <button
-              onClick={() => setActiveTab('preview')}
-              className={`px-6 py-2 text-sm font-medium transition-colors ${
-                activeTab === 'preview'
-                  ? 'text-purple-400 border-b-2 border-purple-400'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Preview
-            </button>
-            <button
-              onClick={() => setActiveTab('code')}
-              className={`px-6 py-2 text-sm font-medium transition-colors ${
-                activeTab === 'code'
-                  ? 'text-purple-400 border-b-2 border-purple-400'
-                  : 'text-slate-400 hover:text-white'
-              }`}
-            >
-              Code
-            </button>
-          </div>
-
-          {/* Content Area */}
-          <div className="flex-1 overflow-hidden">
-            {activeTab === 'preview' ? (
-              <div className="w-full h-full bg-white">
-                {previewUrl ? (
-                  <iframe
-                    src={previewUrl}
-                    className="w-full h-full border-0"
-                    title="Preview"
-                    sandbox="allow-scripts allow-same-origin"
-                  />
-                ) : (
-                  <div className="flex items-center justify-center h-full text-slate-400">
-                    <div className="text-center">
-                      <svg
-                        className="w-16 h-16 mx-auto mb-4 opacity-50"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z"
-                        />
-                      </svg>
-                      <p>Enter a prompt above to generate your {projectType}</p>
+                            <button
+                              onClick={() => deleteTask(task.id)}
+                              title="Delete task"
+                              className="text-slate-500 hover:text-red-400 p-1 transition-colors"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                                />
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                )}
+                );
+              })}
+
+              {/* Add task */}
+              <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
+                <h4 className="text-sm font-semibold text-slate-300 mb-3">Add task</h4>
+                <div className="flex flex-wrap gap-2">
+                  <input
+                    value={newTask.section}
+                    onChange={e => setNewTask({ ...newTask, section: e.target.value })}
+                    placeholder="Section (e.g. Technical Approach)"
+                    className="flex-1 min-w-40 bg-slate-700 border border-slate-600 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                  />
+                  <input
+                    value={newTask.title}
+                    onChange={e => setNewTask({ ...newTask, title: e.target.value })}
+                    placeholder="Task (e.g. Draft section from capture)"
+                    className="flex-[2] min-w-48 bg-slate-700 border border-slate-600 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                  />
+                  <input
+                    value={newTask.assignee}
+                    onChange={e => setNewTask({ ...newTask, assignee: e.target.value })}
+                    placeholder="Assignee"
+                    className="flex-1 min-w-32 bg-slate-700 border border-slate-600 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-purple-500 focus:outline-none"
+                  />
+                  <button
+                    onClick={addTask}
+                    disabled={!newTask.title.trim()}
+                    className="bg-purple-600 hover:bg-purple-700 disabled:bg-slate-600 disabled:cursor-not-allowed px-4 py-2 rounded text-sm font-medium transition-colors"
+                  >
+                    Add
+                  </button>
+                </div>
               </div>
-            ) : (
-              <div className="w-full h-full bg-slate-900 overflow-auto">
-                <pre className="p-4 text-sm font-mono text-green-400 whitespace-pre-wrap break-all">
-                  {generatedCode || '// Generated code will appear here'}
-                </pre>
-              </div>
-            )}
-          </div>
+            </div>
+          )}
         </main>
       </div>
     </div>

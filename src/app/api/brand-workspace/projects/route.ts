@@ -50,11 +50,23 @@ export async function POST(request: NextRequest) {
 
     switch (action) {
       case 'create': {
-        const { brandId, name, description, type, requirements, deliverables, deadline, metadata, tags } = data;
+        const {
+          brandId,
+          name,
+          description,
+          type,
+          solicitationType,
+          requirements,
+          deliverables,
+          deadline,
+          metadata,
+          tags,
+        } = data;
         const project = await brandWorkspace.createProject(brandId, {
           name,
           description,
           type: type as ProjectType,
+          solicitationType,
           status: 'active' as ProjectStatus,
           requirements,
           deliverables: deliverables || [],

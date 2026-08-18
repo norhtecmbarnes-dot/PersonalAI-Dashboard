@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { NoteEditor, NotesList } from '@/components/NoteEditor';
 import { NotesBoard } from '@/components/NotesBoard';
+import PromptLibrary from '@/components/PromptLibrary';
 import { useGlobalModel } from '@/lib/context/ModelContext';
 
 interface Note {
@@ -24,7 +25,7 @@ export default function NotesPage() {
   const { selectedModel } = useGlobalModel();
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | undefined>();
-  const [viewMode, setViewMode] = useState<'board' | 'list'>('board');
+  const [viewMode, setViewMode] = useState<'board' | 'list' | 'prompts'>('board');
   const [refreshKey, setRefreshKey] = useState(0);
 
   const handleNewNote = () => {
@@ -50,7 +51,9 @@ export default function NotesPage() {
           <div>
             <h1 className="text-3xl font-bold text-white">Notes</h1>
             <p className="text-gray-400 mt-1">
-              Drag notes to move • Double-click to edit • Resize from corner
+              {viewMode === 'prompts'
+                ? 'Create and keep reusable prompts — stored in the database'
+                : 'Drag notes to move • Double-click to edit • Resize from corner'}
             </p>
           </div>
           <div className="flex gap-2 items-center">
@@ -76,6 +79,16 @@ export default function NotesPage() {
               >
                 List
               </button>
+              <button
+                onClick={() => setViewMode('prompts')}
+                className={`px-3 py-1 rounded text-sm ${
+                  viewMode === 'prompts'
+                    ? 'bg-purple-600 text-white'
+                    : 'text-gray-400 hover:text-white'
+                }`}
+              >
+                ⚡ Prompts
+              </button>
             </div>
             <button
               onClick={handleNewNote}
@@ -98,6 +111,8 @@ export default function NotesPage() {
           <div className="h-[calc(100vh-180px)]">
             <NotesBoard onEditNote={handleEditNote} refreshKey={refreshKey} />
           </div>
+        ) : viewMode === 'prompts' ? (
+          <PromptLibrary />
         ) : (
           <NotesList onEdit={handleEditNote} />
         )}

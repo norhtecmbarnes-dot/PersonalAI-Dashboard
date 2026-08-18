@@ -361,8 +361,8 @@ export function WorkspaceManager() {
 
   const tabs = [
     { id: 'folders', label: 'Folders', icon: '📁' },
-    { id: 'brands', label: 'Brand Profiles', icon: '🏢' },
-    { id: 'projects', label: 'Projects', icon: '📋' },
+    { id: 'brands', label: 'Corporate Vault', icon: '🏢' },
+    { id: 'projects', label: 'Procurements', icon: '📋' },
     { id: 'documents', label: 'Documents', icon: '📄' },
   ];
 
@@ -459,7 +459,7 @@ export function WorkspaceManager() {
                   )}
                 </div>
 
-                <p className="text-gray-400 text-sm mb-2">Projects in this folder:</p>
+                <p className="text-gray-400 text-sm mb-2">Procurements in this folder:</p>
                 <div className="space-y-2">
                   {projects.filter(p => p.folderId === selectedFolder.id).map(project => (
                     <div key={project.id} className="p-3 bg-gray-700 rounded flex justify-between items-center">
@@ -497,7 +497,7 @@ export function WorkspaceManager() {
         <div className="flex-1 flex gap-4">
           <div className="w-1/3">
             <div className="bg-gray-800 rounded-lg p-4">
-              <h3 className="text-lg font-semibold text-white mb-4">Create Brand Profile</h3>
+              <h3 className="text-lg font-semibold text-white mb-4">Add Company to Vault</h3>
               <p className="text-gray-400 text-sm mb-4">
                 Build a knowledge base about companies or people with brochures, weblinks, and information.
               </p>
@@ -519,7 +519,7 @@ export function WorkspaceManager() {
             </div>
 
             <div className="bg-gray-800 rounded-lg p-4 mt-4">
-              <h3 className="text-lg font-semibold text-white mb-4">Brand Profiles</h3>
+              <h3 className="text-lg font-semibold text-white mb-4">Corporate Vault</h3>
               <div className="space-y-2">
                 {brands.map(brand => (
                   <div
@@ -548,7 +548,7 @@ export function WorkspaceManager() {
                         <button
                           onClick={(e) => { e.stopPropagation(); openBrandEditor(brand); }}
                           className="text-gray-400 hover:text-purple-400 text-xs px-2 py-1"
-                          title="Configure Brand Voice"
+                          title="Configure Corporate Vault"
                         >
                           ⚙️
                         </button>
@@ -635,7 +635,7 @@ export function WorkspaceManager() {
       {activeTab === 'projects' && (
         <div className="flex-1">
           <div className="bg-gray-800 rounded-lg p-4 mb-4">
-            <h3 className="text-lg font-semibold text-white mb-4">Create Project</h3>
+            <h3 className="text-lg font-semibold text-white mb-4">New Procurement</h3>
             <div className="flex gap-2">
               <input
                 type="text"
@@ -854,7 +854,7 @@ export function WorkspaceManager() {
           <div className="bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
             <div className="p-6">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-2xl font-bold text-white">Configure Brand Voice: {selectedBrand.name}</h2>
+                <h2 className="text-2xl font-bold text-white">Configure Corporate Vault: {selectedBrand.name}</h2>
                 <button
                   onClick={() => setIsEditingBrand(false)}
                   className="text-gray-400 hover:text-white text-2xl"
@@ -894,7 +894,7 @@ export function WorkspaceManager() {
 
                 {/* Persona */}
                 <div>
-                  <label className="block text-white font-medium mb-2">Brand Persona</label>
+                  <label className="block text-white font-medium mb-2">Company Profile</label>
                   <textarea
                     value={brandPersona}
                     onChange={(e) => setBrandPersona(e.target.value)}
@@ -918,7 +918,7 @@ export function WorkspaceManager() {
 
                 {/* Documents */}
                 <div>
-                  <label className="block text-white font-medium mb-2">Brand Documents</label>
+                  <label className="block text-white font-medium mb-2">Vault Documents</label>
                   <p className="text-gray-400 text-sm mb-3">
                     Add documents to this brand's knowledge base. The AI will use these when chatting.
                   </p>
@@ -976,7 +976,7 @@ export function WorkspaceManager() {
                     onClick={updateBrandVoice}
                     className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded"
                   >
-                    Save Brand Voice
+                    Save Vault
                   </button>
                 </div>
               </div>

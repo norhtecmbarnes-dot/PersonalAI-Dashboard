@@ -1,6 +1,16 @@
 export type DocumentType = 'pdf' | 'docx' | 'txt' | 'markdown' | 'url' | 'html' | 'image' | 'other';
 export type DocumentSource = 'brand' | 'project';
 export type ProjectType = 'bid' | 'proposal' | 'marketing' | 'campaign' | 'research' | 'quote' | 'other';
+export type SolicitationType =
+  | 'SBIR'
+  | 'STTR'
+  | 'BAA'
+  | 'OTA'
+  | 'OT'
+  | 'CSO'
+  | 'RFI'
+  | 'RFP'
+  | 'other';
 export type ProjectStatus = 'active' | 'completed' | 'archived' | 'on_hold';
 export type BidWorkflowStage = 'capture' | 'compliance' | 'outline' | 'writing' | 'review' | 'submitted' | 'archived';
 
@@ -59,6 +69,7 @@ export interface Project {
   name: string;
   description?: string;
   type: ProjectType;
+  solicitationType?: SolicitationType;
   status: ProjectStatus;
   requirements?: string;
   deliverables?: string[];

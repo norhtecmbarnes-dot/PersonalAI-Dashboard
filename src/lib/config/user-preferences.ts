@@ -4,16 +4,7 @@ export interface UserPreferences {
   createdAt: number;
   updatedAt: number;
   hasCompletedSetup: boolean;
-  telegram?: TelegramUserConfig;
   apiKeys?: ApiKeys;
-}
-
-export interface TelegramUserConfig {
-  botToken: string;
-  enabled: boolean;
-  webhookUrl?: string;
-  username?: string;
-  chatId?: string;
 }
 
 export interface ApiKeys {
@@ -46,7 +37,7 @@ class UserPreferencesService {
     if (typeof window === 'undefined') {
       return {
         userName: '',
-        assistantName: 'AI Assistant',
+        assistantName: 'Proposal Genie',
         createdAt: Date.now(),
         updatedAt: Date.now(),
         hasCompletedSetup: false,
@@ -63,7 +54,7 @@ class UserPreferencesService {
 
     return {
       userName: '',
-      assistantName: 'AI Assistant',
+      assistantName: 'Proposal Genie',
       createdAt: Date.now(),
       updatedAt: Date.now(),
       hasCompletedSetup: false,
@@ -121,19 +112,6 @@ class UserPreferencesService {
 
   needsAssistantName(): boolean {
     return !this.preferences.assistantName || this.preferences.assistantName.trim() === '';
-  }
-
-  getTelegramConfig(): TelegramUserConfig | undefined {
-    return this.preferences.telegram || undefined;
-  }
-
-  setTelegramConfig(config: TelegramUserConfig): void {
-    this.preferences = {
-      ...this.preferences,
-      telegram: config,
-      updatedAt: Date.now(),
-    };
-    this.save();
   }
 
   getApiKeys(): ApiKeys {

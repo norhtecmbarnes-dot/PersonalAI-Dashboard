@@ -5,7 +5,7 @@ import { userPreferences } from '@/lib/config/user-preferences';
 
 export default function SetupPage() {
   const [userName, setUserName] = useState('');
-  const [assistantName, setAssistantName] = useState('AI Assistant');
+  const [assistantName, setAssistantName] = useState('Proposal Genie');
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1);
 
@@ -43,7 +43,7 @@ export default function SetupPage() {
           <div className="text-center mb-8">
             <div className="text-6xl mb-4">🚀</div>
             <h1 className="text-3xl font-bold text-white">Welcome!</h1>
-            <p className="text-gray-400 mt-2">Let's set up your AI Assistant</p>
+            <p className="text-gray-400 mt-2">Let's set up Proposal Genie</p>
           </div>
 
           {step === 1 && (
@@ -71,12 +71,12 @@ export default function SetupPage() {
           {step === 2 && (
             <div>
               <div className="mb-6">
-                <label className="block text-white mb-2">What would you like to name your AI Assistant?</label>
+                <label className="block text-white mb-2">What would you like to name your assistant?</label>
                 <input
                   type="text"
                   value={assistantName}
                   onChange={(e) => setAssistantName(e.target.value)}
-                  placeholder="AI Assistant"
+                  placeholder="Proposal Genie"
                   className="w-full px-4 py-3 bg-gray-900 border border-gray-700 rounded-lg text-white focus:outline-none focus:border-purple-500"
                 />
                 <p className="text-gray-500 text-sm mt-2">

@@ -11,10 +11,10 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: 'AI Research Assistant',
-  description: 'Your intelligent companion for research and analysis',
-  authors: [{ name: 'AI Research Team' }],
-  keywords: ['AI', 'chatbot', 'research'],
+  title: 'Proposal Genie',
+  description: 'Your private government contracting strategist — capture management, proposal writing, and compliance.',
+  authors: [{ name: 'Proposal Genie' }],
+  keywords: ['proposals', 'government contracting', 'RFP', 'capture management', 'compliance'],
 };
 
 export default function RootLayout({

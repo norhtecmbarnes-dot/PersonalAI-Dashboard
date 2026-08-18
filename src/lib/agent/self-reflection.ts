@@ -210,7 +210,6 @@ This is an AI Research Assistant with the following capabilities:
 - Workspace organization (folders, brands, projects)
 - Expert agents (Legal, Finance, HR, etc.)
 - SAM.gov integration for government contracting
-- Telegram bot integration
 - Feature request system with OpenCode execution
 - SQLite database for persistent storage
 

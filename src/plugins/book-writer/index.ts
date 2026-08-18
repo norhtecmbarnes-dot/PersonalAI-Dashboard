@@ -235,7 +235,6 @@ Length: 1500-2000 words with examples.`
 Cover:
 - APIs and webhooks
 - Example: Government contract integration (SAM.gov)
-- Example: Telegram bot
 - Handling authentication
 - Rate limits and error handling
 

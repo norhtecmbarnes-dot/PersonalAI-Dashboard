@@ -41,27 +41,6 @@ export async function executeSecurityFixTask(task: ScheduledTask): Promise<TaskE
       `❌ Failed: ${fixResults.failed}`,
     ].join('\n');
 
-    // Send Telegram notification if enabled
-    try {
-      const { sendSecurityNotification, getNotificationConfig } =
-        await import('@/lib/integrations/telegram-notify');
-      const notifConfig = await getNotificationConfig();
-
-      if (notifConfig.enabled && notifConfig.security) {
-        const criticalCount = scanResult.findings.filter(f => f.severity === 'critical').length;
-        const highCount = scanResult.findings.filter(f => f.severity === 'high').length;
-
-        await sendSecurityNotification({
-          count: scanResult.findings.length,
-          riskScore: scanResult.riskScore,
-          critical: criticalCount,
-          high: highCount,
-        });
-      }
-    } catch (e) {
-      console.log('[SecurityFix] Telegram notification failed:', e);
-    }
-
     return {
       success: true,
       result: summary,

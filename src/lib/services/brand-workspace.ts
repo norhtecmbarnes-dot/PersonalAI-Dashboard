@@ -9,6 +9,7 @@ import type {
   DocumentType,
   ProjectType,
   ProjectStatus,
+  SolicitationType,
 } from '@/types/brand-workspace';
 
 function generateId(): string {
@@ -265,10 +266,17 @@ class BrandWorkspaceService {
     const id = generateId();
     const now = Date.now();
 
+    // Store solicitationType inside metadata so no schema migration is needed.
+    const metadata = {
+      ...(project.metadata || {}),
+      ...(project.solicitationType ? { solicitationType: project.solicitationType } : {}),
+    };
+
     const newProject: Project = {
       ...project,
       id,
       brandId,
+      metadata,
       deliverables: project.deliverables || [],
       tags: project.tags || [],
       createdAt: now,
@@ -329,7 +337,15 @@ class BrandWorkspaceService {
     const project = await this.getProjectById(id);
     if (!project) return null;
 
-    const updated = { ...project, ...updates, updatedAt: Date.now() };
+    // Persist solicitationType through metadata (kept in sync with the field).
+    const metadata = {
+      ...(project.metadata || {}),
+      ...(updates.metadata || {}),
+      ...(updates.solicitationType !== undefined
+        ? { solicitationType: updates.solicitationType }
+        : {}),
+    };
+    const updated = { ...project, ...updates, metadata, updatedAt: Date.now() };
 
     await sqlDatabase.run(
       `UPDATE projects_v2 SET name = ?, description = ?, type = ?, status = ?, requirements = ?, deliverables = ?, deadline = ?, metadata = ?, tags = ?, updated_at = ? WHERE id = ?`,
@@ -632,6 +648,71 @@ class BrandWorkspaceService {
           );
         }
 
+        // Distilled solicitation intelligence — format rules, scoring,
+        // milestones, compliance, win themes, and competition — so the model
+        // always knows the page limits, font, required content, and how the
+        // proposal will be scored. Never guess from the raw RFP alone.
+        const meta = project.metadata || {};
+        const intel = meta.solicitationIntel || {};
+
+        const fmt = meta.formatGuide || intel.format || {};
+        const fmtLines = Object.entries(fmt)
+          .filter(([, v]) => v)
+          .map(([k, v]) => `- ${k}: ${v}`);
+        if (fmtLines.length) {
+          contextParts.push(`\n## FORMAT RULES (non-negotiable)\n${fmtLines.join('\n')}`);
+        }
+
+        if (Array.isArray(intel.scoring) && intel.scoring.length) {
+          contextParts.push(
+            '\n## SCORING CRITERIA (how the proposal is evaluated)' +
+              intel.scoring
+                .slice(0, 30)
+                .map(
+                  (s: any) =>
+                    `- ${s.criterion}${s.weight ? ` (${s.weight})` : ''}${s.description ? ` — ${s.description}` : ''}`
+                )
+                .join('\n')
+          );
+        }
+
+        if (Array.isArray(intel.milestones) && intel.milestones.length) {
+          contextParts.push(
+            '\n## MILESTONES & KEY DATES' +
+              intel.milestones
+                .slice(0, 40)
+                .map((m: any) => `- ${m.event}${m.date ? ` — ${m.date}` : ''}`)
+                .join('\n')
+          );
+        }
+
+        if (Array.isArray(intel.compliance) && intel.compliance.length) {
+          contextParts.push(
+            '\n## COMPLIANCE REQUIREMENTS (every shall/must from the RFP)' +
+              intel.compliance
+                .slice(0, 100)
+                .map(
+                  (c: any) =>
+                    `- [ ] ${c.requirement}${c.section ? ` (${c.section})` : ''}`
+                )
+                .join('\n')
+          );
+        }
+
+        if (Array.isArray(meta.winThemes) && meta.winThemes.length) {
+          contextParts.push(
+            '\n## WIN THEMES (established capture strategy)' +
+              meta.winThemes.map((t: string) => `- ${t}`).join('\n')
+          );
+        }
+
+        if (Array.isArray(meta.competition) && meta.competition.length) {
+          contextParts.push(
+            '\n## COMPETITIVE LANDSCAPE' +
+              meta.competition.map((t: string) => `- ${t}`).join('\n')
+          );
+        }
+
         const projectDocs = await this.getBrandDocuments(brandId, projectId);
         documents.push(...projectDocs);
       }
@@ -688,17 +769,19 @@ class BrandWorkspaceService {
   }
 
   private mapRowToProject(row: any): Project {
+    const metadata = row.metadata ? JSON.parse(row.metadata) : {};
     return {
       id: row.id,
       brandId: row.brand_id,
       name: row.name,
       description: row.description,
       type: row.type,
+      solicitationType: metadata.solicitationType as SolicitationType | undefined,
       status: row.status,
       requirements: row.requirements,
       deliverables: row.deliverables ? JSON.parse(row.deliverables) : [],
       deadline: row.deadline,
-      metadata: row.metadata ? JSON.parse(row.metadata) : {},
+      metadata,
       tags: row.tags ? JSON.parse(row.tags) : [],
       createdAt: row.created_at,
       updatedAt: row.updated_at,

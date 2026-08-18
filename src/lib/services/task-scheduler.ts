@@ -14,7 +14,6 @@ import {
   executeCleanupTask,
   executeCleanupDuplicateTasksTask,
   executeSecurityFixTask,
-  executeTelegramBriefingTask,
   executeCustomTask,
 } from './tasks/handlers';
 
@@ -59,9 +58,6 @@ async function executeTaskInternal(task: ScheduledTask): Promise<TaskExecutionRe
       case 'security_fix':
         result = await executeSecurityFixTask(task);
         break;
-      case 'telegram_briefing':
-        result = await executeTelegramBriefingTask(task);
-        break;
       case 'custom':
         result = await executeCustomTask(task);
         break;
@@ -94,7 +90,6 @@ export interface ScheduledTask {
     | 'cleanup'
     | 'cleanup_duplicate_tasks'
     | 'security_fix'
-    | 'telegram_briefing'
     | 'custom';
   schedule: string;
   brandId?: string;
@@ -147,7 +142,6 @@ const TASK_PRIORITIES: Record<ScheduledTask['taskType'], 'critical' | 'high' | '
   cleanup: 'low', // Maintenance, pause during use
   cleanup_duplicate_tasks: 'high', // Important for database hygiene
   security_fix: 'critical', // Security issues need immediate attention
-  telegram_briefing: 'normal', // Daily briefing notification
   custom: 'normal',
 };
 
@@ -171,13 +165,6 @@ export const TASK_TEMPLATES: TaskTemplate[] = [
     name: 'Cache Cleanup',
     description: 'Clear expired cache entries and old temporary data',
     defaultSchedule: 'daily',
-  },
-  {
-    type: 'telegram_briefing',
-    name: 'Telegram Daily Briefing',
-    description: 'Send daily briefing notification to Telegram',
-    defaultSchedule: 'daily',
-    promptTemplate: 'Send daily briefing with news, tasks, and calendar events to Telegram.',
   },
   {
     type: 'research',
@@ -297,7 +284,6 @@ class TaskScheduler {
     cleanup: 10 * 60 * 1000, // 10 minutes
     cleanup_duplicate_tasks: 5 * 60 * 1000, // 5 minutes - find and remove duplicate tasks
     security_fix: 10 * 60 * 1000, // 10 minutes - fix security issues
-    telegram_briefing: 2 * 60 * 1000, // 2 minutes - send briefing
     custom: 10 * 60 * 1000, // 10 minutes
   };
 
@@ -454,7 +440,6 @@ class TaskScheduler {
         { type: 'memory_archive', enabled: true, permanent: true },
         { type: 'cleanup_duplicate_tasks', enabled: true, permanent: true },
         { type: 'security_fix', enabled: true, permanent: true },
-        { type: 'telegram_briefing', enabled: true, permanent: true },
       ];
 
       let createdCount = 0;

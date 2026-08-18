@@ -69,9 +69,9 @@ export default function SettingsPage() {
 
   // Task-specific model preferences
   const [taskModels, setTaskModels] = useState({
-    local_light: 'ollama/angglam.slim',
+    local_light: 'ollama/llama3.2:latest',
     local_write: 'ollama/qwen3.5:9b',
-    local_code: 'ollama/qwen3.5:9b',
+    local_code: 'ollama/ornith:latest',
     cloud_light: 'ollama/kimi-k2.5',
     cloud_write: 'ollama/kimi-k2.5',
     cloud_code: 'ollama/deepseek-coder-v2',
@@ -379,7 +379,7 @@ export default function SettingsPage() {
       <div className="max-w-4xl mx-auto">
         <h1 className="text-3xl font-bold text-white mb-2">Settings</h1>
         <p className="text-gray-400 mb-6">
-          Configure your AI Assistant's capabilities and integrations.
+          Configure Proposal Genie's capabilities and integrations.
         </p>
 
         {message && (
@@ -542,24 +542,6 @@ export default function SettingsPage() {
                   link: 'https://linguix.com/api/',
                 },
                 // Creator Tools — video, voice, and media services
-                {
-                  id: 'vocallab',
-                  name: 'VocalLab',
-                  desc: 'TTS for avatar voices - get key at vocallab.ai',
-                  category: 'Creator',
-                },
-                {
-                  id: 'elevenlabs',
-                  name: 'ElevenLabs',
-                  desc: 'High-quality TTS & voice cloning - get key at elevenlabs.io',
-                  category: 'Creator',
-                },
-                {
-                  id: 'heygen',
-                  name: 'HeyGen',
-                  desc: 'Cloud avatar lip-sync - get key at heygen.com',
-                  category: 'Creator',
-                },
                 {
                   id: 'runway',
                   name: 'Runway',
@@ -1091,6 +1073,7 @@ export default function SettingsPage() {
                     onChange={e => setTaskModels({ ...taskModels, local_light: e.target.value })}
                     className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm"
                   >
+                    <option value="ollama/llama3.2:latest">llama3.2:latest (CPU-friendly)</option>
                     <option value="ollama/angglam.slim">angglam.slim (CPU-friendly)</option>
                     <option value="ollama/qwen3.5:2b">qwen3.5:2b</option>
                     <option value="ollama/llama3.2:3b">llama3.2:3b</option>
@@ -1125,6 +1108,7 @@ export default function SettingsPage() {
                     onChange={e => setTaskModels({ ...taskModels, local_code: e.target.value })}
                     className="flex-1 px-3 py-2 bg-gray-800 border border-gray-700 rounded text-white text-sm"
                   >
+                    <option value="ollama/ornith:latest">ornith:latest (Coding)</option>
                     <option value="ollama/qwen3.5:9b">qwen3.5:9b</option>
                     <option value="ollama/deepseek-coder-v2">deepseek-coder-v2</option>
                     <option value="ollama/codellama">codellama</option>
@@ -1428,16 +1412,6 @@ export default function SettingsPage() {
           </div>
         )}
 
-        <div className="mt-6 bg-gray-800 rounded-lg p-6">
-          <h2 className="text-xl font-semibold text-white mb-4">Telegram Bot</h2>
-          <p className="text-gray-400 mb-4">Configure your Telegram bot for messaging.</p>
-          <a
-            href="/telegram"
-            className="inline-block px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-lg"
-          >
-            Configure Telegram
-          </a>
-        </div>
       </div>
     </div>
   );

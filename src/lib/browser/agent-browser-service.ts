@@ -26,6 +26,8 @@ export interface AgentBrowserOptions {
   timeout?: number;
   headed?: boolean;
   json?: boolean;
+  /** Set false to include non-interactive elements (text, cards) in snapshots. Default: true. */
+  interactiveOnly?: boolean;
 }
 
 export interface FormFillOptions {
@@ -127,7 +129,10 @@ class AgentBrowserService {
     }
 
     try {
-      let cmd = 'agent-browser snapshot -i';
+      let cmd =
+        options.interactiveOnly === false
+          ? 'agent-browser snapshot --json'
+          : 'agent-browser snapshot -i --json';
       if (options.session) cmd += ` --session ${options.session}`;
       cmd += ' --json';
 

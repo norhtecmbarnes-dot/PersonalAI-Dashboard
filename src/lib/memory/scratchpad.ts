@@ -43,7 +43,7 @@ const SCRATCHPAD_PATH = path.join(MEMORY_DIR, 'scratchpad.json');
 const DEFAULT_SCRATCHPAD: Scratchpad = {
   userProfile: {
     name: '',
-    assistantName: 'AI Assistant',
+    assistantName: 'Proposal Genie',
     preferences: {},
     createdAt: Date.now(),
     updatedAt: Date.now()

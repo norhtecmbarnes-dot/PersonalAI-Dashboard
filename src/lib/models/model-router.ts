@@ -135,6 +135,17 @@ const AVAILABLE_MODELS: ModelInfo[] = [
 
   // Capable models (require more resources)
   {
+    id: 'ornith:latest',
+    name: 'Ornith (Coding)',
+    tier: 'local-capable',
+    provider: 'ollama',
+    maxTokens: 32768,
+    costPerToken: 0,
+    available: true,
+    capabilities: ['chat', 'code'],
+    description: 'Agentic coding assistant (Qwen 3.5 9B) - default for coding tasks',
+  },
+  {
     id: 'qwen3.5:27b',
     name: 'Qwen 3.5 27B',
     tier: 'local-capable',
@@ -565,6 +576,15 @@ class ModelRouter {
       }
     }
 
+    // TIER 2 special case: coding tasks prefer the dedicated local coding model
+    if (tier === 'local-capable' && (taskType === 'coding' || taskType === 'code_generation')) {
+      const codingModel = availableLocalModels.find(m => m.id === 'ornith:latest');
+      if (codingModel) {
+        console.log(`[ModelRouter] Using ornith:latest for coding task: ${taskType}`);
+        return codingModel;
+      }
+    }
+
     // TIER 2: Capable Local - Use best available local model
     // Sort by capability (most capable first)
     const capableModels = availableLocalModels
@@ -609,6 +629,7 @@ class ModelRouter {
       'glm-4.7-flash': 4,
       'glm-ocr': 4,
       'llama3.2:latest': 3,
+      'ornith:latest': 9,
       'qwen3.5:9b': 9,
       'qwen3.5:27b': 27,
       'lfm2:latest': 7,
@@ -679,6 +700,37 @@ class ModelRouter {
     }
 
     return this.models[0];
+  }
+
+  /**
+   * Get model for coding tasks
+   * Prefers ornith:latest - the dedicated local coding model
+   */
+  getCodingModel(): ModelInfo {
+    // 1. Primary: ornith:latest - agentic coding assistant
+    const ornith = this.models.find(m => m.id === 'ornith:latest' && m.available);
+    if (ornith) {
+      console.log('[ModelRouter] Using ornith:latest for coding (dedicated coding model)');
+      return ornith;
+    }
+
+    // 2. Fallback: most capable local model that supports code
+    const capable = this.models
+      .filter(
+        m =>
+          m.provider === 'ollama' &&
+          m.available &&
+          m.capabilities.includes('code') &&
+          (m.tier === 'local-capable' || m.tier === 'local-fast')
+      )
+      .sort((a, b) => this.getModelSize(b.id) - this.getModelSize(a.id))[0];
+    if (capable) {
+      console.log(`[ModelRouter] Using ${capable.id} for coding (fallback)`);
+      return capable;
+    }
+
+    // 3. Last resort: chat model
+    return this.getChatModel();
   }
 
   /**

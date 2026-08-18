@@ -245,7 +245,7 @@ async function callOpenRouter(
         'Content-Type': 'application/json',
         Authorization: `Bearer ${openRouterKey}`,
         'HTTP-Referer': 'http://localhost:3000',
-        'X-Title': 'AI Research Assistant',
+        'X-Title': 'Proposal Genie',
       },
       body: JSON.stringify(body),
     });

@@ -1,5 +1,10 @@
 import { chatCompletion } from '@/lib/models/sdk.server';
-import { documentGenerator, GeneratedDocument } from './document-generator';
+import {
+  documentGenerator,
+  GeneratedDocument,
+  type GanttTask,
+  type StaffingRow,
+} from './document-generator';
 import PptxGenJS from 'pptxgenjs';
 
 // Specialized system prompts for each document type
@@ -76,6 +81,7 @@ export interface GenerateFromPromptParams {
   model?: string;
   theme?: 'default' | 'dark' | 'blue' | 'green' | 'red' | 'purple' | 'orange';
   logo?: string;
+  template?: 'standard' | 'quad' | 'gantt' | 'staffing';
 }
 
 export const PRESENTATION_THEMES: Record<
@@ -134,7 +140,7 @@ export const PRESENTATION_THEMES: Record<
 export async function generateDocumentFromPrompt(
   params: GenerateFromPromptParams
 ): Promise<GeneratedDocument> {
-  const { prompt, type, title = 'Untitled', rawContent, model, theme, logo } = params;
+  const { prompt, type, title = 'Untitled', rawContent, model, theme, logo, template } = params;
 
   const systemPrompt = DOCUMENT_PROMPTS[type];
 
@@ -211,9 +217,9 @@ ${prompt}`
   // Parse the content based on type
   switch (type) {
     case 'word':
-      return await generateWordFromContent(title, content);
+      return await generateWordFromContent(title, content, logo);
     case 'slide':
-      return await generateSlidesFromContent(title, content, theme, logo);
+      return await generateSlidesFromContent(title, content, theme, logo, template, model);
     case 'cell':
       return await generateSpreadsheetFromContent(title, content);
     default:
@@ -221,7 +227,11 @@ ${prompt}`
   }
 }
 
-async function generateWordFromContent(title: string, content: string): Promise<GeneratedDocument> {
+async function generateWordFromContent(
+  title: string,
+  content: string,
+  logo?: string
+): Promise<GeneratedDocument> {
   // Parse sections from content
   const sections: { heading?: string; content: string[] }[] = [];
   const lines = content.split('\n');
@@ -253,18 +263,30 @@ async function generateWordFromContent(title: string, content: string): Promise<
       .split('\n\n')
       .map(p => p.trim())
       .filter(p => p && !p.startsWith('#'));
-    return documentGenerator.createWordDocument(title, paragraphs);
+    return documentGenerator.createWordDocument(title, paragraphs, {
+      logoBase64: logo,
+    });
   }
 
-  return documentGenerator.createWordDocumentFromSections(title, sections);
+  return documentGenerator.createWordDocumentFromSections(title, sections, {
+    logoBase64: logo,
+  });
 }
 
 async function generateSlidesFromContent(
   title: string,
   content: string,
   theme?: string,
-  logo?: string
+  logo?: string,
+  template?: 'standard' | 'quad' | 'gantt' | 'staffing',
+  model?: string
 ): Promise<GeneratedDocument> {
+  // Structured templates (quad chart / Gantt / staffing) extract data from the
+  // markdown and render with the specialized proposal exporters.
+  if (template === 'quad' || template === 'gantt' || template === 'staffing') {
+    return await generateStructuredSlides(title, content, template, logo, model);
+  }
+
   // Clean up content - remove markdown code blocks
   let cleanContent = content
     .replace(/```json\n?/g, '')
@@ -336,6 +358,107 @@ async function generateSlidesFromContent(
   }
 
   return createPresentationWithLogo(title, slides, theme, logo);
+}
+
+/**
+ * Extract structured data from proposal markdown and render the specialized
+ * presentation templates: Quad Chart, Gantt schedule, and Staffing report.
+ */
+async function generateStructuredSlides(
+  title: string,
+  markdown: string,
+  template: 'quad' | 'gantt' | 'staffing',
+  logo?: string,
+  model?: string
+): Promise<GeneratedDocument> {
+  const data = await extractPresentationData(markdown, template, model);
+
+  switch (template) {
+    case 'quad':
+      return documentGenerator.createQuadChartPresentation(
+        title,
+        data.quadrants || [],
+        { pageTitle: 'Quad Chart' }
+      );
+    case 'gantt':
+      return documentGenerator.createGanttPresentation(
+        title,
+        (data.tasks || []) as GanttTask[]
+      );
+    case 'staffing':
+      return documentGenerator.createStaffingReportPresentation(
+        title,
+        (data.staffing || []) as StaffingRow[]
+      );
+  }
+}
+
+/** One LLM pass over the markdown, extracting only what the chosen template needs. */
+async function extractPresentationData(
+  markdown: string,
+  template: 'quad' | 'gantt' | 'staffing',
+  model?: string
+): Promise<{
+  quadrants?: { name: string; points: string[] }[];
+  tasks?: {
+    name: string;
+    start: number;
+    end: number;
+    status: string;
+    milestone?: boolean;
+  }[];
+  staffing?: {
+    laborCategory: string;
+    name: string;
+    role: string;
+    level: string;
+    loe: string;
+    status: string;
+  }[];
+}> {
+  const instructions: Record<string, string> = {
+    quad: `Extract the data for a proposal QUAD CHART from the markdown.
+Return STRICT JSON only:
+{"quadrants": [{"name": "Technical", "points": ["short bullet"]}]}
+- Exactly 4 quadrants: Technical, Management, Past Performance, Price / Other.
+- Each with 2-5 short bullet points taken directly from the markdown.
+- Never invent capabilities. Leave points empty when the source has nothing.`,
+    gantt: `Extract the proposal SCHEDULE from the markdown for a GANTT chart.
+Return STRICT JSON only:
+{"tasks": [{"name": "...", "start": 0, "end": 2, "status": "planned"}]}
+- Tasks in 0-based weeks (start inclusive, end exclusive).
+- status one of planned | in-progress | complete.
+- Use dates/milestones in the markdown; never invent tasks or dates.`,
+    staffing: `Extract the STAFFING data from the markdown for a staffing report.
+Return STRICT JSON only:
+{"staffing": [{"laborCategory": "PM", "name": "", "role": "Project Manager", "level": "Senior", "loe": "FTE", "status": "proposed"}]}
+- Only people or roles actually mentioned in the markdown.
+- laborCategory is the role category (e.g. PM, Engineering, Ops).`,
+  };
+
+  const prompt = `${instructions[template]}
+
+SOURCE MARKDOWN:
+${markdown.slice(0, 30000)}
+
+JSON:`;
+
+  try {
+    const result = await chatCompletion({
+      model: model || 'ollama/llama3.2:latest',
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.2,
+      maxTokens: 1200,
+    });
+    const text = result.message?.content || '';
+    const start = text.indexOf('{');
+    const end = text.lastIndexOf('}');
+    if (start < 0 || end <= start) return {};
+    return JSON.parse(text.slice(start, end + 1));
+  } catch (e) {
+    console.error('[Document AI] Presentation data extraction failed:', e);
+    return {};
+  }
 }
 
 async function createPresentationWithLogo(

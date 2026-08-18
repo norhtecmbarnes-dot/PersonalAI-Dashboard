@@ -105,7 +105,7 @@ function formatUserProfile(scratchpad: Scratchpad): string {
 
   if (
     scratchpad.userProfile.assistantName &&
-    scratchpad.userProfile.assistantName !== 'AI Assistant'
+    scratchpad.userProfile.assistantName !== 'Proposal Genie'
   ) {
     parts.push(`Assistant name: ${scratchpad.userProfile.assistantName}`);
   }

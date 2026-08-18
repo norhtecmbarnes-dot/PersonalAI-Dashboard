@@ -6,7 +6,7 @@ import { sanitizePrompt } from '@/lib/utils/validation';
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { type, title, prompt, rawContent, brandId, model, theme, logo } = body;
+    const { type, title, prompt, rawContent, brandId, model, theme, logo, template } = body;
 
     // Log only essential request info, not full content
     console.log('[Document AI] Request:', {
@@ -75,6 +75,23 @@ export async function POST(request: NextRequest) {
 
     const finalPrompt = brandContext ? (prompt || '') + brandContext : prompt || '';
 
+    // Convert Content + Word + no transform prompt: convert the markdown
+    // faithfully to .docx (headings, tables, lists preserved) without
+    // re-writing it through the model. Logo goes in the page header.
+    if (type === 'word' && rawContent && !(prompt || '').trim()) {
+      const { documentGenerator } = await import('@/lib/services/document-generator');
+      const result = await documentGenerator.createWordFromMarkdown(title, rawContent, {
+        logoBase64: logo || undefined,
+      });
+      return new NextResponse(new Uint8Array(result.buffer), {
+        headers: {
+          'Content-Type': result.mimeType,
+          'Content-Disposition': `attachment; filename="${result.filename}"`,
+          'Content-Length': result.buffer.length.toString(),
+        },
+      });
+    }
+
     console.log(`[Document AI] Generating ${type} document: "${title}"`);
 
     const result = await generateDocumentFromPrompt({
@@ -85,6 +102,7 @@ export async function POST(request: NextRequest) {
       model: model || undefined,
       theme: theme || undefined,
       logo: logo || undefined,
+      template: template || undefined,
     });
 
     console.log(

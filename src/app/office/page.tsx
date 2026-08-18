@@ -28,6 +28,14 @@ interface Brand {
   };
 }
 
+interface BrandDocument {
+  id: string;
+  title: string;
+  type: string;
+  content: string;
+  projectId?: string;
+}
+
 export default function OfficePage() {
   const { selectedModel } = useGlobalModel();
   const [docType, setDocType] = useState<DocumentType>('word');
@@ -45,10 +53,62 @@ export default function OfficePage() {
   const [selectedBrandId, setSelectedBrandId] = useState<string>('');
   const [loadingBrands, setLoadingBrands] = useState(true);
   const [logo, setLogo] = useState<string | null>(null);
+  const [slideTemplate, setSlideTemplate] = useState<
+    'standard' | 'quad' | 'gantt' | 'staffing'
+  >('standard');
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
+  const [vaultDocs, setVaultDocs] = useState<BrandDocument[]>([]);
+  const [selectedVaultDocId, setSelectedVaultDocId] = useState('');
 
   useEffect(() => {
     loadBrands();
   }, []);
+
+  // Load the selected company's vault documents so Convert Content can pull
+  // markdown straight from the proposal / solicitation intelligence reports.
+  useEffect(() => {
+    if (!selectedBrandId) {
+      setVaultDocs([]);
+      setSelectedVaultDocId('');
+      return;
+    }
+    (async () => {
+      try {
+        const response = await fetch(
+          `/api/brand-workspace/brands?id=${selectedBrandId}&includeDocuments=true`
+        );
+        if (!response.ok) return;
+        const data = await response.json();
+        const docs = (data.documents || []).filter((d: BrandDocument) =>
+          ['markdown', 'proposal', 'report', 'txt'].includes(d.type)
+        );
+        setVaultDocs(docs);
+      } catch (error) {
+        console.error('Error loading vault documents:', error);
+        setVaultDocs([]);
+      }
+    })();
+  }, [selectedBrandId]);
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = event => {
+      setContent(String(event.target?.result || ''));
+      setUploadedFileName(file.name);
+      setSelectedVaultDocId('');
+    };
+    reader.readAsText(file);
+  };
+
+  const loadVaultDocument = (docId: string) => {
+    const doc = vaultDocs.find(d => d.id === docId);
+    if (!doc) return;
+    setContent(doc.content);
+    setSelectedVaultDocId(docId);
+    setUploadedFileName(null);
+  };
 
   const loadBrands = async () => {
     try {
@@ -205,7 +265,11 @@ export default function OfficePage() {
         requestBody.theme = presentationTheme;
       }
 
-      if (docType === 'powerpoint' && logo) {
+      if (docType === 'powerpoint' && slideTemplate !== 'standard') {
+        requestBody.template = slideTemplate;
+      }
+
+      if ((docType === 'powerpoint' || docType === 'word') && logo) {
         requestBody.logo = logo;
       }
 
@@ -279,7 +343,7 @@ export default function OfficePage() {
         {/* Brand Voice Selector */}
         {!loadingBrands && brands.length > 0 && (
           <div className="mb-6">
-            <label className="block text-sm font-medium mb-2">Brand Voice (Optional)</label>
+            <label className="block text-sm font-medium mb-2">Company (Optional)</label>
             <select
               value={selectedBrandId}
               onChange={e => {
@@ -291,7 +355,7 @@ export default function OfficePage() {
               }}
               className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white"
             >
-              <option value="">No brand (use default style)</option>
+              <option value="">No company (use default style)</option>
               {brands.map(brand => (
                 <option key={brand.id} value={brand.id}>
                   {brand.name}
@@ -299,16 +363,75 @@ export default function OfficePage() {
                 </option>
               ))}
             </select>
-            {selectedBrand?.voiceProfile && (
-              <div className="mt-2 text-sm text-gray-400">
-                {selectedBrand.voiceProfile.tone && (
-                  <span className="mr-3">Tone: {selectedBrand.voiceProfile.tone}</span>
+            {selectedBrand && (
+              <div className="mt-2 flex items-center gap-4 text-sm">
+                {selectedBrand.voiceProfile?.tone && (
+                  <span className="text-gray-400 mr-1">Tone: {selectedBrand.voiceProfile.tone}</span>
                 )}
-                {selectedBrand.voiceProfile.style && (
-                  <span>Style: {selectedBrand.voiceProfile.style}</span>
+                {selectedBrand.voiceProfile?.style && (
+                  <span className="text-gray-400 mr-1">Style: {selectedBrand.voiceProfile.style}</span>
                 )}
+                <a
+                  href={`/brand-workspace?brand=${selectedBrand.id}`}
+                  className="inline-flex items-center text-purple-400 hover:text-purple-300"
+                >
+                  Open {selectedBrand.name} vault →
+                </a>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Presentation Template (only for PowerPoint) */}
+        {docType === 'powerpoint' && (
+          <div className="mb-6">
+            <label className="block text-sm font-medium mb-3">Presentation Template</label>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {[
+                {
+                  id: 'standard' as const,
+                  name: 'Standard Deck',
+                  icon: '📊',
+                  desc: 'Sections become slides',
+                },
+                {
+                  id: 'quad' as const,
+                  name: 'Quad Chart',
+                  icon: '🀄',
+                  desc: 'Technical / Mgmt / Past Perf / Price',
+                },
+                {
+                  id: 'gantt' as const,
+                  name: 'Gantt Chart',
+                  icon: '📅',
+                  desc: 'Schedule with task bars & milestones',
+                },
+                {
+                  id: 'staffing' as const,
+                  name: 'Staffing Report',
+                  icon: '👥',
+                  desc: 'Team table from the proposal',
+                },
+              ].map(t => (
+                <button
+                  key={t.id}
+                  onClick={() => setSlideTemplate(t.id)}
+                  className={`p-3 rounded-lg border-2 transition-all text-left ${
+                    slideTemplate === t.id
+                      ? 'border-purple-500 ring-2 ring-purple-500/30'
+                      : 'border-gray-600 hover:border-gray-500'
+                  }`}
+                >
+                  <div className="text-xl mb-1">{t.icon}</div>
+                  <div className="text-sm font-medium">{t.name}</div>
+                  <div className="text-xs text-gray-400 mt-0.5">{t.desc}</div>
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-slate-500 mt-2">
+              Quad / Gantt / Staffing templates read the markdown content and build the chart
+              automatically.
+            </p>
           </div>
         )}
 
@@ -343,8 +466,8 @@ export default function OfficePage() {
           </div>
         )}
 
-        {/* Logo Upload (only for PowerPoint) */}
-        {docType === 'powerpoint' && (
+        {/* Logo Upload (Word + PowerPoint) */}
+        {docType !== 'excel' && (
           <div className="mb-6">
             <label className="block text-sm font-medium mb-3">Logo (Optional)</label>
             <div className="flex items-center gap-4">
@@ -378,7 +501,11 @@ export default function OfficePage() {
               )}
               {logo && <img src={logo} alt="Logo preview" className="h-10 w-auto object-contain" />}
             </div>
-            <p className="text-xs text-slate-500 mt-1">Logo appears on all slides</p>
+            <p className="text-xs text-slate-500 mt-1">
+              {docType === 'powerpoint'
+                ? 'Logo appears on all slides'
+                : 'Logo appears in the header of every page'}
+            </p>
           </div>
         )}
 
@@ -443,11 +570,48 @@ export default function OfficePage() {
           </div>
         ) : (
           <div className="mb-6">
-            <label className="block text-sm font-medium mb-2">Paste your content</label>
+            <label className="block text-sm font-medium mb-2">
+              Content to convert (markdown from a proposal, meeting notes, or any text)
+            </label>
+
+            {/* Load sources: .md file or a company vault document */}
+            <div className="flex flex-wrap items-center gap-3 mb-3">
+              <label className="cursor-pointer">
+                <div className="px-3 py-1.5 bg-gray-700 hover:bg-gray-600 rounded-lg text-xs">
+                  📄 Upload .md / .txt file
+                </div>
+                <input
+                  type="file"
+                  accept=".md,.markdown,.txt"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                />
+              </label>
+              {selectedBrand && vaultDocs.length > 0 && (
+                <select
+                  value={selectedVaultDocId}
+                  onChange={e => loadVaultDocument(e.target.value)}
+                  className="px-3 py-1.5 bg-gray-800 border border-gray-700 rounded-lg text-xs text-white"
+                >
+                  <option value="">Load from {selectedBrand.name}'s vault…</option>
+                  {vaultDocs.map(doc => (
+                    <option key={doc.id} value={doc.id}>
+                      {doc.title}
+                    </option>
+                  ))}
+                </select>
+              )}
+              {uploadedFileName && (
+                <span className="text-xs text-gray-400">
+                  ✓ {uploadedFileName} loaded
+                </span>
+              )}
+            </div>
+
             <textarea
               value={content}
               onChange={e => setContent(e.target.value)}
-              placeholder={`Paste your content here and describe what you want to create with it. For example:\n\n---\nMeeting notes:\n- Discussed Q3 targets\n- Agreed on timeline\n- Action items assigned\n\nTask: Create a professional meeting summary document`}
+              placeholder={`Paste your markdown here (or upload a .md file). It will be converted to ${docType === 'excel' ? 'a spreadsheet' : docType === 'powerpoint' ? 'slides' : 'a Word document'}. For Word, markdown headings, tables, and lists are preserved exactly.`}
               rows={10}
               className="w-full px-4 py-3 bg-gray-800 border border-gray-700 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent text-white font-mono text-sm"
             />

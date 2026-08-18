@@ -105,6 +105,19 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: true, outline });
       }
 
+      case 'dissect': {
+        const { projectId, model, force } = data;
+        if (!projectId) {
+          return NextResponse.json({ error: 'Missing projectId' }, { status: 400 });
+        }
+        const result = await bidWorkflowService.dissectSolicitation(
+          projectId,
+          model,
+          { force: force === true }
+        );
+        return NextResponse.json({ success: true, ...result });
+      }
+
       case 'update': {
         const { projectId, stage, updates } = data;
         if (!projectId || !stage) {

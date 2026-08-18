@@ -190,7 +190,7 @@ function VisualBuilder() {
           action: bindToTable && selectedTable ? 'generateWithData' : 'generateWithAI',
           description: prompt,
           tableName: bindToTable ? selectedTable : undefined,
-          model: 'glm-4.7-flash',
+          model: 'ollama/ornith:latest',
         };
       } else {
         body = {

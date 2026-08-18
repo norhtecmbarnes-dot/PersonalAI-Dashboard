@@ -26,9 +26,6 @@ export const KNOWN_API_KEY_PROVIDERS = [
   'groq',
   'mistral',
   'linguix',
-  'vocallab',
-  'elevenlabs',
-  'heygen',
   'runway',
   'pika',
   'replicate',
@@ -117,6 +114,19 @@ export interface Task {
   assignee?: string;
   tags: string[];
   source?: string;
+  createdAt: number;
+  updatedAt: number;
+}
+
+export interface ProposalTask {
+  id: string;
+  projectId: string;
+  section?: string;
+  title: string;
+  assignee?: string;
+  status: 'pending' | 'in_progress' | 'completed';
+  orderIndex: number;
+  notes?: string;
   createdAt: number;
   updatedAt: number;
 }
@@ -276,6 +286,21 @@ export class SQLDatabase {
         reminder INTEGER,
         status TEXT DEFAULT 'pending',
         source TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      )
+    `);
+
+    db.run(`
+      CREATE TABLE IF NOT EXISTS proposal_tasks (
+        id TEXT PRIMARY KEY,
+        project_id TEXT NOT NULL,
+        section TEXT,
+        title TEXT NOT NULL,
+        assignee TEXT,
+        status TEXT DEFAULT 'pending',
+        order_index INTEGER DEFAULT 0,
+        notes TEXT,
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
       )
@@ -546,6 +571,44 @@ export class SQLDatabase {
         created_at INTEGER NOT NULL
       )
     `);
+
+    // Customer (agency) knowledge base — one record per customer per brand,
+    // self-improving as solicitations are dissected and outcomes are recorded.
+    db.run(`
+      CREATE TABLE IF NOT EXISTS customers (
+        id TEXT PRIMARY KEY,
+        brand_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        aliases TEXT,
+        mission TEXT,
+        priorities TEXT,
+        hot_buttons TEXT,
+        buying_patterns TEXT,
+        key_contacts TEXT,
+        notes TEXT,
+        win_count INTEGER DEFAULT 0,
+        loss_count INTEGER DEFAULT 0,
+        bid_count INTEGER DEFAULT 0,
+        intel TEXT,
+        metadata TEXT,
+        org_chart TEXT,
+        org_chart_updated_at INTEGER,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      )
+    `);
+
+    // Migration: org chart columns (last known org structure per customer)
+    try {
+      db.run(`ALTER TABLE customers ADD COLUMN org_chart TEXT`);
+    } catch (e) {
+      /* column already exists */
+    }
+    try {
+      db.run(`ALTER TABLE customers ADD COLUMN org_chart_updated_at INTEGER`);
+    } catch (e) {
+      /* column already exists */
+    }
 
     // Capture documents table
     db.run(`
@@ -1421,6 +1484,103 @@ export class SQLDatabase {
     db.run('DELETE FROM tasks WHERE id = ?', [id]);
     saveDb();
     return true;
+  }
+
+  // ==================== Proposal Tasks ====================
+
+  addProposalTask(task: Omit<ProposalTask, 'id' | 'createdAt' | 'updatedAt'>): ProposalTask {
+    if (!db) throw new Error('Database not initialized');
+    const id = generateId();
+    const now = Date.now();
+    db.run(
+      `INSERT INTO proposal_tasks (id, project_id, section, title, assignee, status, order_index, notes, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id,
+        task.projectId,
+        task.section || null,
+        task.title,
+        task.assignee || null,
+        task.status || 'pending',
+        task.orderIndex || 0,
+        task.notes || null,
+        now,
+        now,
+      ]
+    );
+    saveDb();
+    return { ...task, id, createdAt: now, updatedAt: now };
+  }
+
+  getProposalTasks(projectId: string): ProposalTask[] {
+    if (!db) throw new Error('Database not initialized');
+    const result = db.exec('SELECT * FROM proposal_tasks WHERE project_id = ? ORDER BY order_index, created_at', [
+      projectId,
+    ]);
+    if (result.length === 0) return [];
+    return result[0].values.map(row => this.mapRowToProposalTask(result[0].columns, row));
+  }
+
+  updateProposalTask(id: string, updates: Partial<ProposalTask>): ProposalTask | null {
+    if (!db) throw new Error('Database not initialized');
+    const now = Date.now();
+    const task = this.getProposalTaskById(id);
+    if (!task) return null;
+    const updated = { ...task, ...updates, updatedAt: now };
+    db.run(
+      `UPDATE proposal_tasks SET section = ?, title = ?, assignee = ?, status = ?, order_index = ?, notes = ?, updated_at = ?
+       WHERE id = ?`,
+      [
+        updated.section || null,
+        updated.title,
+        updated.assignee || null,
+        updated.status,
+        updated.orderIndex,
+        updated.notes || null,
+        now,
+        id,
+      ]
+    );
+    saveDb();
+    return updated;
+  }
+
+  deleteProposalTask(id: string): boolean {
+    if (!db) throw new Error('Database not initialized');
+    db.run('DELETE FROM proposal_tasks WHERE id = ?', [id]);
+    saveDb();
+    return true;
+  }
+
+  deleteProposalTasksForProject(projectId: string): boolean {
+    if (!db) throw new Error('Database not initialized');
+    db.run('DELETE FROM proposal_tasks WHERE project_id = ?', [projectId]);
+    saveDb();
+    return true;
+  }
+
+  getProposalTaskById(id: string): ProposalTask | null {
+    if (!db) throw new Error('Database not initialized');
+    const result = db.exec('SELECT * FROM proposal_tasks WHERE id = ?', [id]);
+    if (result.length === 0 || result[0].values.length === 0) return null;
+    return this.mapRowToProposalTask(result[0].columns, result[0].values[0]);
+  }
+
+  private mapRowToProposalTask(columns: string[], values: any[]): ProposalTask {
+    const row: Record<string, any> = {};
+    columns.forEach((col, i) => (row[col] = values[i]));
+    return {
+      id: row.id,
+      projectId: row.project_id,
+      section: row.section || undefined,
+      title: row.title,
+      assignee: row.assignee || undefined,
+      status: row.status || 'pending',
+      orderIndex: row.order_index || 0,
+      notes: row.notes || undefined,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
   }
 
   getTaskById(id: string): Task | null {
@@ -4116,7 +4276,7 @@ export class SQLDatabase {
       taskModels: {
         local_light: this.getSetting('model_local_light') || 'ollama/llama3.2:latest',
         local_write: this.getSetting('model_local_write') || 'ollama/qwen3.5:9b',
-        local_code: this.getSetting('model_local_code') || 'ollama/qwen3.5:9b',
+        local_code: this.getSetting('model_local_code') || 'ollama/ornith:latest',
         cloud_light: this.getSetting('model_cloud_light') || 'ollama/kimi-k2.5',
         cloud_write: this.getSetting('model_cloud_write') || 'ollama/kimi-k2.5',
         cloud_code: this.getSetting('model_cloud_code') || 'ollama/deepseek-coder-v2',

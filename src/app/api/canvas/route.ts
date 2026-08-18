@@ -133,7 +133,7 @@ export async function POST(request: NextRequest) {
         const { description: prompt, model } = body;
         // Sanitize user input to prevent prompt injection
         const safePrompt = sanitizePrompt(prompt, 2000);
-        const aiHtml = await generateAIHTML(safePrompt, model || 'glm-4.7-flash');
+        const aiHtml = await generateAIHTML(safePrompt, model || 'ollama/ornith:latest');
         return NextResponse.json({ 
           success: true, 
           html: aiHtml 
@@ -167,7 +167,7 @@ export async function POST(request: NextRequest) {
           safeTableName, 
           tableSchema, 
           tableData,
-          dataModel || 'glm-4.7-flash'
+          dataModel || 'ollama/ornith:latest'
         );
         return NextResponse.json({ 
           success: true, 
@@ -225,7 +225,7 @@ export async function POST(request: NextRequest) {
         const dashboardHtml = await generateDashboardHTML(
           safeDashPrompt,
           dashboardData,
-          dashModel || 'glm-4.7-flash'
+          dashModel || 'ollama/ornith:latest'
         );
         
         return NextResponse.json({ 

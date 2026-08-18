@@ -1,6 +1,8 @@
 import { sqlDatabase } from '@/lib/database/sqlite';
 import { brandWorkspace } from './brand-workspace';
 import { knowledgeExtractor } from './knowledge-extractor';
+import { chatCompletion } from '@/lib/models/sdk.server';
+import { sanitizePrompt } from '@/lib/utils/validation';
 import type { ExtractedKnowledge } from './knowledge-extractor';
 import type { 
   CaptureDocument, 
@@ -8,8 +10,11 @@ import type {
   ComplianceMatrixItem, 
   BidWorkflow,
   Project,
-  BrandDocument
+  BrandDocument,
+  ChatMessage
 } from '@/types/brand-workspace';
+
+const DEFAULT_MODEL = 'ollama/glm-4.7-flash';
 
 function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).substr(2, 9);
@@ -173,12 +178,17 @@ export class BidWorkflowService {
   async createComplianceMatrix(
     projectId: string,
     documents: BrandDocument[],
-    model?: string
+    model?: string,
+    preExtracted?: Array<{ text: string; section?: string; pageReference?: string }>
   ): Promise<ComplianceMatrix> {
     await this.initialize();
 
-    // Extract requirements from documents
-    const requirements = await this.extractRequirements(documents, model, 200);
+    // Prefer LLM-extracted requirements from the dissection step; fall back
+    // to the regex scanner for legacy callers.
+    const requirements =
+      preExtracted && preExtracted.length > 0
+        ? preExtracted
+        : await this.extractRequirements(documents, model, 200);
 
     const matrixId = generateId();
     const now = Date.now();
@@ -242,6 +252,624 @@ export class BidWorkflowService {
     await this.updateWorkflowStage(projectId, 'compliance', { complianceMatrixId: matrixId });
 
     return matrix;
+  }
+
+  /**
+   * Automatically process a solicitation loaded into a procurement:
+   *  - Names the opportunity
+   *  - Extracts the due date and creates a calendar event
+   *  - Extracts the format guide (font, font size, pages, volumes) as markdown
+   *  - Creates the capture document that will hold win themes, competition, and strategy
+   */
+  async processSolicitation(
+    projectId: string,
+    model?: string
+  ): Promise<{
+    opportunityName: string | null;
+    agency: string | null;
+    solicitationNumber: string | null;
+    responseDeadline: string | null;
+    formatGuide: Record<string, string>;
+    formatGuideMarkdown: string | null;
+    calendarEventId: string | null;
+    captureDocument: CaptureDocument | null;
+  }> {
+    await this.initialize();
+
+    const project = await brandWorkspace.getProjectById(projectId);
+    if (!project) {
+      throw new Error('Procurement not found');
+    }
+
+    const documents = await brandWorkspace.getBrandDocuments(project.brandId, projectId);
+    if (documents.length === 0) {
+      return {
+        opportunityName: null,
+        agency: null,
+        solicitationNumber: null,
+        responseDeadline: null,
+        formatGuide: {},
+        formatGuideMarkdown: null,
+        calendarEventId: null,
+        captureDocument: null,
+      };
+    }
+
+    // Idempotency: if we already processed this exact set of documents, return
+    // the cached summary instead of re-running extraction on every upload.
+    const cachedMeta = project.metadata || {};
+    if (
+      cachedMeta.solicitationProcessedAt &&
+      cachedMeta.solicitationDocCount === documents.length
+    ) {
+      return {
+        opportunityName: (cachedMeta.opportunityName as string) || null,
+        agency: (cachedMeta.agency as string) || null,
+        solicitationNumber: (cachedMeta.solicitationNumber as string) || null,
+        responseDeadline: (cachedMeta.responseDeadline as string) || null,
+        formatGuide: (cachedMeta.formatGuide as Record<string, string>) || {},
+        formatGuideMarkdown: null,
+        calendarEventId: (cachedMeta.calendarEventId as string) || null,
+        captureDocument: await this.getCaptureDocumentByProject(projectId),
+      };
+    }
+
+    const combinedContent = documents
+      .map(doc => doc.content)
+      .join('\n\n---\n\n')
+      .slice(0, 60000);
+
+    const extracted = await this.extractSolicitationDetails(combinedContent, model);
+
+    // Merge extraction into the procurement's metadata
+    const metadata = { ...(project.metadata || {}) };
+    if (extracted.programName) metadata.opportunityName = extracted.programName;
+    if (extracted.agency) metadata.agency = extracted.agency;
+    if (extracted.solicitationNumber) metadata.solicitationNumber = extracted.solicitationNumber;
+    if (extracted.responseDeadline) metadata.responseDeadline = extracted.responseDeadline;
+    metadata.formatGuide = {
+      font: extracted.font || '',
+      fontSize: extracted.fontSize || '',
+      pageCount: extracted.pageCount || '',
+      volumes: extracted.volumes || '',
+      submissionInfo: extracted.submissionInfo || '',
+    };
+
+    const opportunityName = extracted.programName || project.name;
+
+    // Create a calendar event for the due date (idempotent per procurement)
+    let calendarEventId: string | null = null;
+    const deadlineMs = this.parseDeadline(extracted.responseDeadline || metadata.responseDeadline);
+    if (deadlineMs && !metadata.calendarEventId) {
+      try {
+        const event = sqlDatabase.addEvent({
+          title: `${opportunityName} — Proposal Due`,
+          description: `Proposal due for ${opportunityName}${
+            extracted.agency ? ` (${extracted.agency})` : ''
+          }. Solicitation: ${extracted.solicitationNumber || 'n/a'}.`,
+          startDate: deadlineMs,
+          endDate: deadlineMs + 60 * 60 * 1000,
+          location: extracted.submissionInfo || '',
+          status: 'pending',
+          source: 'solicitation',
+        });
+        calendarEventId = event.id;
+        metadata.calendarEventId = event.id;
+      } catch (e) {
+        console.error('[BidWorkflow] Could not create calendar event:', e);
+      }
+    } else if (metadata.calendarEventId) {
+      calendarEventId = metadata.calendarEventId as string;
+    }
+
+    // Build the format guide markdown
+    const formatGuideMarkdown = this.buildFormatGuideMarkdown(opportunityName, extracted);
+
+    // Auto-name the opportunity and persist everything
+    metadata.solicitationProcessedAt = Date.now();
+    metadata.solicitationDocCount = documents.length;
+    await brandWorkspace.updateProject(projectId, {
+      name: extracted.programName || project.name,
+      metadata,
+    });
+
+    if (formatGuideMarkdown) {
+      try {
+        await brandWorkspace.saveGeneratedOutput(projectId, {
+          type: 'report',
+          title: `Format Guide — ${opportunityName}`,
+          content: formatGuideMarkdown,
+          format: 'markdown',
+        });
+      } catch (e) {
+        console.error('[BidWorkflow] Could not save format guide:', e);
+      }
+    }
+
+    // Capture document — home for win themes, competition, and strategy
+    let captureDocument: CaptureDocument | null = null;
+    try {
+      const existing = await this.getCaptureDocumentByProject(projectId);
+      if (existing) {
+        captureDocument = existing;
+      } else {
+        captureDocument = await this.createCaptureDocument(projectId, documents, model);
+      }
+    } catch (e) {
+      console.error('[BidWorkflow] Capture document creation failed:', e);
+    }
+
+    return {
+      opportunityName: extracted.programName || null,
+      agency: extracted.agency || null,
+      solicitationNumber: extracted.solicitationNumber || null,
+      responseDeadline: extracted.responseDeadline || null,
+      formatGuide: metadata.formatGuide as Record<string, string>,
+      formatGuideMarkdown,
+      calendarEventId,
+      captureDocument,
+    };
+  }
+
+  /**
+   * Dissect a solicitation into structured intelligence: every compliance
+   * requirement, the scoring criteria with weights, key milestones, format
+   * rules (font, page limits, volumes, margins), and required forms/info.
+   *
+   * Persists to the procurement's metadata, rebuilds the compliance matrix
+   * from the extracted items, and saves a human-readable "Solicitation
+   * Intelligence" document into the vault — so chat and every proposal
+   * function always know the page limits, fonts, win themes, and scoring.
+   */
+  async dissectSolicitation(
+    projectId: string,
+    model?: string,
+    options: { force?: boolean } = {}
+  ): Promise<{
+    complianceCount: number;
+    scoringCount: number;
+    milestonesCount: number;
+    format: Record<string, string>;
+    requiredInfo: string[];
+    intelligenceMarkdown: string | null;
+    complianceMatrixId: string | null;
+  }> {
+    await this.initialize();
+
+    const project = await brandWorkspace.getProjectById(projectId);
+    if (!project) {
+      throw new Error('Procurement not found');
+    }
+
+    const documents = await brandWorkspace.getBrandDocuments(project.brandId, projectId);
+    if (documents.length === 0) {
+      throw new Error('No solicitation documents to dissect — upload the RFP first.');
+    }
+
+    // Idempotency: if already dissected for this exact set of documents and
+    // the caller isn't forcing a re-run, return the cached summary.
+    const meta = project.metadata || {};
+    if (
+      !options.force &&
+      meta.solicitationIntelAt &&
+      meta.solicitationIntelDocCount === documents.length &&
+      meta.solicitationIntel
+    ) {
+      const cached = meta.solicitationIntel as any;
+      const matrix = await this.getComplianceMatrixByProject(projectId).catch(() => null);
+      return {
+        complianceCount: (cached.compliance || []).length,
+        scoringCount: (cached.scoring || []).length,
+        milestonesCount: (cached.milestones || []).length,
+        format: cached.format || {},
+        requiredInfo: cached.requiredInfo || [],
+        intelligenceMarkdown: null,
+        complianceMatrixId: matrix?.id || null,
+      };
+    }
+
+    const combinedContent = documents
+      .map(doc => doc.content)
+      .join('\n\n---\n\n')
+      .slice(0, 45000);
+
+    const intel = await this.extractSolicitationIntelligence(combinedContent, model);
+
+    // Persist the intelligence onto the procurement's metadata
+    const metadata = { ...meta };
+    metadata.solicitationIntel = intel;
+    if (intel.format) {
+      const existing = metadata.formatGuide || {};
+      metadata.formatGuide = {
+        font: intel.format.font || existing.font || '',
+        fontSize: intel.format.fontSize || existing.fontSize || '',
+        pageCount: intel.format.pageCount || existing.pageCount || '',
+        volumes: intel.format.volumes || existing.volumes || '',
+        submissionInfo: existing.submissionInfo || '',
+      };
+    }
+    metadata.solicitationIntelAt = Date.now();
+    metadata.solicitationIntelDocCount = documents.length;
+    await brandWorkspace.updateProject(projectId, { metadata });
+
+    // Rebuild the compliance matrix from the LLM-extracted requirements
+    let complianceMatrixId: string | null = null;
+    try {
+      const requirements = (intel.compliance || []).map(c => ({
+        text: c.requirement,
+        section: c.section,
+        pageReference: '',
+      }));
+      const matrix = await this.createComplianceMatrix(
+        projectId,
+        documents,
+        model,
+        requirements
+      );
+      complianceMatrixId = matrix.id;
+    } catch (e) {
+      console.error('[BidWorkflow] Compliance matrix rebuild failed:', e);
+    }
+
+    // Save a human-readable intelligence document into the vault so it
+    // appears in the Documents tab and feeds chat / proposal functions.
+    const intelligenceMarkdown = this.buildIntelligenceMarkdown(project.name, intel);
+    try {
+      await brandWorkspace.addDocument(project.brandId, {
+        title: `Solicitation Intelligence — ${project.name}`,
+        content: intelligenceMarkdown,
+        type: 'markdown',
+        projectId,
+        metadata: {
+          importedAt: Date.now(),
+          tags: ['solicitation-intelligence', 'compliance', 'scoring'],
+          summary: `Dissected ${documents.length} solicitation documents: ${(intel.compliance || []).length} compliance requirements, ${(intel.scoring || []).length} scoring factors, ${(intel.milestones || []).length} milestones.`,
+        },
+      });
+    } catch (e) {
+      console.error('[BidWorkflow] Could not save solicitation intelligence:', e);
+    }
+
+    // Self-improving customer knowledge: fold what we just learned about this
+    // agency (mission, scoring hot buttons, milestones, format) into the
+    // per-customer knowledge base.
+    try {
+      const { customerKnowledge } = await import('./customer-knowledge');
+      await customerKnowledge.learnFromProject(project.brandId, projectId);
+    } catch (e) {
+      console.error('[BidWorkflow] Customer knowledge update failed:', e);
+    }
+
+    return {
+      complianceCount: (intel.compliance || []).length,
+      scoringCount: (intel.scoring || []).length,
+      milestonesCount: (intel.milestones || []).length,
+      format: intel.format || {},
+      requiredInfo: intel.requiredInfo || [],
+      intelligenceMarkdown,
+      complianceMatrixId,
+    };
+  }
+
+  /** Extract compliance, scoring, milestones, format, and required info in one LLM pass. */
+  private async extractSolicitationIntelligence(
+    content: string,
+    model?: string
+  ): Promise<{
+    compliance: Array<{ requirement: string; section?: string }>;
+    scoring: Array<{ criterion: string; weight?: string; description?: string }>;
+    milestones: Array<{ event: string; date?: string }>;
+    format: Record<string, string>;
+    requiredInfo: string[];
+  }> {
+    const prompt = `You are an expert proposal compliance analyst. Dissect the solicitation below and extract EVERYTHING a proposal team must know before writing.
+
+Return ONLY valid JSON with this exact shape:
+{
+  "compliance": [{"requirement": "exact shall/must requirement", "section": "section or paragraph reference"}],
+  "scoring": [{"criterion": "evaluation factor", "weight": "stated weight or points", "description": "what the evaluator looks for"}],
+  "milestones": [{"event": "event name", "date": "date if stated"}],
+  "format": {"font": "", "fontSize": "", "pageLimits": "per-volume or total page limits", "volumes": "volume names/count", "margins": "", "pageCount": ""},
+  "requiredInfo": ["required forms, certifications, or mandated content"]
+}
+
+Rules:
+- Include EVERY distinct "shall", "must", "will", "is required to", and "offeror shall" statement as a compliance item. Be exhaustive — a missed item means a protestable non-compliance.
+- Include every evaluation factor and its stated weight or points (e.g., Technical 50%, Past Performance 30%, Price 20%).
+- Include all dates: questions due, amendments, site visits, proposal due.
+- For format, only fill fields the solicitation actually states; leave "" when not stated.
+- Keep requirement text verbatim where possible; truncate to 300 chars max per item.
+
+SOLICITATION:
+${content.slice(0, 40000)}
+
+JSON:`;
+
+    try {
+      const result = await chatCompletion({
+        model: model || DEFAULT_MODEL,
+        messages: [{ role: 'user', content: sanitizePrompt(prompt, 45000) }],
+        temperature: 0.1,
+        maxTokens: 3000,
+      });
+      const text = result.message?.content || '';
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        return { compliance: [], scoring: [], milestones: [], format: {}, requiredInfo: [] };
+      }
+      const parsed = JSON.parse(jsonMatch[0]);
+      return {
+        compliance: Array.isArray(parsed.compliance) ? parsed.compliance.slice(0, 200) : [],
+        scoring: Array.isArray(parsed.scoring) ? parsed.scoring.slice(0, 30) : [],
+        milestones: Array.isArray(parsed.milestones) ? parsed.milestones.slice(0, 40) : [],
+        format:
+          parsed.format && typeof parsed.format === 'object' ? parsed.format : {},
+        requiredInfo: Array.isArray(parsed.requiredInfo)
+          ? parsed.requiredInfo.slice(0, 40)
+          : [],
+      };
+    } catch (e) {
+      console.error('[BidWorkflow] Solicitation intelligence extraction failed:', e);
+      return { compliance: [], scoring: [], milestones: [], format: {}, requiredInfo: [] };
+    }
+  }
+
+  private buildIntelligenceMarkdown(
+    name: string,
+    intel: {
+      compliance: Array<{ requirement: string; section?: string }>;
+      scoring: Array<{ criterion: string; weight?: string; description?: string }>;
+      milestones: Array<{ event: string; date?: string }>;
+      format: Record<string, string>;
+      requiredInfo: string[];
+    }
+  ): string {
+    const lines: string[] = [
+      `# Solicitation Intelligence — ${name}`,
+      '',
+      'Machine-extracted from the solicitation. Verify against the source document before submission.',
+      '',
+    ];
+
+    lines.push('## Format Requirements', '');
+    const fmtEntries = Object.entries(intel.format || {}).filter(([, v]) => v);
+    if (fmtEntries.length) {
+      lines.push('| Rule | Value |', '| --- | --- |');
+      for (const [key, value] of fmtEntries) {
+        lines.push(`| ${key} | ${value} |`);
+      }
+    } else {
+      lines.push('No explicit format rules found in the solicitation.');
+    }
+    lines.push('');
+
+    lines.push('## Scoring Criteria', '');
+    if (intel.scoring?.length) {
+      for (const s of intel.scoring) {
+        const weight = s.weight ? ` (${s.weight})` : '';
+        lines.push(
+          `- **${s.criterion}**${weight}${s.description ? ` — ${s.description}` : ''}`
+        );
+      }
+    } else {
+      lines.push('No explicit scoring criteria found.');
+    }
+    lines.push('');
+
+    lines.push('## Milestones & Key Dates', '');
+    if (intel.milestones?.length) {
+      for (const m of intel.milestones) {
+        lines.push(`- ${m.date ? `**${m.event}** — ${m.date}` : m.event}`);
+      }
+    } else {
+      lines.push('No explicit milestones found.');
+    }
+    lines.push('');
+
+    lines.push('## Compliance Requirements', '');
+    if (intel.compliance?.length) {
+      for (const c of intel.compliance) {
+        lines.push(
+          `- [ ] ${c.requirement}${c.section ? ` _(Section: ${c.section})_` : ''}`
+        );
+      }
+    } else {
+      lines.push('No explicit compliance requirements found.');
+    }
+    lines.push('');
+
+    if (intel.requiredInfo?.length) {
+      lines.push('## Required Information & Forms', '');
+      for (const r of intel.requiredInfo) {
+        lines.push(`- ${r}`);
+      }
+      lines.push('');
+    }
+
+    lines.push(
+      '> ⚠️ Machine-extracted. Confirm against the official solicitation before submission.'
+    );
+    return lines.join('\n');
+  }
+
+  /**
+   * Extract win themes, competitive data, and strategy from a conversation and
+   * merge them into the procurement's knowledge (metadata + capture document).
+   */
+  async captureStrategyFromConversation(
+    projectId: string,
+    messages: ChatMessage[],
+    model?: string
+  ): Promise<{ winThemes: string[]; competition: string[]; strategy: string } | null> {
+    await this.initialize();
+
+    const recent = messages
+      .slice(-8)
+      .map(m => `${m.role.toUpperCase()}: ${m.content.slice(0, 800)}`)
+      .join('\n\n');
+
+    const prompt = `You are a capture strategist. From the conversation below, extract proposal intelligence.
+Return ONLY valid JSON:
+{
+  "winThemes": ["1-3 distinct win themes or discriminators discussed"],
+  "competition": ["competitive data points mentioned (incumbents, rivals, advantages)"],
+  "strategy": "one paragraph capturing the agreed capture/proposal strategy"
+}
+If nothing strategic was discussed, return empty arrays and an empty string.
+
+CONVERSATION:
+${recent}
+
+JSON:`;
+
+    try {
+      const result = await chatCompletion({
+        model: model || DEFAULT_MODEL,
+        messages: [{ role: 'user', content: sanitizePrompt(prompt, 9000) }],
+        temperature: 0.2,
+        maxTokens: 500,
+      });
+      const text = result.message?.content || '';
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) return null;
+      const parsed = JSON.parse(jsonMatch[0]);
+
+      const project = await brandWorkspace.getProjectById(projectId);
+      if (!project) return null;
+
+      const metadata = { ...(project.metadata || {}) };
+      const existingThemes = Array.isArray(metadata.winThemes) ? metadata.winThemes : [];
+      const newThemes = Array.isArray(parsed.winThemes) ? parsed.winThemes : [];
+      metadata.winThemes = [...new Set([...existingThemes, ...newThemes])].slice(0, 25);
+
+      const existingCompetition = Array.isArray(metadata.competition) ? metadata.competition : [];
+      const newCompetition = Array.isArray(parsed.competition) ? parsed.competition : [];
+      metadata.competition = [...new Set([...existingCompetition, ...newCompetition])].slice(0, 25);
+
+      if (typeof parsed.strategy === 'string' && parsed.strategy.trim()) {
+        metadata.strategyNotes = parsed.strategy;
+      }
+      metadata.lastStrategyExtractionAt = Date.now();
+
+      await brandWorkspace.updateProject(projectId, { metadata });
+
+      return {
+        winThemes: metadata.winThemes,
+        competition: metadata.competition,
+        strategy: typeof parsed.strategy === 'string' ? parsed.strategy : '',
+      };
+    } catch (e) {
+      console.error('[BidWorkflow] Conversation strategy extraction failed:', e);
+      return null;
+    }
+  }
+
+  /** Extract structured solicitation details with a single LLM call. */
+  private async extractSolicitationDetails(
+    content: string,
+    model?: string
+  ): Promise<{
+    programName?: string;
+    agency?: string;
+    solicitationNumber?: string;
+    responseDeadline?: string;
+    font?: string;
+    fontSize?: string;
+    pageCount?: string;
+    volumes?: string;
+    submissionInfo?: string;
+  }> {
+    const prompt = `You are an expert capture analyst. Extract submission details from the solicitation below.
+Return ONLY valid JSON with these string fields (use "" when not found):
+{
+  "programName": "the program or opportunity name",
+  "agency": "the issuing agency or office",
+  "solicitationNumber": "the solicitation/notice number",
+  "responseDeadline": "the proposal due date",
+  "font": "required font, e.g. Times New Roman",
+  "fontSize": "required font size, e.g. 12 point",
+  "pageCount": "page limits, e.g. 25 pages max per volume",
+  "volumes": "number and names of volumes, e.g. 3 volumes (Technical, Management, Cost)",
+  "submissionInfo": "submission method, address, or portal"
+}
+
+SOLICITATION:
+${content.slice(0, 20000)}
+
+JSON:`;
+
+    try {
+      const result = await chatCompletion({
+        model: model || DEFAULT_MODEL,
+        messages: [{ role: 'user', content: sanitizePrompt(prompt, 22000) }],
+        temperature: 0.1,
+        maxTokens: 700,
+      });
+      const text = result.message?.content || '';
+      const jsonMatch = text.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) return {};
+      const parsed = JSON.parse(jsonMatch[0]);
+      return {
+        programName: parsed.programName || undefined,
+        agency: parsed.agency || undefined,
+        solicitationNumber: parsed.solicitationNumber || undefined,
+        responseDeadline: parsed.responseDeadline || undefined,
+        font: parsed.font || undefined,
+        fontSize: parsed.fontSize || undefined,
+        pageCount: parsed.pageCount || undefined,
+        volumes: parsed.volumes || undefined,
+        submissionInfo: parsed.submissionInfo || undefined,
+      };
+    } catch (e) {
+      console.error('[BidWorkflow] Solicitation extraction failed:', e);
+      return {};
+    }
+  }
+
+  private buildFormatGuideMarkdown(
+    name: string,
+    f: {
+      font?: string;
+      fontSize?: string;
+      pageCount?: string;
+      volumes?: string;
+      submissionInfo?: string;
+    }
+  ): string {
+    return [
+      `# Format Guide — ${name}`,
+      '',
+      'Extracted from the solicitation. Verify against the source document before submission.',
+      '',
+      '| Requirement | Value |',
+      '| --- | --- |',
+      `| Font | ${f.font || 'Not specified'} |`,
+      `| Font size | ${f.fontSize || 'Not specified'} |`,
+      `| Page count / limits | ${f.pageCount || 'Not specified'} |`,
+      `| Total volumes | ${f.volumes || 'Not specified'} |`,
+      `| Submission details | ${f.submissionInfo || 'Not specified'} |`,
+      '',
+      '> ⚠️ This guide is machine-extracted. Always confirm formatting rules against the official solicitation.',
+    ].join('\n');
+  }
+
+  private parseDeadline(value: string | undefined): number | null {
+    if (!value) return null;
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+
+    const parsed = Date.parse(trimmed);
+    if (!isNaN(parsed)) return parsed;
+
+    // MM/DD/YYYY or MM-DD-YY
+    const mdy = trimmed.match(/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})$/);
+    if (mdy) {
+      const year = mdy[3].length === 2 ? `20${mdy[3]}` : mdy[3];
+      const ms = new Date(Number(year), Number(mdy[1]) - 1, Number(mdy[2])).getTime();
+      if (!isNaN(ms)) return ms;
+    }
+
+    return null;
   }
 
   /**

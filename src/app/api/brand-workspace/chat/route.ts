@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { brandWorkspace } from '@/lib/services/brand-workspace';
+import { bidWorkflowService } from '@/lib/services/bid-workflow';
 import { documentProcessor } from '@/lib/services/document-processor';
 import type { ChatMessage } from '@/types/brand-workspace';
 import { sanitizePrompt } from '@/lib/utils/validation';
@@ -197,10 +198,30 @@ export async function POST(request: NextRequest) {
         };
         const updatedSession = await brandWorkspace.addMessageToSession(currentSessionId, assistantMessage);
 
+        // Develop win themes, competitive data, and strategy from the conversation.
+        // Runs when the user is discussing strategy so routine chat stays fast.
+        let strategy: any = null;
+        const strategyIntent =
+          /win theme|competit|strateg|pricing|incumbent|rival|advantage|strength|weakness|discriminator|go\/?\s?no.?go|bid no|should we bid/i.test(
+            message
+          );
+        if (strategyIntent && updatedSession && updatedSession.messages.length >= 3) {
+          try {
+            strategy = await bidWorkflowService.captureStrategyFromConversation(
+              projectId,
+              updatedSession.messages,
+              model || brand.settings?.defaultModel || 'ollama/qwen3.5:9b'
+            );
+          } catch (e) {
+            console.error('[Chat] Strategy capture failed:', e);
+          }
+        }
+
         return NextResponse.json({
           success: true,
           session: updatedSession,
           message: updatedSession?.messages[updatedSession.messages.length - 1],
+          strategy,
         });
       }
 

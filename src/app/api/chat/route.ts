@@ -775,17 +775,22 @@ Generate appropriate chart type (line, bar, pie, doughnut, etc.) based on the re
     // Add current message to history - use client-provided names or fallback
     const finalUserName = clientUserName || userPreferences.getUserName() || 'User';
     const finalAssistantName =
-      clientAssistantName || userPreferences.getAssistantName() || 'AI Assistant';
+      clientAssistantName || userPreferences.getAssistantName() || 'Proposal Genie';
 
     const personalizedSystemPrompt = SYSTEM_PROMPT.replace(/{{USER_NAME}}/g, finalUserName).replace(
       /{{ASSISTANT_NAME}}/g,
       finalAssistantName
     );
 
+    // The soul is the heart of the assistant — its persona, values, and rules.
+    // It is user-editable in the Memory tab and Brand Workspace.
+    const soulContext = `\n\n## Your Soul — Core Identity (non-negotiable)\n${memoryFileService.loadSoul()}\n`;
+
     const messages = [
       {
         role: 'system',
         content:
+          soulContext +
           brandContext +
           persistentMemoryContext +
           memoryContext +
