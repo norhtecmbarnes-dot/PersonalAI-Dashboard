@@ -7,6 +7,15 @@
 *Written for everyone — no technical background needed. Each section says what
  the feature is, why it matters, and how to use it.*
 
+### 🏛️ The "Brands" Tab Is Now "Corporate Vault"
+
+**What changed.** The navigation tab that opens the company workspace now reads
+**Corporate vault** instead of "Brands" — matching what the page itself already
+called it. Nothing moved; the same page opens, just with a name that says what
+it is: the home of your company's knowledge base.
+
+---
+
 ### 🎯 New Topics of Interest for digantara
 
 **What changed.** Four topics were added to the company's opportunity profile:
