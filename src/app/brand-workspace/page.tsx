@@ -1989,6 +1989,55 @@ export default function BrandWorkspacePage() {
               </div>
             )}
 
+            {/* Chat Empty State */}
+            {viewMode === 'chat' && !currentSession && (
+              <div className="bg-gray-800 rounded-lg p-12 text-center">
+                <h2 className="text-2xl font-semibold mb-4">💬 Vault Chat</h2>
+                {!selectedBrand ? (
+                  <>
+                    <p className="text-gray-400 mb-6 max-w-md mx-auto">
+                      Select a company from the Companies tab, then start a chat to ask
+                      questions about its vault documents.
+                    </p>
+                    <button
+                      onClick={() => setViewMode('brands')}
+                      className="px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg"
+                    >
+                      🏢 Go to Companies
+                    </button>
+                  </>
+                ) : !selectedProject ? (
+                  <>
+                    <p className="text-gray-400 mb-6 max-w-md mx-auto">
+                      Chat with {selectedBrand.name}'s corporate vault — product data, past
+                      proposals, and company knowledge.
+                    </p>
+                    <button
+                      onClick={startBrandChat}
+                      disabled={isLoading}
+                      className="px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg disabled:opacity-50"
+                    >
+                      {isLoading ? 'Starting…' : '💬 Ask the Vault'}
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-gray-400 mb-6 max-w-md mx-auto">
+                      Chat with {selectedProject.name} — ask questions about its requirement
+                      documents and your company's vault.
+                    </p>
+                    <button
+                      onClick={startChat}
+                      disabled={isLoading}
+                      className="px-6 py-3 bg-purple-600 hover:bg-purple-700 rounded-lg disabled:opacity-50"
+                    >
+                      {isLoading ? 'Starting…' : '💬 New Chat'}
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+
             {/* Empty State */}
             {viewMode === 'brands' && brands.length === 0 && (
               <div className="bg-gray-800 rounded-lg p-12 text-center">
@@ -2033,7 +2082,7 @@ export default function BrandWorkspacePage() {
                         <span
                           className={`px-2 py-1 rounded ${scoutStatus?.apiConfigured ? 'bg-green-900/50 text-green-400' : 'bg-yellow-900/50 text-yellow-400'}`}
                         >
-                          {scoutStatus?.apiConfigured ? 'SAM.gov API ✓' : 'API key missing — browser agent'}
+                          {scoutStatus?.apiConfigured ? 'SAM.gov API ✓' : 'API key missing — SAM search disabled'}
                         </span>
                         <span className="px-2 py-1 rounded bg-gray-700 text-gray-300">
                           {scoutStatus?.searchCount || 0} searches
@@ -2174,7 +2223,7 @@ export default function BrandWorkspacePage() {
                       </div>
                       {scoutSearchMode && (
                         <p className="text-xs text-gray-400 mb-2">
-                          SAM.gov mode: {scoutSearchMode === 'api' ? 'API' : scoutSearchMode === 'browser' ? 'Browser agent' : '—'}
+                          SAM.gov mode: {scoutSearchMode === 'api' ? 'API' : 'Blocked (key required)'}
                           {scoutSourcesUsed.length > 0
                             ? ` · Sources searched: ${scoutSourcesUsed.join(', ')}`
                             : ''}

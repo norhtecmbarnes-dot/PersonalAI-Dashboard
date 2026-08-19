@@ -253,6 +253,34 @@ pull from past awards.
 
 ---
 
+### 🔑 SAM.gov Searches Now Require an API Key
+
+**What changed.** Searching SAM.gov — the daily matches scan, the opportunity
+scout, and the manual search page — now **requires the free SAM.gov API key**.
+The old keyless fallback (which browsed the public SAM.gov website on your
+behalf) has been removed entirely.
+
+**Why it matters.** The browser-based fallback was a stopgap: it was slower,
+less reliable, and could miss opportunities. The official API is the proper
+way to search the government's contracting data. Requiring the key means every
+search uses the fast, accurate, NAICS-filtered official feed — and the system
+now tells you exactly what's missing instead of quietly scraping.
+
+**What you'll see without a key:**
+- The **Matches** page shows a red **Key required** badge and a banner:
+  *"Searching requires a SAM.gov API key"* with an **Add key in Settings**
+  button.
+- Clicking **Run scan now** won't pretend to scan — it explains that the key
+  is required.
+- The manual SAM.gov search returns a clear "key required" message.
+- The Company Workspace scout shows **API key missing — SAM search disabled**.
+
+**How to fix it:** Settings → API Keys (SAM.gov) → paste your free key (get
+one at sam.gov → Workspace → API Keys). The moment it's saved, all searches
+switch on automatically.
+
+---
+
 ## Version 2.6.5 (March 20, 2026) - Mermaid Diagrams & Rate Limiting
 
 ---

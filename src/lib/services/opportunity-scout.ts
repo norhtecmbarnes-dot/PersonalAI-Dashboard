@@ -16,12 +16,11 @@ import type { Project } from '@/types/brand-workspace';
  *     past performance) from the brand, its documents, and its proposals.
  *  2. Generates search queries from that profile — including "learned" keywords weighted
  *     by what has produced real bids and wins.
- *  3. Searches SAM.gov via the official API when a key is configured; otherwise it scrapes
- *     the SAM.gov public search UI with the browser agent (full-page snapshot → real result
- *     cards with solicitation numbers, deadlines, and deep links). It also scrapes and
- *     searches customer-published sites depending on the target agencies in the profile:
- *     DIU (diu.mil), SSC Front Door (frontdoor.spaceforce.mil), AFWERX (afwerx.af.mil),
- *     and SBIR.gov / DoD SBIR.
+ *  3. Searches SAM.gov via the official API — the SAM.gov API key is REQUIRED
+ *     (no browser-scrape fallback). It also searches customer-published sites
+ *     depending on the target agencies in the profile: DIU (diu.mil), SSC Front
+ *     Door (frontdoor.spaceforce.mil), AFWERX (afwerx.af.mil), and SBIR.gov / DoD
+ *     SBIR.
  *  4. Scores every opportunity against the profile and stores the best fits.
  *  5. Learns: after a proposal is written / won / lost, it adjusts keyword weights and
  *     records the agencies, NAICS codes, and products that actually mattered.
@@ -382,7 +381,7 @@ Respond with STRICT JSON only, no markdown, no commentary:
     }
   ): Promise<{
     success: boolean;
-    mode: 'api' | 'browser' | 'none';
+    mode: 'api' | 'none';
     queries: string[];
     opportunities: ScoredOpportunity[];
     profile: OpportunityProfile;
@@ -405,44 +404,35 @@ Respond with STRICT JSON only, no markdown, no commentary:
     const webSources = sources.filter(s => s.id !== 'sam');
 
     const all: SAMOpportunity[] = [];
-    let mode: 'api' | 'browser' | 'none' = 'none';
+    let mode: 'api' | 'none' = 'none';
     const apiKey = sqlDatabase.getApiKey('sam');
+    const wantsSam = sources.some(s => s.id === 'sam');
 
+    // SAM.gov searching REQUIRES the official API key — no browser-scrape
+    // fallback. Without a key, SAM queries are skipped entirely and the
+    // response explains how to enable searching.
     for (const query of queries) {
       const keyword = typeof query === 'string' ? query : query.keyword;
       const naicsCode = typeof query === 'string' ? undefined : query.naicsCode;
       const pscCode = typeof query === 'string' ? undefined : query.pscCode;
       const searchTerm = keyword || naicsCode || pscCode || '';
-      if (apiKey) {
-        try {
-          const params: SAMSearchParams = {
-            ...(keyword ? { keyword } : {}),
-            limit: Math.min(opts?.limit || 15, 50),
-            ...(naicsCode ? { naicsCode } : {}),
-            ...(pscCode ? { pscCode } : {}),
-          };
-          const res = await SamGovService.getInstance().search(params);
-          if (res.success && res.opportunities) {
-            all.push(
-              ...res.opportunities.map((o: SAMOpportunity) => ({ ...o, keywords: [searchTerm], source: 'sam' }))
-            );
-            mode = 'api';
-          }
-        } catch (e) {
-          console.error(`[OpportunityScout] SAM API search failed for "${searchTerm}":`, e);
+      if (!apiKey) continue;
+      try {
+        const params: SAMSearchParams = {
+          ...(keyword ? { keyword } : {}),
+          limit: Math.min(opts?.limit || 15, 50),
+          ...(naicsCode ? { naicsCode } : {}),
+          ...(pscCode ? { pscCode } : {}),
+        };
+        const res = await SamGovService.getInstance().search(params);
+        if (res.success && res.opportunities) {
+          all.push(
+            ...res.opportunities.map((o: SAMOpportunity) => ({ ...o, keywords: [searchTerm], source: 'sam' }))
+          );
+          mode = 'api';
         }
-      } else {
-        // Browser-agent scrape of the SAM.gov public search UI
-        try {
-          const samSource = OPPORTUNITY_SOURCES.find(s => s.id === 'sam');
-          const found = samSource ? await this.scrapeSource(samSource, searchTerm, 8) : [];
-          if (found.length > 0) {
-            all.push(...found.map(o => ({ ...o, source: 'sam' })));
-            mode = 'browser';
-          }
-        } catch (e) {
-          console.error(`[OpportunityScout] SAM.gov scrape failed for "${searchTerm}":`, e);
-        }
+      } catch (e) {
+        console.error(`[OpportunityScout] SAM API search failed for "${searchTerm}":`, e);
       }
     }
 
@@ -471,8 +461,12 @@ Respond with STRICT JSON only, no markdown, no commentary:
         profile,
         sourcesUsed: sources.map(s => s.id),
         message: apiKey
-          ? 'No opportunities found. Try adding more keywords to the profile.'
-          : 'No SAM.gov API key configured and the browser agent found nothing. Add a SAM.gov API key in Settings > API Keys (SAM.gov) for reliable results.',
+          ? wantsSam && queries.length > 0
+            ? 'No opportunities found. Try adding more keywords to the profile.'
+            : 'No opportunities found on the selected sources.'
+          : wantsSam
+          ? 'SAM.gov API key required — searching is disabled until you add your free key in Settings > API Keys (SAM.gov).'
+          : 'No opportunities found on the selected sources.',
       };
     }
 
@@ -639,10 +633,7 @@ Respond with STRICT JSON only, no markdown, no commentary:
     return {
       id: `${source.id}_${Date.now()}_${outCounter()}`,
       title: card.title.slice(0, 200),
-      synopsis:
-        source.id === 'sam'
-          ? 'Discovered via browser scrape of SAM.gov — open the link to review.'
-          : `Discovered via browser scrape of ${source.label} — open the link to review.`,
+      synopsis: `Discovered via browser scrape of ${source.label} — open the link to review.`,
       solicitationNumber: solicitationNumber || `${source.id.toUpperCase()}-SCRAPE-${outCounter()}`,
       responseDeadline,
       agency: agency || source.label,

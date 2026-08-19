@@ -13,9 +13,8 @@
  *  - An in-process Set plus a DB timestamp guard against concurrent runs; a
  *    started-marker older than 10 minutes is treated as a crashed scan and the
  *    lock is released.
- *  - With a SAM.gov API key in Settings the scan uses the official API with
- *    NAICS-code filters; without one it falls back to the browser-agent scrape
- *    of the SAM.gov public search UI (both handled by OpportunityScout).
+ *  - The SAM.gov API key is REQUIRED: without one the scan refuses to start and
+ *    points the user to Settings > API Keys. There is no browser-scrape fallback.
  */
 
 import { sqlDatabase } from '@/lib/database/sqlite';
@@ -44,7 +43,7 @@ export interface ScanSummary {
   brandName: string;
   ranAt: number;
   durationMs: number;
-  mode: 'api' | 'browser' | 'none';
+  mode: 'api' | 'blocked' | 'none';
   queries: string[];
   totalFound: number;
   matchCount: number;
@@ -123,10 +122,11 @@ export class DailySamScanService {
     const profile = opportunityScout.getProfile(brandId);
     const brand = await brandWorkspace.getBrandById(brandId).catch(() => null);
     const last = this.getLastRun(brandId);
+    const configured = this.isConfigured();
     return {
       brandId,
       brandName: brand?.name || summary?.brandName || '',
-      configured: this.isConfigured(),
+      configured,
       hasProfile: profile.keywords.length > 0 || profile.naicsCodes.length > 0,
       profileSummary: {
         naicsCodes: profile.naicsCodes.map(String),
@@ -140,7 +140,11 @@ export class DailySamScanService {
       mode: summary?.mode || null,
       totalFound: summary?.totalFound || 0,
       matchCount: summary?.matchCount || 0,
-      lastMessage: summary?.message || null,
+      // When the key is missing the stored summary is stale — always surface
+      // the current key-required state instead.
+      lastMessage: configured
+        ? summary?.message || null
+        : 'SAM.gov API key required — add your free key in Settings > API Keys to enable daily scanning.',
     };
   }
 
@@ -190,6 +194,13 @@ export class DailySamScanService {
     opts?: { force?: boolean; limit?: number }
   ): Promise<{ started: boolean; message: string }> {
     sqlDatabase.initialize();
+    if (!this.isConfigured()) {
+      return {
+        started: false,
+        message:
+          'SAM.gov API key required — add your free key in Settings > API Keys to enable daily scanning.',
+      };
+    }
     if (this.isRunning(brandId)) {
       return { started: false, message: 'A scan is already running for this company.' };
     }
@@ -223,6 +234,27 @@ export class DailySamScanService {
     const startedAt = Date.now();
     const errors: string[] = [];
     const brand = await brandWorkspace.getBrandById(brandId).catch(() => null);
+
+    // The key is required — without it the scan refuses to run (and last_run
+    // is never recorded, so the next visit retries after the key is added).
+    if (!this.isConfigured()) {
+      const summary: ScanSummary = {
+        brandId,
+        brandName: brand?.name || '',
+        ranAt: Date.now(),
+        durationMs: 0,
+        mode: 'blocked',
+        queries: [],
+        totalFound: 0,
+        matchCount: 0,
+        topMatches: [],
+        errors: ['SAM.gov API key required'],
+        message:
+          'SAM.gov API key required — add your free key in Settings > API Keys to enable daily scanning.',
+      };
+      sqlDatabase.setSetting(lastSummaryKey(brandId), JSON.stringify(summary), 'daily_sam_scan');
+      return;
+    }
 
     try {
       let profile = opportunityScout.getProfile(brandId);

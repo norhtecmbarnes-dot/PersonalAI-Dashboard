@@ -31,7 +31,7 @@ interface ScanStatus {
   nextRun: number | null;
   stale: boolean;
   running: boolean;
-  mode: 'api' | 'browser' | 'none' | null;
+  mode: 'api' | 'blocked' | 'none' | null;
   totalFound: number;
   matchCount: number;
   lastMessage: string | null;
@@ -40,7 +40,7 @@ interface ScanStatus {
 interface ScanSummary {
   ranAt: number;
   durationMs: number;
-  mode: 'api' | 'browser' | 'none';
+  mode: 'api' | 'blocked' | 'none';
   queries: string[];
   totalFound: number;
   matchCount: number;
@@ -168,6 +168,13 @@ export default function OpportunitiesPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Failed to start scan');
+      // The scan may refuse to start (e.g. no SAM.gov API key) — surface the
+      // message instead of pretending it is running.
+      if (data.started === false) {
+        setError(data.message || 'Scan could not be started');
+        await loadData({ silent: true });
+        return;
+      }
       pollCount.current = 0;
       // Optimistically flip to running; the poll loop takes it from here.
       setStatus(s => (s ? { ...s, running: true } : s));
@@ -280,19 +287,19 @@ export default function OpportunitiesPage() {
                 className={`px-2 py-1 rounded-md text-xs font-medium ${
                   status?.configured
                     ? 'bg-emerald-500/15 text-emerald-300'
-                    : 'bg-amber-500/15 text-amber-300'
+                    : 'bg-red-500/15 text-red-300'
                 }`}
                 title={
                   status?.configured
-                    ? 'SAM.gov API key is configured — fast, reliable searches'
-                    : 'No SAM.gov API key — using browser scrape. Add a free key in Settings for reliability.'
+                    ? 'SAM.gov API key is configured — searches use the official API'
+                    : 'SAM.gov API key required — searching is disabled until one is added'
                 }
               >
-                {status?.configured ? 'SAM API' : 'Browser scrape'}
+                {status?.configured ? 'SAM API' : 'Key required'}
               </span>
               {status?.mode && (
                 <span className="px-2 py-1 rounded-md bg-slate-700 text-slate-300 text-xs">
-                  Last run: {status.mode === 'api' ? 'API' : status.mode === 'browser' ? 'Scrape' : 'None'}
+                  Last run: {status.mode === 'api' ? 'API' : status.mode === 'blocked' ? 'Blocked' : 'None'}
                 </span>
               )}
               {!status?.configured && (
@@ -328,6 +335,21 @@ export default function OpportunitiesPage() {
             <div className="mt-4 flex items-center gap-3 text-purple-300 text-sm">
               <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-500"></div>
               Scanning SAM.gov for new opportunities… this can take a couple of minutes.
+            </div>
+          )}
+
+          {!status?.configured && (
+            <div className="mt-4 text-sm text-red-300/90 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2 flex flex-wrap items-center gap-2">
+              <span>
+                ⛔ <strong>Searching requires a SAM.gov API key.</strong> The daily scan and all
+                SAM.gov searches are disabled until you add your free key.
+              </span>
+              <a
+                href="/settings"
+                className="px-3 py-1 rounded bg-purple-600 hover:bg-purple-700 text-white text-xs font-medium"
+              >
+                Add key in Settings
+              </a>
             </div>
           )}
 
@@ -571,8 +593,8 @@ export default function OpportunitiesPage() {
               plus your top (win-proven) keywords.
             </li>
             <li>
-              With a free SAM.gov API key (Settings → API Keys), searches use the official API with
-              NAICS filters. Without one, the browser-scrape fallback searches the public SAM.gov UI.
+              A free SAM.gov API key (Settings → API Keys) is <strong>required</strong> — searches use
+              the official API with NAICS filters and never run without the key.
             </li>
             <li>
               Every opportunity is scored against your profile — NAICS match (+25), target agency
