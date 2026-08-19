@@ -713,6 +713,29 @@ class BrandWorkspaceService {
           );
         }
 
+        // THE INVISIBLE PROPOSAL — the human team's knowledge about this
+        // customer (mission, hot buttons, buying patterns, contacts, win/loss)
+        // that is NOT in the solicitation. Injected so the partner works from
+        // what the human knows, not just what the RFP says.
+        try {
+          const customerName =
+            (meta.agency as string) ||
+            (meta.opportunityName as string) ||
+            project.name ||
+            '';
+          const { customerKnowledge } = await import('./customer-knowledge');
+          const invisible =
+            await customerKnowledge.buildKnowledgeContext(
+              brandId,
+              customerName
+            );
+          if (invisible) {
+            contextParts.push(`\n${invisible}`);
+          }
+        } catch (e) {
+          console.error('[BrandWorkspace] Customer knowledge context failed:', e);
+        }
+
         const projectDocs = await this.getBrandDocuments(brandId, projectId);
         documents.push(...projectDocs);
       }

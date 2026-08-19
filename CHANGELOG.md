@@ -124,6 +124,55 @@ never see two different names in two places.
 
 ---
 
+### 🤝 The AI Is Now a Bidding Partner, Not Just a Proposal Writer
+
+**What changed.** Three missing links in the "opportunity → project → proposal"
+journey were closed, so the system now works the way a capture team actually
+works:
+
+1. **A match becomes a project.** Every opportunity on the **Matches** page now
+   has a **Start Bid** button. One click creates the bid project under your
+   company, and — importantly — **the agency is automatically added to your
+   customer knowledge base** with a note about the opportunity. Your company
+   knowledge is now genuinely the foundation every opportunity builds on.
+
+2. **Your "invisible proposal" now reaches the AI.** The system already let
+   you record what you know about a customer — their mission, priorities, hot
+   buttons, buying patterns, key contacts, and your win/loss history with
+   them. But the AI never saw any of it. Now that knowledge is injected into
+   **every strategy conversation and every proposal draft**, clearly labeled
+   as *"THE INVISIBLE PROPOSAL — human knowledge about this customer that is
+   NOT in the solicitation."* The AI is told to use it to write
+   customer-tailored discriminators — and never to confuse it with the
+   solicitation's compliance facts.
+
+   **Proof it works:** we seeded a test customer with three facts (mission:
+   "rapid space demonstration," priorities: flight heritage, hot button:
+   real on-orbit data), then asked the AI to draft a Technical Approach. The
+   draft opened with "rapid space demonstration is not merely a schedule
+   metric—it is a risk mitigation strategy," leaned on "flight heritage" and
+   "on-orbit" evidence, and referenced the company's flight-proven hardware
+   from the corporate vault. That is the human's knowledge, written into the
+   proposal.
+
+3. **The Bid Workflow page works now.** It was a broken skeleton: two buttons
+   did nothing, and "Generate Capture" called a data feed that no longer
+   exists, so it always failed. Now it loads the project's real documents
+   (the RFP files plus your company vault), **Dissect RFP** extracts the
+   compliance rules, scoring criteria, and deadlines, **Generate Proposal**
+   assembles the full proposal, and results open in a proper preview window
+   with download buttons instead of vanishing into the browser console. The
+   **Open Workspace →** link takes you into the full partner workspace.
+
+**Why it matters.** The goal was never a machine that writes a proposal in
+isolation. It's a partner that handles the parts machines are good at —
+compliance, consistency, completeness, formatting — while the human supplies
+the parts only they have: who the customer really is, what they care about,
+and how the competition is positioned. With these fixes, those two halves
+finally meet on every bid.
+
+---
+
 ## Version 2.6.5 (March 20, 2026) - Mermaid Diagrams & Rate Limiting
 
 ---

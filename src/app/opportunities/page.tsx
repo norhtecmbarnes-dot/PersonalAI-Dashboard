@@ -85,6 +85,9 @@ export default function OpportunitiesPage() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [minScore, setMinScore] = useState(1);
+  const [startingId, setStartingId] = useState<string | null>(null);
+  const [started, setStarted] = useState<Record<string, string>>({}); // match key -> project id
+  const [startError, setStartError] = useState<string | null>(null);
 
   const pollCount = useRef(0);
   const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -171,6 +174,52 @@ export default function OpportunitiesPage() {
       await loadData({ silent: true });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to start scan');
+    }
+  };
+
+  // Turn a matched opportunity into a project (bid workflow) for the active
+  // company. The customer knowledge base is seeded at the same time, so the
+  // "invisible proposal" starts building immediately.
+  const handleStartBid = async (m: MatchedOpportunity) => {
+    if (!brandId) {
+      setStartError('Select a company first');
+      return;
+    }
+    const key = m.id || m.solicitationNumber || m.url || `${m.title}-${m.agency}`;
+    if (started[key]) return;
+    setStartingId(key);
+    setStartError(null);
+    try {
+      const res = await fetch('/api/bid-workflow', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'start',
+          brandId,
+          opportunityId: key,
+          opportunityData: {
+            title: m.title,
+            synopsis: m.synopsis || '',
+            agency: m.agency || '',
+            office: m.office || '',
+            solicitation_number: m.solicitationNumber || '',
+            response_deadline: m.responseDeadline || '',
+            award_amount: m.awardAmount || '',
+            url: m.url || '',
+            naicsCode: m.naicsCode || '',
+          },
+          projectName: m.title,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to start bid');
+      }
+      setStarted(s => ({ ...s, [key]: data.project?.id || '' }));
+    } catch (e) {
+      setStartError(e instanceof Error ? e.message : 'Failed to start bid');
+    } finally {
+      setStartingId(null);
     }
   };
 
@@ -311,6 +360,18 @@ export default function OpportunitiesPage() {
           </div>
         )}
 
+        {startError && (
+          <div className="bg-red-900/30 border border-red-500/50 rounded-lg p-4 mb-6 flex justify-between items-center">
+            <p className="text-red-300">{startError}</p>
+            <button
+              onClick={() => setStartError(null)}
+              className="text-red-300 hover:text-white ml-4"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+
         {/* Filters */}
         <div className="flex flex-wrap items-center gap-3 mb-4">
           <input
@@ -345,7 +406,7 @@ export default function OpportunitiesPage() {
             <p className="text-sm text-slate-500 mt-2 max-w-md mx-auto">
               {search || minScore > 1
                 ? 'Try clearing the search or lowering the fit-score filter.'
-                : 'Run a scan to search SAM.gov for opportunities matching your company profile. Matches appear here automatically every day.'}
+                : 'Run a scan to search SAM.gov for opportunities matching your company profile. Matches appear here automatically every day — start a bid from any match to turn it into a project.'}
             </p>
             {!search && minScore <= 1 && (
               <button
@@ -453,6 +514,44 @@ export default function OpportunitiesPage() {
                       </p>
                     </div>
                   </div>
+
+                  <div className="mt-4 pt-4 border-t border-slate-700/60 flex items-center justify-between">
+                    {(() => {
+                      const key = m.id || m.solicitationNumber || m.url || `${m.title}-${m.agency}`;
+                      const projectId = started[key];
+                      if (projectId) {
+                        return (
+                          <span className="flex items-center gap-2 text-sm text-emerald-300">
+                            <span>✓ Started as a project</span>
+                            <a
+                              href="/brand-workspace"
+                              className="text-purple-400 hover:text-purple-300 underline"
+                            >
+                              Open in Company Workspace →
+                            </a>
+                          </span>
+                        );
+                      }
+                      return (
+                        <span className="text-xs text-slate-500">
+                          Start a bid to build the capture strategy with your AI partner.
+                        </span>
+                      );
+                    })()}
+                    {!started[m.id || m.solicitationNumber || m.url || `${m.title}-${m.agency}`] && (
+                      <button
+                        onClick={() => handleStartBid(m)}
+                        disabled={
+                          startingId === (m.id || m.solicitationNumber || m.url || `${m.title}-${m.agency}`)
+                        }
+                        className="px-4 py-1.5 rounded-lg text-sm font-medium bg-purple-600 hover:bg-purple-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-white transition-colors"
+                      >
+                        {startingId === (m.id || m.solicitationNumber || m.url || `${m.title}-${m.agency}`)
+                          ? 'Starting…'
+                          : 'Start Bid'}
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -478,6 +577,11 @@ export default function OpportunitiesPage() {
             <li>
               Every opportunity is scored against your profile — NAICS match (+25), target agency
               (+15), product match (+10), keyword matches — and only positive-fit results are listed.
+            </li>
+            <li>
+              <span className="text-emerald-300">Start Bid</span> on any match turns it into a
+              project under your company — the agency is seeded into your customer knowledge base
+              and the bid workflow begins in the Company Workspace.
             </li>
           </ul>
         </div>

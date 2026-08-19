@@ -86,6 +86,26 @@ export class BidWorkflowService {
       [workflowId, project.id, 'capture', JSON.stringify([]), now, now]
     );
 
+    // Seed the customer knowledge base at match time: create/merge the
+    // agency's record with what we already know from the notice, so the
+    // "invisible proposal" starts building the moment a bid becomes a project.
+    if (opportunityData?.agency) {
+      try {
+        const { customerKnowledge } = await import('./customer-knowledge');
+        await customerKnowledge.upsertCustomer(brandId, {
+          name: opportunityData.agency,
+          aliases: opportunityData.office
+            ? [opportunityData.office]
+            : undefined,
+          notes: opportunityData.synopsis
+            ? `Started from SAM.gov match: ${opportunityData.synopsis.slice(0, 500)}`
+            : undefined,
+        });
+      } catch (e) {
+        console.error('[BidWorkflow] Customer seed failed:', e);
+      }
+    }
+
     return { project, workflow };
   }
 

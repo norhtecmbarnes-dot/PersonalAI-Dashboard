@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import type { Brand, Project } from '@/types/brand-workspace';
+import type { Brand, Project, BrandDocument } from '@/types/brand-workspace';
 import type { BidWorkflow, CaptureDocument, ComplianceMatrix } from '@/types/brand-workspace';
 
 interface WorkflowWithProject {
@@ -39,6 +39,11 @@ export default function BidWorkflowPage() {
   const [showStageModal, setShowStageModal] = useState(false);
   const [selectedWorkflow, setSelectedWorkflow] = useState<WorkflowWithProject | null>(null);
   const [stageUpdating, setStageUpdating] = useState(false);
+  const [outlineMarkdown, setOutlineMarkdown] = useState('');
+  const [showOutlineModal, setShowOutlineModal] = useState(false);
+  const [proposalMarkdown, setProposalMarkdown] = useState('');
+  const [showProposalModal, setShowProposalModal] = useState(false);
+  const [generating, setGenerating] = useState(false);
 
   useEffect(() => {
     loadBrands();
@@ -174,30 +179,52 @@ export default function BidWorkflowPage() {
     }
   };
 
+  // Load the project's own documents (the RFP uploads), not the whole brand vault.
+  const loadProjectDocuments = async (projectId: string): Promise<BrandDocument[]> => {
+    try {
+      const res = await fetch(
+        `/api/brand-workspace/projects?id=${encodeURIComponent(projectId)}&includeDocuments=true`
+      );
+      const data = await res.json();
+      return data.documents || [];
+    } catch (err) {
+      console.error('Error loading project documents:', err);
+      return [];
+    }
+  };
+
+  const runBidWorkflowAction = async (
+    action: string,
+    projectId: string,
+    body: Record<string, unknown>
+  ) => {
+    const documents = await loadProjectDocuments(projectId);
+    if (documents.length === 0) {
+      setError(
+        'No solicitation documents found for this project. Upload the RFP in the Company Workspace first.'
+      );
+      return null;
+    }
+    const response = await fetch('/api/bid-workflow', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action,
+        projectId,
+        documents,
+        ...body,
+      }),
+    });
+    return response.json();
+  };
+
   const handleGenerateCapture = async (projectId: string) => {
     if (!selectedBrandId) return;
     setLoading(true);
+    setError(null);
     try {
-      const brandDocsResponse = await fetch(`/api/brand-workspace/documents?brandId=${selectedBrandId}`);
-      const docsData = await brandDocsResponse.json();
-      const documents = docsData.documents || [];
-      
-      if (documents.length === 0) {
-        setError('No documents found. Please upload RFP documents to the brand workspace first.');
-        return;
-      }
-
-      const response = await fetch('/api/bid-workflow', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'capture',
-          projectId,
-          documents,
-        }),
-      });
-
-      const data = await response.json();
+      const data = await runBidWorkflowAction('capture', projectId, {});
+      if (!data) return;
       if (data.success) {
         await loadWorkflows(selectedBrandId);
       } else {
@@ -214,27 +241,10 @@ export default function BidWorkflowPage() {
   const handleGenerateCompliance = async (projectId: string) => {
     if (!selectedBrandId) return;
     setLoading(true);
+    setError(null);
     try {
-      const brandDocsResponse = await fetch(`/api/brand-workspace/documents?brandId=${selectedBrandId}`);
-      const docsData = await brandDocsResponse.json();
-      const documents = docsData.documents || [];
-      
-      if (documents.length === 0) {
-        setError('No documents found. Please upload RFP documents to the brand workspace first.');
-        return;
-      }
-
-      const response = await fetch('/api/bid-workflow', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'compliance',
-          projectId,
-          documents,
-        }),
-      });
-
-      const data = await response.json();
+      const data = await runBidWorkflowAction('compliance', projectId, {});
+      if (!data) return;
       if (data.success) {
         await loadWorkflows(selectedBrandId);
       } else {
@@ -245,6 +255,66 @@ export default function BidWorkflowPage() {
       setError('Failed to generate compliance matrix');
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Dissect the solicitation into compliance / scoring / milestones / format.
+  const handleDissect = async (projectId: string) => {
+    if (!selectedBrandId) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/bid-workflow', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'dissect',
+          projectId,
+        }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        await loadWorkflows(selectedBrandId);
+        setError(null);
+      } else {
+        setError(data.error || 'Failed to dissect solicitation');
+      }
+    } catch (err) {
+      console.error('Error dissecting solicitation:', err);
+      setError('Failed to dissect solicitation');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Assemble the full proposal with the Proposal Genie (cover, win themes,
+  // competition, sections) and show it in a modal.
+  const handleGenerateProposal = async (projectId: string) => {
+    if (!selectedBrandId) return;
+    setGenerating(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/proposals', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'assemble',
+          brandId: selectedBrandId,
+          projectId,
+        }),
+      });
+      const data = await response.json();
+      if (data.success && data.markdown) {
+        setProposalMarkdown(data.markdown);
+        setShowProposalModal(true);
+      } else {
+        setError(data.error || 'Failed to generate proposal');
+      }
+    } catch (err) {
+      console.error('Error generating proposal:', err);
+      setError('Failed to generate proposal');
+    } finally {
+      setGenerating(false);
     }
   };
 
@@ -270,9 +340,9 @@ export default function BidWorkflowPage() {
       });
 
       const data = await response.json();
-      if (data.success) {
-        alert('Outline generated! Check your browser console for the output.');
-        console.log('Generated Outline:', data.outline);
+      if (data.success && data.outline) {
+        setOutlineMarkdown(data.outline);
+        setShowOutlineModal(true);
       } else {
         setError(data.error || 'Failed to generate outline');
       }
@@ -282,6 +352,16 @@ export default function BidWorkflowPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const downloadMarkdown = (markdown: string, filename: string) => {
+    const blob = new Blob([markdown], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   const getStageColor = (stage: string) => {
@@ -406,7 +486,15 @@ export default function BidWorkflowPage() {
                         </span>
                       </div>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 flex-wrap justify-end">
+                      <button
+                        onClick={() => handleDissect(project.id)}
+                        disabled={loading}
+                        className="px-4 py-2 bg-slate-600 hover:bg-slate-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded text-sm"
+                        title="Extract compliance requirements, scoring criteria, milestones, and format rules from the RFP"
+                      >
+                        Dissect RFP
+                      </button>
                       <button
                         onClick={() => handleGenerateCapture(project.id)}
                         disabled={workflow.stage !== 'capture' || loading}
@@ -463,9 +551,13 @@ export default function BidWorkflowPage() {
 
                   {/* Actions */}
                   <div className="flex justify-end gap-3 mt-5 pt-5 border-t border-slate-700">
-                    <button className="px-4 py-2 text-sm text-gray-400 hover:text-white">
-                      View Details
-                    </button>
+                    <a
+                      href="/brand-workspace"
+                      className="px-4 py-2 text-sm text-gray-400 hover:text-white"
+                      title="Open the full partner workspace — strategy chat, customer knowledge, Proposal Genie studio"
+                    >
+                      Open Workspace →
+                    </a>
                     <button 
                       onClick={() => {
                         setSelectedWorkflow({ project, workflow, capture, compliance });
@@ -475,8 +567,12 @@ export default function BidWorkflowPage() {
                     >
                       Update Stage
                     </button>
-                    <button className="px-4 py-2 text-sm bg-green-600 hover:bg-green-700 text-white rounded">
-                      Generate Proposal
+                    <button
+                      onClick={() => handleGenerateProposal(project.id)}
+                      disabled={generating}
+                      className="px-4 py-2 text-sm bg-green-600 hover:bg-green-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-white rounded"
+                    >
+                      {generating ? 'Generating…' : 'Generate Proposal'}
                     </button>
                   </div>
                 </div>
@@ -570,6 +666,62 @@ export default function BidWorkflowPage() {
                   {creating ? 'Creating...' : 'Create Bid'}
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Outline Modal */}
+        {showOutlineModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-slate-800 rounded-xl p-6 max-w-3xl w-full mx-4 border border-slate-700 max-h-[85vh] flex flex-col">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold">Proposal Outline</h2>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => downloadMarkdown(outlineMarkdown, 'proposal-outline.md')}
+                    className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded text-sm"
+                  >
+                    Download .md
+                  </button>
+                  <button
+                    onClick={() => setShowOutlineModal(false)}
+                    className="px-3 py-1.5 text-gray-400 hover:text-white"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+              <pre className="bg-slate-900 rounded-lg p-4 overflow-auto text-sm text-slate-200 whitespace-pre-wrap flex-1">
+                {outlineMarkdown}
+              </pre>
+            </div>
+          </div>
+        )}
+
+        {/* Proposal Modal */}
+        {showProposalModal && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-slate-800 rounded-xl p-6 max-w-3xl w-full mx-4 border border-slate-700 max-h-[85vh] flex flex-col">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xl font-bold">Generated Proposal</h2>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => downloadMarkdown(proposalMarkdown, 'proposal.md')}
+                    className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-white rounded text-sm"
+                  >
+                    Download .md
+                  </button>
+                  <button
+                    onClick={() => setShowProposalModal(false)}
+                    className="px-3 py-1.5 text-gray-400 hover:text-white"
+                  >
+                    ✕
+                  </button>
+                </div>
+              </div>
+              <pre className="bg-slate-900 rounded-lg p-4 overflow-auto text-sm text-slate-200 whitespace-pre-wrap flex-1">
+                {proposalMarkdown}
+              </pre>
             </div>
           </div>
         )}

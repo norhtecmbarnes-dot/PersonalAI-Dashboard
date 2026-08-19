@@ -39,6 +39,9 @@ export interface ProposalContext {
   capture: CaptureDocument | null;
   complianceMatrix: ComplianceMatrix | null;
   winThemes: string[];
+  competition: string[];
+  /** THE INVISIBLE PROPOSAL — human knowledge about the customer not in the solicitation. */
+  invisibleProposal: string;
 }
 
 const DEFAULT_MODEL = 'ollama/glm-4.7-flash';
@@ -73,11 +76,38 @@ export class ProposalGenieService {
       winThemes.push(...stored);
     }
 
-    return { brand, project, soul, documents, capture, complianceMatrix, winThemes };
+    // Competition captured from strategy conversations lives on the project
+    // metadata; pull it into the writer too.
+    const competition: string[] = Array.isArray(project?.metadata?.competition)
+      ? (project.metadata.competition as string[])
+      : [];
+
+    // THE INVISIBLE PROPOSAL — the human team's knowledge about the customer
+    // that is not in the solicitation. Resolved here so the writer always sees
+    // it (lazy import: customer-knowledge imports brand-workspace, so a
+    // static import would cycle).
+    let invisibleProposal = '';
+    try {
+      const meta = project?.metadata || {};
+      const customerName =
+        (meta.agency as string) ||
+        (meta.opportunityName as string) ||
+        project?.name ||
+        '';
+      const { customerKnowledge } = await import('./customer-knowledge');
+      invisibleProposal = await customerKnowledge.buildKnowledgeContext(
+        brandId,
+        customerName
+      );
+    } catch (e) {
+      console.error('[ProposalGenie] Customer knowledge context failed:', e);
+    }
+
+    return { brand, project, soul, documents, capture, complianceMatrix, winThemes, competition, invisibleProposal };
   }
 
   private contextPrompt(ctx: ProposalContext): string {
-    const { brand, project, documents, capture, complianceMatrix, winThemes } = ctx;
+    const { brand, project, documents, capture, complianceMatrix, winThemes, competition, invisibleProposal } = ctx;
     const voice = brand?.voiceProfile;
     const brandLines = [
       `Company: ${brand?.name || 'Not specified'}`,
@@ -116,6 +146,11 @@ export class ProposalGenieService {
     const themeLines =
       winThemes.length > 0 ? winThemes.map((t, i) => `${i + 1}. ${t}`).join('\n') : '(none defined yet)';
 
+    const competitionLines =
+      competition.length > 0
+        ? competition.map((c, i) => `${i + 1}. ${c}`).join('\n')
+        : '(none captured yet — ask the user what they know about incumbents and rivals)';
+
     // Distilled solicitation intelligence: format rules, scoring, milestones
     const meta = project?.metadata || {};
     const intel = meta.solicitationIntel || {};
@@ -148,6 +183,8 @@ export class ProposalGenieService {
       `\n## PROJECT\nName: ${project?.name || 'Unnamed'}\nDescription: ${project?.description || 'Not specified'}\nType: ${project?.type || 'other'}`,
       `\n## CAPTURE KNOWLEDGE\n${captureLines}`,
       `\n## WIN THEMES\n${themeLines}`,
+      `\n## COMPETITIVE LANDSCAPE (human knowledge from strategy conversations)\n${competitionLines}`,
+      `\n## THE INVISIBLE PROPOSAL (human knowledge about this customer that is NOT in the solicitation — use it to write customer-tailored discriminators, but never claim facts you cannot back)\n${invisibleProposal || '(no customer knowledge captured yet — ask the user about their relationship with this agency)'}`,
       `\n## FORMAT RULES (non-negotiable — page limits, font, volumes)\n${formatLines || '(not extracted yet — check the RFP)'}`,
       `\n## SCORING CRITERIA (how the proposal is evaluated)\n${scoringLines}`,
       `\n## MILESTONES & KEY DATES\n${milestoneLines}`,

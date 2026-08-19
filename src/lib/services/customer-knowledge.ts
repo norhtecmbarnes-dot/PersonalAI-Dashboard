@@ -623,6 +623,81 @@ Report:`;
     return lines.join('\n');
   }
 
+  /**
+   * Build the "invisible proposal" context block — the human's knowledge about
+   * a customer that is NOT in the solicitation: mission, priorities, hot
+   * buttons, buying patterns, key contacts, win/loss record, and captured
+   * intel. This is injected into the partner chat and the proposal writer so
+   * the AI writes discriminators grounded in what the human knows, while
+   * keeping compliance facts from the solicitation separate.
+   *
+   * When no customer name is given, returns the brand's most-recently-updated
+   * customers (capped) so the writer still sees relevant relationship
+   * knowledge for agencies it has worked with.
+   */
+  async buildKnowledgeContext(
+    brandId: string,
+    customerName?: string,
+    maxCustomers = 3
+  ): Promise<string> {
+    sqlDatabase.initialize();
+    let records: CustomerKnowledgeRecord[] = [];
+
+    if (customerName && customerName.trim()) {
+      const found = await this.findCustomer(brandId, customerName);
+      if (found) records = [found];
+    }
+    if (records.length === 0) {
+      records = (await this.getCustomers(brandId)).slice(0, maxCustomers);
+    }
+    if (records.length === 0) return '';
+
+    const blocks: string[] = [];
+    for (const c of records.slice(0, maxCustomers)) {
+      const lines: string[] = [
+        `### ${c.name}`,
+        `Relationship: ${c.bidCount} bid(s) · ${c.winCount} win(s) · ${c.lossCount} loss(es)`,
+      ];
+      if (c.mission) lines.push(`Mission: ${c.mission}`);
+      if (c.priorities.length) {
+        lines.push(`Priorities: ${c.priorities.slice(0, 8).join(' | ')}`);
+      }
+      if (c.hotButtons.length) {
+        lines.push(`Hot buttons / evaluation emphasis: ${c.hotButtons.slice(0, 8).join(' | ')}`);
+      }
+      if (c.buyingPatterns.length) {
+        lines.push(`Buying patterns / rhythms: ${c.buyingPatterns.slice(0, 6).join(' | ')}`);
+      }
+      if (c.keyContacts.length) {
+        lines.push(`Known contacts: ${c.keyContacts.slice(0, 6).join(' | ')}`);
+      }
+      if (c.notes) lines.push(`Notes: ${c.notes}`);
+
+      // Fresh, high-value intel from the timeline (skip outcomes already
+      // summarized above; include only entries from the last ~2 years).
+      const cutoff = Date.now() - 2 * 365 * 24 * 3600 * 1000;
+      const recentIntel = c.intel
+        .filter(e => e.at >= cutoff && e.type !== 'outcome')
+        .slice(0, 10)
+        .map(e => `- [${e.source}] ${e.content.slice(0, 240)}`);
+      if (recentIntel.length) {
+        lines.push(`Captured intel (${recentIntel.length}):`);
+        lines.push(...recentIntel);
+      }
+      if (c.orgChart) {
+        lines.push(`Org chart: available (${c.orgChartUpdatedAt ? new Date(c.orgChartUpdatedAt).toLocaleDateString() : 'date unknown'})`);
+      }
+      blocks.push(lines.join('\n'));
+    }
+
+    return [
+      `## THE INVISIBLE PROPOSAL — human knowledge about this customer that is NOT in the solicitation`,
+      `These are the human team's hard-won relationship facts (past bids, wins/losses, contacts, what this customer actually cares about). Use them to shape discriminators, win themes, and customer-tailored language. Treat them as TRUE but always phrased as claims the company can back. Never confuse them with the solicitation's compliance facts.`,
+      '',
+      ...blocks,
+    ].join('\n');
+  }
+
   private mapRow(row: any): CustomerKnowledgeRecord {
     const intel: CustomerIntelEntry[] = row.intel ? JSON.parse(row.intel) : [];
     const priorities: string[] = row.priorities ? JSON.parse(row.priorities) : [];
