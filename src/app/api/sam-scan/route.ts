@@ -2,14 +2,18 @@ export const runtime = 'nodejs';
 
 import { NextRequest, NextResponse } from 'next/server';
 import { dailySamScan } from '@/lib/services/daily-sam-scan';
+import { opportunityRanking } from '@/lib/services/opportunity-ranking';
 
 /**
  * Daily targeted SAM.gov scan API.
  *
- * GET  /api/sam-scan?brandId=X  — status + scored matches. If the last scan is
- *      older than 24h (and none is running), kicks off a fresh one in the
- *      background — this is what makes the matches URL self-refresh daily.
- * POST /api/sam-scan {brandId, force} — run a scan now (background).
+ * GET  /api/sam-scan?brandId=X  — status + scored matches (+ AI ranking). If
+ *      the last scan is older than 24h (and none is running), kicks off a fresh
+ *      one in the background — this is what makes the matches URL self-refresh
+ *      daily. After a scan completes, the AI ranking of the matches is also
+ *      lazily computed on first view (one LLM pass per scan).
+ * POST /api/sam-scan {brandId, force}          — run a scan now (background).
+ * POST /api/sam-scan {brandId, action:'rank'}  — re-rank the matches with AI now.
  */
 export async function GET(request: NextRequest) {
   try {
@@ -33,7 +37,22 @@ export async function GET(request: NextRequest) {
       Promise.resolve(dailySamScan.getSummary(brandId)),
     ]);
 
-    return NextResponse.json({ success: true, status, matches, summary });
+    // Lazy AI ranking: once a scan has produced matches, have the AI read and
+    // rank them on first view (cached per scan, one LLM pass).
+    const lastRun = status.lastRun;
+    if (
+      matches.length > 0 &&
+      lastRun &&
+      !opportunityRanking.isRankingRunning(brandId) &&
+      opportunityRanking.isRankStale(brandId, lastRun)
+    ) {
+      await opportunityRanking.startRanking(brandId);
+    }
+
+    const ranking = opportunityRanking.getRanking(brandId);
+    const rankStatus = opportunityRanking.getRankStatus(brandId, lastRun);
+
+    return NextResponse.json({ success: true, status, matches, summary, ranking, rankStatus });
   } catch (error) {
     console.error('[SamScan API] Error:', error);
     return NextResponse.json(
@@ -52,6 +71,11 @@ export async function POST(request: NextRequest) {
         { success: false, error: 'No company found. Create a company in Brands first.' },
         { status: 400 }
       );
+    }
+
+    if (body?.action === 'rank') {
+      const result = await opportunityRanking.startRanking(brandId, { force: true });
+      return NextResponse.json({ success: true, brandId, ...result });
     }
 
     const result = await dailySamScan.runScan(brandId, { force: true });

@@ -7,6 +7,41 @@
 *Written for everyone — no technical background needed. Each section says what
  the feature is, why it matters, and how to use it.*
 
+### 🎯 AI-Ranked Opportunities — the AI Reads Every Match and Tells You What's Worth It
+
+**What it is.** Until now, the fit score next to each SAM.gov match was a simple
+keyword check — "this notice contains words from your profile." It couldn't
+tell a real opportunity from a false alarm. Now, after each daily scan, the AI
+**reads every match against your company's actual capabilities** (products,
+past performance, NAICS codes, target agencies) and ranks them **from highest
+to lowest**, presented as a clean list of **links with one-line summaries**:
+
+- **A score (0–100)** for each opportunity, decided by the AI — with the full
+  range used, so a handful of real opportunities stand out instead of 73 items
+  all looking similar.
+- **A one-line plain-English summary** — what the notice actually is, in a
+  sentence you can skim.
+- **"Why"** — the company capability the opportunity maps to (or the honest
+  reason it doesn't fit).
+- **A recommendation chip** — **Pursue**, **Watch**, or **Skip**.
+- **The link straight to SAM.gov** for every item.
+
+**How it works.** The ranking happens automatically — the first time you open
+the Matches page after a scan, the AI reads the top 25 matches in a single pass
+(about 30 seconds), and the result is saved so it never re-runs until the next
+scan. A **Re-rank with AI** button forces a fresh look any time.
+
+**Why it matters — proof it actually reads.** The old keyword scorer kept
+flagging "SSA" notices (Social Security Administration) as matches for a
+space-company profile. The AI ranking immediately recognized the real meaning
+and scored that RFI **0 with "not a target agency"** — while correctly putting
+a space-payload EO/IR upgrade **at #1 with Pursue**. Verified live: all 22
+matches from the latest scan were ranked in one pass, from the MH-139
+Electro-Optical/Infrared upgrade at 85 down to the off-target guards contract
+at 0, each with a summary, a reason, and a link.
+
+---
+
 ### 🏛️ The "Brands" Tab Is Now "Corporate Vault"
 
 **What changed.** The navigation tab that opens the company workspace now reads

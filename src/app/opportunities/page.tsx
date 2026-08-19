@@ -48,6 +48,30 @@ interface ScanSummary {
   message?: string;
 }
 
+interface RankedOpportunity {
+  rank: number;
+  aiScore: number;
+  summary: string;
+  why: string;
+  recommendation: 'pursue' | 'watch' | 'skip';
+  id: string;
+  title: string;
+  url?: string;
+  agency?: string;
+  solicitationNumber: string;
+  responseDeadline?: string;
+  naicsCode?: string;
+  fitScore: number;
+  matchedKeywords: string[];
+}
+
+interface RankingInfo {
+  items: RankedOpportunity[];
+  rankedAt: number;
+  matchesConsidered: number;
+  message?: string;
+}
+
 const POLL_MS = 6000;
 const MAX_POLLS = 60; // give a scan up to ~6 minutes to finish
 
@@ -75,6 +99,18 @@ function fitColor(score: number): string {
   return 'bg-slate-500/15 text-slate-300 border-slate-500/40';
 }
 
+function aiColor(score: number): string {
+  if (score >= 70) return 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40';
+  if (score >= 40) return 'bg-purple-500/15 text-purple-300 border-purple-500/40';
+  return 'bg-slate-500/15 text-slate-300 border-slate-500/40';
+}
+
+function recChip(rec: 'pursue' | 'watch' | 'skip'): { label: string; cls: string } {
+  if (rec === 'pursue') return { label: 'Pursue', cls: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40' };
+  if (rec === 'watch') return { label: 'Watch', cls: 'bg-amber-500/15 text-amber-300 border-amber-500/40' };
+  return { label: 'Skip', cls: 'bg-slate-500/15 text-slate-400 border-slate-500/40' };
+}
+
 export default function OpportunitiesPage() {
   const [brands, setBrands] = useState<{ id: string; name: string }[]>([]);
   const [brandId, setBrandId] = useState<string>('');
@@ -88,6 +124,8 @@ export default function OpportunitiesPage() {
   const [startingId, setStartingId] = useState<string | null>(null);
   const [started, setStarted] = useState<Record<string, string>>({}); // match key -> project id
   const [startError, setStartError] = useState<string | null>(null);
+  const [ranking, setRanking] = useState<RankingInfo | null>(null);
+  const [rankStatus, setRankStatus] = useState<'running' | 'ready' | 'stale' | 'none'>('none');
 
   const pollCount = useRef(0);
   const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -105,6 +143,8 @@ export default function OpportunitiesPage() {
         setStatus(data.status);
         setMatches(data.matches || []);
         setSummary(data.summary || null);
+        setRanking(data.ranking || null);
+        setRankStatus(data.rankStatus || 'none');
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to load matches');
       } finally {
@@ -138,9 +178,9 @@ export default function OpportunitiesPage() {
     loadData();
   }, [brandId, loadData]);
 
-  // Poll while a scan is running
+  // Poll while a scan or an AI ranking is running
   useEffect(() => {
-    if (!status?.running) {
+    if (!status?.running && rankStatus !== 'running') {
       pollCount.current = 0;
       return;
     }
@@ -156,7 +196,7 @@ export default function OpportunitiesPage() {
     return () => {
       if (pollTimer.current) clearTimeout(pollTimer.current);
     };
-  }, [status?.running, loadData]);
+  }, [status?.running, rankStatus, loadData]);
 
   const runScanNow = async () => {
     setError(null);
@@ -181,6 +221,27 @@ export default function OpportunitiesPage() {
       await loadData({ silent: true });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to start scan');
+    }
+  };
+
+  const handleReRank = async () => {
+    setError(null);
+    try {
+      const res = await fetch('/api/sam-scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ brandId, action: 'rank' }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to start ranking');
+      if (data.started === false) {
+        setError(data.message || 'Ranking could not be started');
+        return;
+      }
+      setRankStatus('running');
+      await loadData({ silent: true });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to start ranking');
     }
   };
 
@@ -464,6 +525,132 @@ export default function OpportunitiesPage() {
                 </span>
               )}
             </div>
+
+            {/* AI-ranked list — the AI reads every match against the company
+                profile and ranks it high → low, with a URL and one-line summary. */}
+            {(rankStatus === 'running' ||
+              (ranking && ranking.items.length > 0) ||
+              (ranking?.message && rankStatus === 'ready')) && (
+              <div className="mb-6 bg-slate-800/70 rounded-lg border border-purple-500/25 p-5">
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                    🎯 AI-ranked opportunities
+                    {ranking?.matchesConsidered ? (
+                      <span className="text-xs font-normal text-slate-500">
+                        {ranking.matchesConsidered} considered · {timeAgo(ranking.rankedAt)}
+                      </span>
+                    ) : null}
+                  </h3>
+                  <button
+                    onClick={handleReRank}
+                    disabled={rankStatus === 'running' || !brandId}
+                    className="px-4 py-1.5 rounded-lg text-sm font-medium bg-purple-600 hover:bg-purple-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-white transition-colors"
+                  >
+                    {rankStatus === 'running' ? 'Ranking…' : 'Re-rank with AI'}
+                  </button>
+                </div>
+
+                {rankStatus === 'running' && !ranking?.items?.length ? (
+                  <div className="flex items-center gap-3 text-purple-300 text-sm py-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-purple-500"></div>
+                    The AI is reading the matches against your company profile and
+                    ranking them — about 30 seconds.
+                  </div>
+                ) : ranking?.message && !ranking.items?.length ? (
+                  <div className="text-sm text-amber-300/90 bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2">
+                    {ranking.message}{' '}
+                    <button onClick={handleReRank} className="underline ml-1">
+                      Try again
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    {ranking?.items?.map(item => {
+                      const rec = recChip(item.recommendation);
+                      return (
+                        <div
+                          key={item.id || item.solicitationNumber}
+                          className="py-3 border-b border-slate-700/50 last:border-0"
+                        >
+                          <div className="flex items-start gap-3">
+                            <div className="flex flex-col items-center shrink-0 w-9">
+                              <span className="text-xl font-bold text-white leading-none">
+                                {item.rank}
+                              </span>
+                              <span
+                                className={`mt-1 px-1.5 py-0.5 rounded text-xs font-bold border ${aiColor(item.aiScore)}`}
+                                title={`AI score ${item.aiScore}/100`}
+                              >
+                                {item.aiScore}
+                              </span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                {item.url ? (
+                                  <a
+                                    href={item.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-white font-semibold hover:text-purple-300 hover:underline"
+                                  >
+                                    {item.title}
+                                  </a>
+                                ) : (
+                                  <span className="text-white font-semibold">{item.title}</span>
+                                )}
+                                <span
+                                  className={`px-2 py-0.5 rounded-md text-xs font-bold border ${rec.cls}`}
+                                >
+                                  {rec.label}
+                                </span>
+                              </div>
+                              {item.summary && (
+                                <p className="text-slate-300 text-sm mt-1">{item.summary}</p>
+                              )}
+                              {item.why && (
+                                <p className="text-xs text-slate-500 mt-0.5 italic">
+                                  Why: {item.why}
+                                </p>
+                              )}
+                              <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1.5 text-xs text-slate-500">
+                                {item.agency && <span>{item.agency}</span>}
+                                {item.solicitationNumber && (
+                                  <span className="font-mono">{item.solicitationNumber}</span>
+                                )}
+                                {item.responseDeadline && (
+                                  <span>
+                                    Due{' '}
+                                    {new Date(item.responseDeadline).toLocaleDateString()}
+                                  </span>
+                                )}
+                                {item.naicsCode && <span>NAICS {item.naicsCode}</span>}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Stale with no panel yet — offer to rank */}
+            {rankStatus === 'stale' && (
+              <div className="mb-6 flex items-center justify-between bg-slate-800/50 border border-slate-700/50 rounded-lg px-4 py-3">
+                <span className="text-sm text-slate-400">
+                  The AI hasn&apos;t ranked this scan&apos;s matches yet.
+                </span>
+                <button
+                  onClick={handleReRank}
+                  disabled={!brandId}
+                  className="px-4 py-1.5 rounded-lg text-sm font-medium bg-purple-600 hover:bg-purple-700 disabled:bg-slate-600 text-white transition-colors"
+                >
+                  Rank with AI
+                </button>
+              </div>
+            )}
+
             <div className="space-y-4">
               {filtered.map((m, idx) => (
                 <div key={m.id || `${m.solicitationNumber}-${idx}`} className="bg-slate-800 rounded-lg p-5">
