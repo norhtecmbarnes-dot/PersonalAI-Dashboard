@@ -736,6 +736,28 @@ class BrandWorkspaceService {
           console.error('[BrandWorkspace] Customer knowledge context failed:', e);
         }
 
+        // CAPABILITY ASSESSMENT — the structured needs-vs-capabilities
+        // comparison (readiness score, go/no-go, strengths, gaps). Kept short
+        // so the model reasons from it without the prompt bloating.
+        try {
+          const cached = (meta.capabilityAssessment as any) || null;
+          if (cached && cached.assessedAt) {
+            const lines = [
+              `## CAPABILITY ASSESSMENT (needs vs. capabilities)`,
+              `Readiness: ${cached.readinessScore ?? 0}/100 · Recommendation: ${cached.recommendation || 'unknown'}`,
+            ];
+            if (Array.isArray(cached.strengths) && cached.strengths.length) {
+              lines.push(`Strengths: ${cached.strengths.slice(0, 5).join(' | ')}`);
+            }
+            if (Array.isArray(cached.gaps) && cached.gaps.length) {
+              lines.push(`Gaps: ${cached.gaps.slice(0, 6).join(' | ')}`);
+            }
+            contextParts.push(`\n${lines.join('\n')}`);
+          }
+        } catch (e) {
+          console.error('[BrandWorkspace] Capability assessment context failed:', e);
+        }
+
         const projectDocs = await this.getBrandDocuments(brandId, projectId);
         documents.push(...projectDocs);
       }

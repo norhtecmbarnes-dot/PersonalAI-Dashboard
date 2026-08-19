@@ -118,6 +118,44 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ success: true, ...result });
       }
 
+      case 'assessCapabilities': {
+        const { projectId, brandId, model, force } = data;
+        if (!projectId || !brandId) {
+          return NextResponse.json(
+            { error: 'Missing projectId or brandId' },
+            { status: 400 }
+          );
+        }
+        const { capabilityAssessmentService } = await import(
+          '@/lib/services/capability-assessment'
+        );
+        const assessment = await capabilityAssessmentService.assess(
+          brandId,
+          projectId,
+          model,
+          { force: force === true }
+        );
+        return NextResponse.json({ success: true, assessment });
+      }
+
+      case 'getCapabilities': {
+        const { projectId, brandId } = data;
+        if (!projectId || !brandId) {
+          return NextResponse.json(
+            { error: 'Missing projectId or brandId' },
+            { status: 400 }
+          );
+        }
+        const { capabilityAssessmentService } = await import(
+          '@/lib/services/capability-assessment'
+        );
+        const assessment = await capabilityAssessmentService.getCached(
+          brandId,
+          projectId
+        );
+        return NextResponse.json({ success: true, assessment });
+      }
+
       case 'update': {
         const { projectId, stage, updates } = data;
         if (!projectId || !stage) {

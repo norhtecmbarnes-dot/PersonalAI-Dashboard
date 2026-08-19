@@ -42,6 +42,8 @@ export interface ProposalContext {
   competition: string[];
   /** THE INVISIBLE PROPOSAL — human knowledge about the customer not in the solicitation. */
   invisibleProposal: string;
+  /** Capability assessment — needs vs. capabilities (readiness, go/no-go, gaps). */
+  capabilityAssessment: string;
 }
 
 const DEFAULT_MODEL = 'ollama/glm-4.7-flash';
@@ -103,11 +105,35 @@ export class ProposalGenieService {
       console.error('[ProposalGenie] Customer knowledge context failed:', e);
     }
 
-    return { brand, project, soul, documents, capture, complianceMatrix, winThemes, competition, invisibleProposal };
+    // Capability assessment (needs vs. capabilities) stored on the project —
+    // rendered compactly so the writer stays honest about gaps.
+    let capabilityAssessment = '';
+    try {
+      const cached = (project?.metadata as any)?.capabilityAssessment || null;
+      if (cached && cached.assessedAt) {
+        capabilityAssessment = [
+          `## CAPABILITY ASSESSMENT (customer needs vs. company capabilities)`,
+          `Readiness: ${cached.readinessScore ?? 0}/100 · Recommendation: ${cached.recommendation || 'unknown'}`,
+          cached.recommendationReason ? `Why: ${cached.recommendationReason}` : '',
+          Array.isArray(cached.strengths) && cached.strengths.length
+            ? `Strengths: ${cached.strengths.slice(0, 5).join(' | ')}`
+            : '',
+          Array.isArray(cached.gaps) && cached.gaps.length
+            ? `Gaps to address or disclose: ${cached.gaps.slice(0, 6).join(' | ')}`
+            : '',
+        ]
+          .filter(Boolean)
+          .join('\n');
+      }
+    } catch (e) {
+      console.error('[ProposalGenie] Capability assessment failed:', e);
+    }
+
+    return { brand, project, soul, documents, capture, complianceMatrix, winThemes, competition, invisibleProposal, capabilityAssessment };
   }
 
   private contextPrompt(ctx: ProposalContext): string {
-    const { brand, project, documents, capture, complianceMatrix, winThemes, competition, invisibleProposal } = ctx;
+    const { brand, project, documents, capture, complianceMatrix, winThemes, competition, invisibleProposal, capabilityAssessment } = ctx;
     const voice = brand?.voiceProfile;
     const brandLines = [
       `Company: ${brand?.name || 'Not specified'}`,
@@ -185,6 +211,7 @@ export class ProposalGenieService {
       `\n## WIN THEMES\n${themeLines}`,
       `\n## COMPETITIVE LANDSCAPE (human knowledge from strategy conversations)\n${competitionLines}`,
       `\n## THE INVISIBLE PROPOSAL (human knowledge about this customer that is NOT in the solicitation — use it to write customer-tailored discriminators, but never claim facts you cannot back)\n${invisibleProposal || '(no customer knowledge captured yet — ask the user about their relationship with this agency)'}`,
+      `\n${capabilityAssessment || '## CAPABILITY ASSESSMENT\n(no assessment yet — run it before writing so the proposal stays honest about gaps)'}`,
       `\n## FORMAT RULES (non-negotiable — page limits, font, volumes)\n${formatLines || '(not extracted yet — check the RFP)'}`,
       `\n## SCORING CRITERIA (how the proposal is evaluated)\n${scoringLines}`,
       `\n## MILESTONES & KEY DATES\n${milestoneLines}`,

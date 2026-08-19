@@ -173,6 +173,52 @@ finally meet on every bid.
 
 ---
 
+### ⚖️ Capability Assessment — "Can We Actually Win This?"
+
+**What it is.** A one-click, AI-powered comparison of **what the customer is
+asking for** against **what your company can actually do**. Every bid project
+now has an **Assess Capabilities** button. Press it and the system reads the
+solicitation's requirements and scoring criteria, compares them one-by-one
+against your company's knowledge base (your products, services,
+differentiators, NAICS codes, past performance, and corporate vault), and
+produces a scored matrix:
+
+- **Readiness score** (0–100) — how ready the company is for this specific
+  opportunity.
+- **Recommendation** — GO, NO-GO, or BID WITH CAVEATS, with a plain-English
+  explanation.
+- **A needs-vs-capabilities table** — every customer need, marked ✅ Strong,
+  🟡 Partial, ❌ Gap, or ❓ Unknown, with the concrete evidence (or lack of it)
+  and what to do about each one.
+- **Strengths and gaps** — the honest picture of where you can win and where
+  you'd be exposed.
+
+**Why it matters.** The fastest way to lose money on a bid is to say "yes"
+before checking whether you can actually deliver. This makes that check
+automatic, evidence-based, and brutally honest: it will tell you "we have zero
+past performance with this agency" or "nothing in our vault proves we can do
+radiation-hardened electronics" before you spend weeks writing.
+
+**How it works (and why it's efficient):**
+1. It reuses intelligence the system already extracted — the compliance
+   matrix, scoring criteria, and scope from the RFP dissection, plus the
+   company's structured capability profile and vault documents. It never
+   re-reads raw files.
+2. The whole comparison is **one AI pass** — a full assessment takes about 30
+   seconds.
+3. Results are **cached** on the project: reopening the page is instant, and
+   the cache only refreshes when you upload new documents or run it again.
+4. The assessment is saved to your corporate vault (as a document you can
+   export), folded into the capture document's reasons-to-bid and risk
+   factors, and injected into every strategy conversation and proposal draft
+   so the whole system reasons from the same honest picture.
+
+**Where to find it.** Bid Workflow page → any project → **Assess Capabilities**.
+The readiness score and recommendation appear right on the project card; click
+them to open the full matrix.
+
+---
+
 ## Version 2.6.5 (March 20, 2026) - Mermaid Diagrams & Rate Limiting
 
 ---

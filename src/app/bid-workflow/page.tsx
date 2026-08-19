@@ -44,6 +44,10 @@ export default function BidWorkflowPage() {
   const [proposalMarkdown, setProposalMarkdown] = useState('');
   const [showProposalModal, setShowProposalModal] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [assessments, setAssessments] = useState<Record<string, any>>({});
+  const [assessLoadingId, setAssessLoadingId] = useState<string | null>(null);
+  const [showAssessmentModal, setShowAssessmentModal] = useState(false);
+  const [activeAssessment, setActiveAssessment] = useState<{ project: Project; assessment: any } | null>(null);
 
   useEffect(() => {
     loadBrands();
@@ -83,6 +87,28 @@ export default function BidWorkflowPage() {
           })
         );
         setWorkflows(enriched);
+        // Load cached capability assessments so the cards show readiness at a glance.
+        const assessmentMap: Record<string, any> = {};
+        await Promise.all(
+          enriched.map(async (item) => {
+            try {
+              const res = await fetch('/api/bid-workflow', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  action: 'getCapabilities',
+                  projectId: item.project.id,
+                  brandId: selectedBrandId,
+                }),
+              });
+              const d = await res.json();
+              if (d.assessment) assessmentMap[item.project.id] = d.assessment;
+            } catch {
+              /* cached assessment is optional */
+            }
+          })
+        );
+        setAssessments(assessmentMap);
       } else {
         setWorkflows([]);
       }
@@ -285,6 +311,50 @@ export default function BidWorkflowPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  // Run the needs-vs-capabilities assessment (one LLM pass over the extracted
+  // solicitation intelligence + company knowledge base) and show the matrix.
+  const handleAssessCapabilities = async (projectId: string, projectName: string) => {
+    if (!selectedBrandId) return;
+    setAssessLoadingId(projectId);
+    setError(null);
+    try {
+      const response = await fetch('/api/bid-workflow', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'assessCapabilities',
+          projectId,
+          brandId: selectedBrandId,
+          force: true,
+        }),
+      });
+      const data = await response.json();
+      if (data.success && data.assessment) {
+        setAssessments(m => ({ ...m, [projectId]: data.assessment }));
+        setActiveAssessment({
+          project: { id: projectId, name: projectName } as Project,
+          assessment: data.assessment,
+        });
+        setShowAssessmentModal(true);
+        await loadWorkflows(selectedBrandId);
+      } else {
+        setError(data.error || 'Failed to assess capabilities');
+      }
+    } catch (err) {
+      console.error('Error assessing capabilities:', err);
+      setError('Failed to assess capabilities');
+    } finally {
+      setAssessLoadingId(null);
+    }
+  };
+
+  const handleViewAssessment = (project: Project) => {
+    const assessment = assessments[project.id];
+    if (!assessment) return;
+    setActiveAssessment({ project, assessment });
+    setShowAssessmentModal(true);
   };
 
   // Assemble the full proposal with the Proposal Genie (cover, win themes,
@@ -520,7 +590,7 @@ export default function BidWorkflowPage() {
                   </div>
 
                   {/* Artifacts */}
-                  <div className="grid grid-cols-2 gap-4 mt-5">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-5">
                     <div className="bg-slate-800/30 rounded-lg p-3">
                       <h4 className="font-medium text-sm text-gray-300 mb-2">Capture Document</h4>
                       {capture ? (
@@ -547,6 +617,37 @@ export default function BidWorkflowPage() {
                         <p className="text-sm text-gray-500">Not generated</p>
                       )}
                     </div>
+                    <div className="bg-slate-800/30 rounded-lg p-3">
+                      <h4 className="font-medium text-sm text-gray-300 mb-2">Capability Assessment</h4>
+                      {assessments[project.id] ? (
+                        <button
+                          onClick={() => handleViewAssessment(project)}
+                          className="text-left w-full hover:opacity-90"
+                        >
+                          <p className="text-sm text-white">
+                            Readiness: <span className="font-semibold">{assessments[project.id].readinessScore ?? 0}/100</span>
+                          </p>
+                          <p className="text-xs mt-1">
+                            <span
+                              className={`px-2 py-0.5 rounded-full text-xs font-medium ${
+                                assessments[project.id].recommendation === 'go'
+                                  ? 'bg-green-500/20 text-green-300'
+                                  : assessments[project.id].recommendation === 'no-go'
+                                  ? 'bg-red-500/20 text-red-300'
+                                  : 'bg-amber-500/20 text-amber-300'
+                              }`}
+                            >
+                              {(assessments[project.id].recommendation || 'unknown').replace(/-/g, ' ')}
+                            </span>
+                            <span className="text-gray-400 ml-2">
+                              {assessments[project.id].items?.length ?? 0} needs · click to view
+                            </span>
+                          </p>
+                        </button>
+                      ) : (
+                        <p className="text-sm text-gray-500">Not assessed — run it to compare needs vs. capabilities</p>
+                      )}
+                    </div>
                   </div>
 
                   {/* Actions */}
@@ -566,6 +667,13 @@ export default function BidWorkflowPage() {
                       className="px-4 py-2 text-sm bg-slate-700 hover:bg-slate-600 text-white rounded"
                     >
                       Update Stage
+                    </button>
+                    <button
+                      onClick={() => handleAssessCapabilities(project.id, project.name)}
+                      disabled={assessLoadingId === project.id}
+                      className="px-4 py-2 text-sm bg-cyan-600 hover:bg-cyan-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-white rounded"
+                    >
+                      {assessLoadingId === project.id ? 'Assessing…' : 'Assess Capabilities'}
                     </button>
                     <button
                       onClick={() => handleGenerateProposal(project.id)}
@@ -665,6 +773,132 @@ export default function BidWorkflowPage() {
                 >
                   {creating ? 'Creating...' : 'Create Bid'}
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Capability Assessment Modal */}
+        {showAssessmentModal && activeAssessment && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+            <div className="bg-slate-800 rounded-xl p-6 max-w-5xl w-full mx-4 border border-slate-700 max-h-[85vh] flex flex-col">
+              <div className="flex justify-between items-start mb-4">
+                <div>
+                  <h2 className="text-xl font-bold">Capability Assessment — {activeAssessment.project.name}</h2>
+                  <p className="text-gray-400 text-sm mt-1">
+                    Customer needs vs. company capabilities · assessed{' '}
+                    {new Date(activeAssessment.assessment.assessedAt).toLocaleString()}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowAssessmentModal(false)}
+                  className="px-3 py-1.5 text-gray-400 hover:text-white"
+                >
+                  ✕
+                </button>
+              </div>
+
+              <div className="flex flex-wrap gap-3 mb-4">
+                <div className="bg-slate-900 rounded-lg px-4 py-2">
+                  <p className="text-xs text-gray-400">Readiness</p>
+                  <p className="text-2xl font-bold text-white">
+                    {activeAssessment.assessment.readinessScore ?? 0}/100
+                  </p>
+                </div>
+                <div className="bg-slate-900 rounded-lg px-4 py-2">
+                  <p className="text-xs text-gray-400">Recommendation</p>
+                  <p
+                    className={`text-lg font-bold ${
+                      activeAssessment.assessment.recommendation === 'go'
+                        ? 'text-green-400'
+                        : activeAssessment.assessment.recommendation === 'no-go'
+                        ? 'text-red-400'
+                        : 'text-amber-400'
+                    }`}
+                  >
+                    {(activeAssessment.assessment.recommendation || 'unknown').replace(/-/g, ' ').toUpperCase()}
+                  </p>
+                </div>
+                <div className="bg-slate-900 rounded-lg px-4 py-2 flex-1">
+                  <p className="text-xs text-gray-400">Why</p>
+                  <p className="text-sm text-slate-200">
+                    {activeAssessment.assessment.recommendationReason || 'No rationale captured.'}
+                  </p>
+                </div>
+              </div>
+
+              {(activeAssessment.assessment.strengths?.length > 0 ||
+                activeAssessment.assessment.gaps?.length > 0) && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+                  {activeAssessment.assessment.strengths?.length > 0 && (
+                    <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-lg p-3">
+                      <h4 className="text-sm font-medium text-emerald-300 mb-2">Where we are strong</h4>
+                      <ul className="space-y-1 text-sm text-slate-200">
+                        {activeAssessment.assessment.strengths.map((s: string, i: number) => (
+                          <li key={i}>✅ {s}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {activeAssessment.assessment.gaps?.length > 0 && (
+                    <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
+                      <h4 className="text-sm font-medium text-red-300 mb-2">Where we have gaps</h4>
+                      <ul className="space-y-1 text-sm text-slate-200">
+                        {activeAssessment.assessment.gaps.map((g: string, i: number) => (
+                          <li key={i}>❌ {g}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="flex-1 overflow-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="text-left text-gray-400 border-b border-slate-700">
+                      <th className="py-2 pr-3">#</th>
+                      <th className="py-2 pr-3">Customer need</th>
+                      <th className="py-2 pr-3">Source</th>
+                      <th className="py-2 pr-3">Capability</th>
+                      <th className="py-2 pr-3">Evidence</th>
+                      <th className="py-2">Gap / action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(activeAssessment.assessment.items || []).map((item: any, i: number) => (
+                      <tr key={i} className="border-b border-slate-800 align-top">
+                        <td className="py-2 pr-3 text-gray-500">{i + 1}</td>
+                        <td className="py-2 pr-3 text-white">{item.need}</td>
+                        <td className="py-2 pr-3 text-gray-400 capitalize">{item.source}</td>
+                        <td className="py-2 pr-3">
+                          <span
+                            className={`px-2 py-0.5 rounded text-xs font-medium ${
+                              item.capability === 'strong'
+                                ? 'bg-emerald-500/15 text-emerald-300'
+                                : item.capability === 'partial'
+                                ? 'bg-amber-500/15 text-amber-300'
+                                : item.capability === 'gap'
+                                ? 'bg-red-500/15 text-red-300'
+                                : 'bg-slate-600/30 text-slate-300'
+                            }`}
+                          >
+                            {item.capability}
+                          </span>
+                        </td>
+                        <td className="py-2 pr-3 text-slate-300">{item.evidence || '—'}</td>
+                        <td className="py-2 text-slate-400">{item.gap || item.action || '—'}</td>
+                      </tr>
+                    ))}
+                    {(activeAssessment.assessment.items || []).length === 0 && (
+                      <tr>
+                        <td colSpan={6} className="py-6 text-center text-gray-500">
+                          No needs assessed — dissect the solicitation first, then run Assess Capabilities.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
             </div>
           </div>
