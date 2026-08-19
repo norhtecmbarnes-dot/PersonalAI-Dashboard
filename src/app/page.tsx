@@ -31,6 +31,7 @@ interface UserPreferences {
   userName: string;
   assistantName: string;
   hasCompletedSetup: boolean;
+  displayName?: string;
 }
 
 interface Document {
@@ -1099,7 +1100,7 @@ export default function Home() {
                   Government Contracting Studio
                 </span>
                 <h2 className="text-3xl font-bold text-white mb-2">
-                  Hello{userPrefs.userName ? `, ${userPrefs.userName}` : ''} — ready to win your next bid?
+                  Hello{userPrefs.displayName ? `, ${userPrefs.displayName}` : ''} — ready to win your next bid?
                 </h2>
                 <p className="text-gray-400 mb-8 max-w-xl">
                   I&apos;m your capture manager, proposal writer, and compliance auditor. Tell me about

@@ -69,9 +69,35 @@ export async function POST(request: NextRequest) {
           );
         }
 
-      case 'updateUser':
+      case 'updateUser': {
         await memoryFileService.updateUser(body.user);
+        // Keep the startup-name preference (shown on the Government Contracting
+        // Studio greeting) in sync when the name is changed from the Memory tab.
+        const name =
+          body.user && typeof body.user.name === 'string' ? body.user.name.trim() : '';
+        if (name) {
+          try {
+            const fs = await import('fs');
+            const path = await import('path');
+            const prefsFile = path.join(process.cwd(), 'data', 'user-preferences.json');
+            let prefs: Record<string, unknown> = {};
+            if (fs.existsSync(prefsFile)) {
+              try {
+                prefs = JSON.parse(fs.readFileSync(prefsFile, 'utf8') || '{}');
+              } catch {
+                prefs = {};
+              }
+            }
+            prefs.userName = sanitizeString(name);
+            prefs.updatedAt = Date.now();
+            fs.mkdirSync(path.dirname(prefsFile), { recursive: true });
+            fs.writeFileSync(prefsFile, JSON.stringify(prefs, null, 2), 'utf8');
+          } catch (e) {
+            console.error('[MemoryFile] Could not sync name to preferences:', e);
+          }
+        }
         return NextResponse.json({ success: true });
+      }
 
       case 'addProject':
         await memoryFileService.addProject(body.project);

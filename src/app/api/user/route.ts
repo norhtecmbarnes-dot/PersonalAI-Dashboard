@@ -2,6 +2,7 @@ export const runtime = 'nodejs';
 
 import { NextResponse } from 'next/server';
 import { validateString, sanitizeString } from '@/lib/utils/validation';
+import { memoryFileService } from '@/lib/services/memory-file';
 import * as fs from 'fs';
 import * as path from 'path';
 
@@ -60,9 +61,21 @@ export async function GET() {
   try {
     const preferences = await getPreferences();
     
+    // Resolve the display name: the name given at startup, falling back to the
+    // memory-file name (never a bare "User"). This is what the Government
+    // Contracting Studio greeting uses.
+    const setupName = (preferences.userName || '').trim();
+    const memoryName = ((memoryFileService.getMemory().user || {}).name || '').trim();
+    const displayName =
+      setupName && setupName !== 'User'
+        ? setupName
+        : memoryName && memoryName !== 'User'
+          ? memoryName
+          : '';
+    
     return NextResponse.json({ 
       success: true, 
-      preferences,
+      preferences: { ...preferences, displayName },
     });
   } catch (error) {
     console.error('[UserAPI] Failed to get preferences:', error);
@@ -100,6 +113,15 @@ export async function POST(request: Request) {
         
         await savePreferences(preferences);
         
+        // The name given when the program is started is the app-wide name:
+        // keep the memory file (used for AI context) in sync so all surfaces
+        // greet the same person.
+        try {
+          await memoryFileService.updateUser({ name: preferences.userName });
+        } catch (e) {
+          console.error('[UserAPI] Could not sync name to memory file:', e);
+        }
+        
         return NextResponse.json({ success: true, preferences });
       }
 
@@ -117,6 +139,14 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: assistantNameValidation.error }, { status: 400 });
           }
           body.assistantName = sanitizeString(body.assistantName);
+        }
+        
+        if (body.userName) {
+          try {
+            await memoryFileService.updateUser({ name: body.userName });
+          } catch (e) {
+            console.error('[UserAPI] Could not sync name to memory file:', e);
+          }
         }
         
         const updateData = { ...body, updatedAt: Date.now() };

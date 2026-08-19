@@ -5,6 +5,8 @@ export interface UserPreferences {
   updatedAt: number;
   hasCompletedSetup: boolean;
   apiKeys?: ApiKeys;
+  /** Resolved display name (setup name, falling back to the memory-file name). */
+  displayName?: string;
 }
 
 export interface ApiKeys {

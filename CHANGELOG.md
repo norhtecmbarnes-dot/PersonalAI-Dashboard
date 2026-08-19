@@ -113,6 +113,17 @@ both games are saved in `screenshots/` for the book.
 
 ---
 
+### 🔧 The Name on the Home Page Now Comes from Setup
+
+**What changed.** The greeting on the Government Contracting Studio page
+("Hello, … — ready to win your next bid?") now always shows **the name you
+entered when you first started the program**. If you change your name later in
+the Memory tab, that change now flows everywhere automatically — the home
+page, the memory file, and the AI's knowledge of who you are all agree, so you
+never see two different names in two places.
+
+---
+
 ## Version 2.6.5 (March 20, 2026) - Mermaid Diagrams & Rate Limiting
 
 ---
