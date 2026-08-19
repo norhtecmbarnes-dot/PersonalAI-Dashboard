@@ -7,6 +7,41 @@
 *Written for everyone — no technical background needed. Each section says what
  the feature is, why it matters, and how to use it.*
 
+### 🧠 The AI Now Learns From Your Choices and Gets Smarter Over Time
+
+**What it is.** The AI ranking doesn't just give you a list — it **learns from
+what you do with it**. Every time you act on a ranked opportunity, the system
+records that moment: what the AI recommended (score, rank, pursue/watch/skip)
+and what you actually did (started a bid, marked it **✓ Worth pursuing**, or
+marked it **✗ Not relevant**). Then a **self-improvement pass** reads those
+signals — plus your win/loss bid outcomes — and distills them into sharp,
+plain-English lessons about what the AI is getting right and wrong. Those
+lessons are fed into the **next** ranking, so the AI's scoring genuinely gets
+smarter with every scan instead of starting from scratch each time.
+
+**How to use it.**
+1. On the **Matches** page, each AI-ranked opportunity now has two small
+   buttons: **✓ Worth pursuing** and **✗ Not relevant**. One click tells the
+   AI you agree or disagree with its call. Starting a bid counts too — it's
+   recorded automatically.
+2. A new **🧠 AI self-improvement** panel on the same page shows the lessons
+   the AI has learned so far, each as a "Pattern → adjustment" pair (e.g.
+   *"EO/IR upgrades scoring 70+ were always pursued → weight them higher"*).
+3. **Learn now** runs the learning pass on demand; otherwise it runs by itself
+   the first time you open the page after new signals appear.
+
+**Proof it works (verified live).** We recorded one real engagement — an
+EW-jamming notice the AI had scored 55 with a "Watch" recommendation — then
+marked it "not relevant." The learning pass distilled three lessons from that
+single signal (be more skeptical of mid-score "watch" calls; check the
+capability match before crediting technical keywords). On the very next
+ranking, that same notice dropped from **55/Watch (#5) to 20/Skip (#8)**, and
+the AI's new reasoning quoted the lesson: *"NGJ is an Electronic Warfare
+jamming system, which is a distinct capability not listed."* The loop closed:
+**your one click changed what the AI does next time.**
+
+---
+
 ### 🎯 AI-Ranked Opportunities — the AI Reads Every Match and Tells You What's Worth It
 
 **What it is.** Until now, the fit score next to each SAM.gov match was a simple

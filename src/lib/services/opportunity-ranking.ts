@@ -19,6 +19,7 @@ import { sqlDatabase } from '@/lib/database/sqlite';
 import { chatCompletion } from '@/lib/models/sdk.server';
 import { sanitizePrompt } from '@/lib/utils/validation';
 import { dailySamScan } from './daily-sam-scan';
+import { opportunityLearning } from './opportunity-learning';
 import { opportunityScout, type OpportunityProfile, type ScoredOpportunity } from './opportunity-scout';
 
 const DEFAULT_MODEL = 'ollama/glm-4.7-flash';
@@ -190,7 +191,11 @@ export class OpportunityRankingService {
       .sort((a, b) => b.fitScore - a.fitScore)
       .slice(0, limit || MAX_RANKED);
 
-    const prompt = this.buildPrompt(profile, pool);
+    // Self-improvement: feed what the AI learned from past engagements and
+    // bid outcomes into this ranking pass so its scoring gets smarter over time.
+    const lessons = opportunityLearning.getLessons(brandId);
+
+    const prompt = this.buildPrompt(profile, pool, lessons?.lessons || []);
 
     let items: RankedOpportunity[] = [];
     try {
@@ -252,7 +257,11 @@ export class OpportunityRankingService {
   }
 
   /** Build the compact one-pass prompt: company capabilities + numbered opportunities. */
-  private buildPrompt(profile: OpportunityProfile, pool: ScoredOpportunity[]): string {
+  private buildPrompt(
+    profile: OpportunityProfile,
+    pool: ScoredOpportunity[],
+    learnedLessons: { pattern: string; adjustment: string }[] = []
+  ): string {
     const caps = [
       `Products: ${(profile.products || []).slice(0, 12).join('; ') || 'none listed'}`,
       `Capabilities: ${(profile.capabilities || []).slice(0, 12).join('; ') || 'none listed'}`,
@@ -283,6 +292,13 @@ ${caps}
 ## OPPORTUNITIES (numbered [0]..[${pool.length - 1}])
 ${listing}
 
+## LESSONS FROM PAST ENGAGEMENTS
+${
+      learnedLessons.length > 0
+        ? learnedLessons.map(l => `- ${l.pattern} → ${l.adjustment}`).join('\n')
+        : '  (none yet — this is the first ranking pass)'
+    }
+
 ## TASK
 For EVERY numbered opportunity, judge how well it fits this company's REAL capabilities — not just keyword overlap. Consider: does the company do this work? Is it the right customer? Is the effort/scope realistic? Is the deadline actionable?
 
@@ -290,6 +306,7 @@ Respond with STRICT JSON only, no markdown, no commentary:
 {"items":[{"index":0,"score":78,"summary":"one short plain-English sentence describing the opportunity","why":"one short sentence on why it fits or does not fit the company, naming the relevant capability","recommendation":"pursue"}]}
 
 Rules:
+- Apply the LESSONS FROM PAST ENGAGEMENTS when scoring — they are corrections learned from what the company actually pursued and what happened. If a lesson says to weight a capability higher or be skeptical of a notice type, follow it.
 - score 0-100: how strongly this opportunity fits the company's capabilities and is worth pursuing. Use the full range — most opportunities are mediocre; only a few should score above 80.
 - summary: a plain-English, non-technical one-liner a busy founder can skim.
 - why: ground it in something from COMPANY CAPABILITIES (a product, capability, past performance, or target agency). Never invent capability.

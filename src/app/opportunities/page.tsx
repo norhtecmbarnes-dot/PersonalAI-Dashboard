@@ -72,6 +72,24 @@ interface RankingInfo {
   message?: string;
 }
 
+interface LearningLesson {
+  pattern: string;
+  adjustment: string;
+}
+
+interface LearningStatus {
+  engagementCount: number;
+  outcomeCount: number;
+  bidsStarted: number;
+  pursueMarks: number;
+  notRelevant: number;
+  lessons: LearningLesson[];
+  learnedAt: number | null;
+  stale: boolean;
+  running: boolean;
+  lastMessage: string | null;
+}
+
 const POLL_MS = 6000;
 const MAX_POLLS = 60; // give a scan up to ~6 minutes to finish
 
@@ -126,6 +144,8 @@ export default function OpportunitiesPage() {
   const [startError, setStartError] = useState<string | null>(null);
   const [ranking, setRanking] = useState<RankingInfo | null>(null);
   const [rankStatus, setRankStatus] = useState<'running' | 'ready' | 'stale' | 'none'>('none');
+  const [learning, setLearning] = useState<LearningStatus | null>(null);
+  const [engagingId, setEngagingId] = useState<string | null>(null);
 
   const pollCount = useRef(0);
   const pollTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -145,6 +165,7 @@ export default function OpportunitiesPage() {
         setSummary(data.summary || null);
         setRanking(data.ranking || null);
         setRankStatus(data.rankStatus || 'none');
+        setLearning(data.learning || null);
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to load matches');
       } finally {
@@ -178,9 +199,9 @@ export default function OpportunitiesPage() {
     loadData();
   }, [brandId, loadData]);
 
-  // Poll while a scan or an AI ranking is running
+  // Poll while a scan, an AI ranking, or the learning pass is running
   useEffect(() => {
-    if (!status?.running && rankStatus !== 'running') {
+    if (!status?.running && rankStatus !== 'running' && !learning?.running) {
       pollCount.current = 0;
       return;
     }
@@ -196,7 +217,7 @@ export default function OpportunitiesPage() {
     return () => {
       if (pollTimer.current) clearTimeout(pollTimer.current);
     };
-  }, [status?.running, rankStatus, loadData]);
+  }, [status?.running, rankStatus, learning?.running, loadData]);
 
   const runScanNow = async () => {
     setError(null);
@@ -221,6 +242,63 @@ export default function OpportunitiesPage() {
       await loadData({ silent: true });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to start scan');
+    }
+  };
+
+  // Record what the human did with an AI-ranked item — the raw material the
+  // learning pass turns into scoring lessons.
+  const handleEngage = async (item: RankedOpportunity, signal: 'pursue' | 'not-relevant') => {
+    const key = item.id || item.solicitationNumber;
+    if (!brandId || !key || engagingId === key) return;
+    setEngagingId(key);
+    try {
+      const res = await fetch('/api/sam-scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          brandId,
+          action: 'engage',
+          engagement: {
+            opportunityId: key,
+            title: item.title,
+            url: item.url,
+            aiScore: item.aiScore,
+            rank: item.rank,
+            recommendation: item.recommendation,
+            signal,
+          },
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to record feedback');
+      await loadData({ silent: true });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to record feedback');
+    } finally {
+      setEngagingId(null);
+    }
+  };
+
+  // Force the learning pass — the AI distills what you pursued vs. what it
+  // recommended into lessons that sharpen the next ranking.
+  const handleLearnNow = async () => {
+    setError(null);
+    try {
+      const res = await fetch('/api/sam-scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ brandId, action: 'learn' }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to start learning');
+      if (data.started === false) {
+        setError(data.message || 'Learning could not be started');
+        return;
+      }
+      setLearning(l => (l ? { ...l, running: true } : l));
+      await loadData({ silent: true });
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to start learning');
     }
   };
 
@@ -284,6 +362,25 @@ export default function OpportunitiesPage() {
         throw new Error(data.error || 'Failed to start bid');
       }
       setStarted(s => ({ ...s, [key]: data.project?.id || '' }));
+      // Self-improvement signal: the human acted on the AI's ranking by
+      // starting a bid — the learning pass will weigh this next time.
+      void fetch('/api/sam-scan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          brandId,
+          action: 'engage',
+          engagement: {
+            opportunityId: key,
+            title: m.title,
+            url: m.url,
+            aiScore: ranking?.items?.find(i => i.id === m.id || i.solicitationNumber === m.solicitationNumber)?.aiScore ?? 0,
+            rank: ranking?.items?.find(i => i.id === m.id || i.solicitationNumber === m.solicitationNumber)?.rank,
+            recommendation: ranking?.items?.find(i => i.id === m.id || i.solicitationNumber === m.solicitationNumber)?.recommendation,
+            signal: 'bid',
+          },
+        }),
+      }).catch(() => {});
     } catch (e) {
       setStartError(e instanceof Error ? e.message : 'Failed to start bid');
     } finally {
@@ -526,6 +623,77 @@ export default function OpportunitiesPage() {
               )}
             </div>
 
+            {/* Self-improvement panel — the AI studies what you pursued vs.
+                what it recommended and sharpens its next ranking. */}
+            {learning && (
+              <div className="mb-6 bg-slate-800/70 rounded-lg border border-emerald-500/25 p-5">
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <h3 className="text-lg font-semibold text-white flex items-center gap-2">
+                    🧠 AI self-improvement
+                    {learning.learnedAt ? (
+                      <span className="text-xs font-normal text-slate-500">
+                        learned {timeAgo(learning.learnedAt)} · {learning.engagementCount}{' '}
+                        {learning.engagementCount === 1 ? 'signal' : 'signals'}
+                      </span>
+                    ) : null}
+                  </h3>
+                  <button
+                    onClick={handleLearnNow}
+                    disabled={learning.running || !brandId}
+                    className="px-4 py-1.5 rounded-lg text-sm font-medium bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-white transition-colors"
+                  >
+                    {learning.running ? 'Learning…' : 'Learn now'}
+                  </button>
+                </div>
+
+                {learning.running && !learning.lessons?.length ? (
+                  <div className="flex items-center gap-3 text-emerald-300 text-sm py-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-emerald-500"></div>
+                    The AI is studying what you pursued, skipped, and won against
+                    its recommendations — about 30 seconds.
+                  </div>
+                ) : learning.lastMessage && !learning.lessons?.length ? (
+                  <div className="text-sm text-amber-300/90 bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2">
+                    {learning.lastMessage}{' '}
+                    <button onClick={handleLearnNow} className="underline ml-1">
+                      Try again
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    {learning.lessons?.length ? (
+                      <ul className="space-y-2">
+                        {learning.lessons.map((l, i) => (
+                          <li key={i} className="text-sm text-slate-300 border-l-2 border-emerald-500/40 pl-3">
+                            <span className="text-emerald-300 font-medium">Pattern:</span>{' '}
+                            {l.pattern}
+                            <br />
+                            <span className="text-slate-500 text-xs">
+                              → {l.adjustment}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-sm text-slate-500">
+                        The AI learns by watching what you do with its recommendations. Use the{' '}
+                        <span className="text-slate-300">✓ Worth pursuing</span> /{' '}
+                        <span className="text-slate-300">✗ Not relevant</span> buttons on the ranked
+                        list (or start a bid) — then it distills what it got right and wrong, and
+                        scores the next scan smarter.
+                      </p>
+                    )}
+                    {learning.stale && learning.lessons?.length ? (
+                      <p className="text-xs text-emerald-300/80 mt-2">
+                        New signals since the last lesson — click{' '}
+                        <span className="font-medium">Learn now</span> to fold them in.
+                      </p>
+                    ) : null}
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* AI-ranked list — the AI reads every match against the company
                 profile and ranks it high → low, with a URL and one-line summary. */}
             {(rankStatus === 'running' ||
@@ -624,6 +792,25 @@ export default function OpportunitiesPage() {
                                   </span>
                                 )}
                                 {item.naicsCode && <span>NAICS {item.naicsCode}</span>}
+                              </div>
+                              {/* Feedback — the raw material for self-improvement. */}
+                              <div className="flex items-center gap-2 mt-2">
+                                <button
+                                  onClick={() => handleEngage(item, 'pursue')}
+                                  disabled={engagingId === (item.id || item.solicitationNumber)}
+                                  className="px-2.5 py-1 rounded-md text-xs font-medium bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/20 disabled:opacity-50 transition-colors"
+                                  title="Tell the AI this was worth pursuing"
+                                >
+                                  ✓ Worth pursuing
+                                </button>
+                                <button
+                                  onClick={() => handleEngage(item, 'not-relevant')}
+                                  disabled={engagingId === (item.id || item.solicitationNumber)}
+                                  className="px-2.5 py-1 rounded-md text-xs font-medium bg-red-500/10 border border-red-500/30 text-red-300 hover:bg-red-500/20 disabled:opacity-50 transition-colors"
+                                  title="Tell the AI this was not relevant"
+                                >
+                                  ✗ Not relevant
+                                </button>
                               </div>
                             </div>
                           </div>
@@ -802,6 +989,12 @@ export default function OpportunitiesPage() {
               <span className="text-emerald-300">Start Bid</span> on any match turns it into a
               project under your company — the agency is seeded into your customer knowledge base
               and the bid workflow begins in the Company Workspace.
+            </li>
+            <li>
+              The AI <span className="text-emerald-300">learns over time</span>: mark ranked items
+              <span className="text-slate-300"> ✓ Worth pursuing</span> or{' '}
+              <span className="text-slate-300">✗ Not relevant</span> (and start bids), and the
+              self-improvement pass distills lessons that sharpen the next ranking&apos;s scores.
             </li>
           </ul>
         </div>
