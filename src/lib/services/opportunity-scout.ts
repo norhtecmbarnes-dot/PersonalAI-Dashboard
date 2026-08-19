@@ -368,10 +368,18 @@ Respond with STRICT JSON only, no markdown, no commentary:
     return found;
   }
 
-  /** Search SAM.gov + customer-published sites for each query, score, and store the best fits. */
+  /**
+   * Search SAM.gov + customer-published sites for each query, score, and store the best fits.
+   * A query can be a plain keyword string, or `{ keyword, naicsCode, pscCode }` to target a
+   * specific NAICS/PSC category on SAM.gov (used by the daily targeted scan).
+   */
   async search(
     brandId: string,
-    opts?: { limit?: number; queries?: string[]; sources?: string[] }
+    opts?: {
+      limit?: number;
+      queries?: Array<string | { keyword?: string; naicsCode?: string; pscCode?: string }>;
+      sources?: string[];
+    }
   ): Promise<{
     success: boolean;
     mode: 'api' | 'browser' | 'none';
@@ -387,7 +395,12 @@ Respond with STRICT JSON only, no markdown, no commentary:
       profile = await this.buildProfile(brandId);
     }
 
-    const queries = (opts?.queries && opts.queries.length > 0 ? opts.queries : this.generateQueries(profile)).slice(0, 8);
+    const rawQueries =
+      opts?.queries && opts.queries.length > 0 ? opts.queries : this.generateQueries(profile);
+    const queries = rawQueries.slice(0, 8);
+    const displayQueries = queries.map(q =>
+      typeof q === 'string' ? q : q.keyword || q.naicsCode || q.pscCode || ''
+    );
     const sources = this.applicableSources(profile, opts?.sources);
     const webSources = sources.filter(s => s.id !== 'sam');
 
@@ -396,44 +409,53 @@ Respond with STRICT JSON only, no markdown, no commentary:
     const apiKey = sqlDatabase.getApiKey('sam');
 
     for (const query of queries) {
+      const keyword = typeof query === 'string' ? query : query.keyword;
+      const naicsCode = typeof query === 'string' ? undefined : query.naicsCode;
+      const pscCode = typeof query === 'string' ? undefined : query.pscCode;
+      const searchTerm = keyword || naicsCode || pscCode || '';
       if (apiKey) {
         try {
-          const params: SAMSearchParams = { keyword: query, limit: Math.min(opts?.limit || 15, 50) };
+          const params: SAMSearchParams = {
+            ...(keyword ? { keyword } : {}),
+            limit: Math.min(opts?.limit || 15, 50),
+            ...(naicsCode ? { naicsCode } : {}),
+            ...(pscCode ? { pscCode } : {}),
+          };
           const res = await SamGovService.getInstance().search(params);
           if (res.success && res.opportunities) {
             all.push(
-              ...res.opportunities.map((o: SAMOpportunity) => ({ ...o, keywords: [query], source: 'sam' }))
+              ...res.opportunities.map((o: SAMOpportunity) => ({ ...o, keywords: [searchTerm], source: 'sam' }))
             );
             mode = 'api';
           }
         } catch (e) {
-          console.error(`[OpportunityScout] SAM API search failed for "${query}":`, e);
+          console.error(`[OpportunityScout] SAM API search failed for "${searchTerm}":`, e);
         }
       } else {
         // Browser-agent scrape of the SAM.gov public search UI
         try {
           const samSource = OPPORTUNITY_SOURCES.find(s => s.id === 'sam');
-          const found = samSource ? await this.scrapeSource(samSource, query, 8) : [];
+          const found = samSource ? await this.scrapeSource(samSource, searchTerm, 8) : [];
           if (found.length > 0) {
             all.push(...found.map(o => ({ ...o, source: 'sam' })));
             mode = 'browser';
           }
         } catch (e) {
-          console.error(`[OpportunityScout] SAM.gov scrape failed for "${query}":`, e);
+          console.error(`[OpportunityScout] SAM.gov scrape failed for "${searchTerm}":`, e);
         }
       }
     }
 
     // Customer-published sites: DIU, SSC Front Door, AFWERX, SBIR.gov…
     for (const source of webSources) {
-      for (const query of queries.slice(0, 3)) {
+      for (const query of displayQueries.slice(0, 3)) {
         const found = await this.webSourceSearch(source, query, 5);
         all.push(...found.map(o => ({ ...o, source: source.id })));
       }
       // Browser scrape of the source's public listings (once per source — the
       // landing pages aren't keyword-scoped, so one pass is enough).
       try {
-        const scraped = await this.scrapeSource(source, queries[0] || '', 5);
+        const scraped = await this.scrapeSource(source, displayQueries[0] || '', 5);
         all.push(...scraped.map(o => ({ ...o, source: source.id })));
       } catch (e) {
         console.error(`[OpportunityScout] ${source.label} scrape failed:`, e);
@@ -444,7 +466,7 @@ Respond with STRICT JSON only, no markdown, no commentary:
       return {
         success: false,
         mode,
-        queries,
+        queries: displayQueries,
         opportunities: [],
         profile,
         sourcesUsed: sources.map(s => s.id),
@@ -469,7 +491,7 @@ Respond with STRICT JSON only, no markdown, no commentary:
     // Store high-fit opportunities
     const searchId = `scout_${Date.now()}`;
     try {
-      sqlDatabase.addSAMSearch(searchId, queries, { brandId, limit: scored.length });
+      sqlDatabase.addSAMSearch(searchId, displayQueries, { brandId, limit: scored.length });
       for (const opp of scored.slice(0, 20)) {
         sqlDatabase.addSAMOpportunity(
           { ...opp, keywords: opp.matchedKeywords },
@@ -488,7 +510,7 @@ Respond with STRICT JSON only, no markdown, no commentary:
     return {
       success: true,
       mode,
-      queries,
+      queries: displayQueries,
       opportunities: scored,
       profile,
       sourcesUsed: sources.map(s => s.id),

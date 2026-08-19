@@ -35,6 +35,22 @@ For Diagrams:
 
 Output ONLY the HTML code, no explanations.`;
 
+const PROPOSAL_SYSTEM_PROMPT = `You are Proposal Genie, a senior capture manager and proposal writer with twenty-plus years of experience winning federal, state, and local government contracts.
+
+Write the requested proposal section as professional markdown.
+
+Rules:
+1. Write to the customer (the agency), not to the RFP. Speak directly to their mission, their stated needs, and the evaluation criteria.
+2. Be specific, not generic. If a sentence could appear in any company's proposal, rewrite it. Use [COMPANY NAME], [PROGRAM NAME], and similar bracketed placeholders where company-specific facts belong, and flag anything you don't know with [GAP: ...].
+3. Follow the structure of a winning section: an opening that demonstrates understanding, numbered subsections that address the requirement point by point, and a close that reinforces the win themes.
+4. Never claim experience, past performance, certifications, or staffing that the user did not provide. Mark every unknown as [GAP: ...] so the writer can fill it in.
+5. Use markdown formatting: a # heading for the section title, ## headings for subsections, bullet lists, and pipe tables where a table clarifies (staffing, schedule, risk, compliance).
+6. Keep it submission-ready: professional tone, no fluff, no marketing speak, no vague superlatives.
+7. If the user names a solicitation type (RFP, SBIR, STTR, OTA, CSO, BAA, RFI), follow that vehicle's conventions and page-count discipline.
+8. Where appropriate, echo the compliance mindset: call out explicit requirements with "Complies" statements and flag anything unverifiable as [GAP: ...].
+
+Output ONLY the markdown for the section, no explanations, no preamble.`;
+
 export async function GET(request: NextRequest) {
   try {
     const action = request.nextUrl.searchParams.get('action');
@@ -126,6 +142,19 @@ export async function POST(request: NextRequest) {
           success: true, 
           layout: genLayout,
           html: renderedHtml 
+        });
+
+      case 'generateProposal':
+        // Generate a proposal section as markdown in Proposal Genie's voice
+        const { description: proposalPrompt, model: proposalModel } = body;
+        const safeProposalPrompt = sanitizePrompt(proposalPrompt, 3000);
+        const proposalMarkdown = await generateProposalMarkdown(
+          safeProposalPrompt,
+          proposalModel || 'ollama/ornith:latest'
+        );
+        return NextResponse.json({ 
+          success: true, 
+          markdown: proposalMarkdown 
         });
 
       case 'generateWithAI':
@@ -247,6 +276,66 @@ export async function POST(request: NextRequest) {
       details: error instanceof Error ? error.message : 'Unknown error'
     }, { status: 500 });
   }
+}
+
+async function generateProposalMarkdown(prompt: string, model: string): Promise<string> {
+  const fullPrompt = `${PROPOSAL_SYSTEM_PROMPT}
+
+Proposal section request: ${prompt}
+
+Write the complete section now.`;
+
+  try {
+    const result = await chatCompletion({
+      model,
+      messages: [{ role: 'user', content: fullPrompt }],
+      temperature: 0.7,
+      maxTokens: 6000,
+    });
+
+    const content = result.message?.content || '';
+
+    // Extract markdown from code blocks if present
+    const mdMatch = content.match(/```(?:markdown|md)?\s*([\s\S]*?)```/);
+    if (mdMatch) {
+      return mdMatch[1].trim();
+    }
+
+    return content.trim();
+  } catch (error) {
+    console.error('Proposal generation error:', error);
+    return generateFallbackProposal(prompt);
+  }
+}
+
+function generateFallbackProposal(prompt: string): string {
+  return `# ${prompt.split(/\n/)[0].slice(0, 60)}
+
+> Draft section generated offline. Re-run with the AI model selected in the top bar for a complete draft.
+
+## 1. Understanding of the Requirement
+
+[COMPANY NAME] understands the agency's need to [GAP: restate the requirement in your own words].
+
+## 2. Proposed Approach
+
+[GAP: describe your technical or management approach here.]
+
+## 3. Key Discriminators
+
+- [GAP: your first win theme, tied to an agency need]
+- [GAP: your second win theme, with evidence]
+
+## 4. Compliance
+
+| Requirement | Status |
+| --- | --- |
+| [GAP: requirement from the solicitation] | Complies |
+
+## 5. Risks and Mitigations
+
+- [GAP: risk] → [GAP: mitigation]
+`;
 }
 
 async function generateAIHTML(prompt: string, model: string): Promise<string> {

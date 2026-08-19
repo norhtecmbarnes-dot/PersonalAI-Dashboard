@@ -741,17 +741,56 @@ export default function Home() {
   const welcomeInstructions = `
 **Getting Started**
 
-• **Type a message** below to start chatting
-• **Upload documents** using the paperclip icon
-• **Select a brand** from the sidebar for context-aware responses
+• **Describe your pursuit** below — include the agency, solicitation number, and requirements
+• **Upload the solicitation** with the paperclip icon and ask for a format guide
+• **Select a brand** from the sidebar so every answer speaks in your company's voice
 • **Use commands** like \`/expert\`, \`/memory\`, or \`/briefing\`
 
-**Quick Actions**
-• 📁 **Documents** - Upload and chat with PDFs, Word docs
-• 🏷️ **Brand Context** - Get responses in your brand's voice
-• ⚡ **New Chat** - Start a fresh conversation
-• ✅ **Create Task** - Turn conversation into a task
+**How to Start Winning**
+• 🎯 **Daily matches** — SAM.gov scanned every day against your NAICS codes and keywords
+• 🏷️ **Build win themes** — turn your discriminators into proposal strategy
+• ✍️ **Write sections** — generate submission-ready proposal sections in the Proposal Builder
+• ✅ **Stay compliant** — every *shall* and *must* tracked against the compliance matrix
   `;
+
+  const quickActions = [
+    {
+      icon: '📋',
+      title: 'Start a Bid',
+      desc: 'Create a procurement and work the capture → compliance → outline pipeline',
+      href: '/bid-workflow',
+    },
+    {
+      icon: '🎯',
+      title: 'Daily Matches',
+      desc: 'Targeted SAM.gov opportunities scanned once a day against your company profile',
+      href: '/opportunities',
+    },
+    {
+      icon: '📄',
+      title: 'Build Sections',
+      desc: 'Generate executive summaries, technical approaches, and compliance matrices',
+      href: '/builder',
+    },
+    {
+      icon: '✍️',
+      title: 'Write the Proposal',
+      desc: 'Draft, outline, and refine the full proposal in the Writing Studio',
+      href: '/writing-studio',
+    },
+    {
+      icon: '🏛️',
+      title: 'Company Vault',
+      desc: 'Load past proposals and data sheets into your corporate knowledge base',
+      href: '/brand-workspace',
+    },
+    {
+      icon: '📁',
+      title: 'Manage Documents',
+      desc: 'Upload, search, and chat with RFPs, contracts, and reference material',
+      href: '/documents',
+    },
+  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex">
@@ -1055,30 +1094,53 @@ export default function Home() {
         >
           <div className="max-w-4xl mx-auto">
             {messages.length === 0 ? (
-              <div className="h-full flex flex-col items-center justify-center text-center py-12">
-                <div className="text-6xl mb-4">🤖</div>
-                <h2 className="text-2xl font-bold text-white mb-2">
-                  Hello{userPrefs.userName ? `, ${userPrefs.userName}` : ''}!
+              <div className="h-full flex flex-col items-center text-center py-10">
+                <span className="text-xs px-3 py-1 rounded-full bg-purple-900/60 text-purple-300 border border-purple-700 mb-5">
+                  Government Contracting Studio
+                </span>
+                <h2 className="text-3xl font-bold text-white mb-2">
+                  Hello{userPrefs.userName ? `, ${userPrefs.userName}` : ''} — ready to win your next bid?
                 </h2>
-                <p className="text-gray-400 mb-6">How can I help you today?</p>
+                <p className="text-gray-400 mb-8 max-w-xl">
+                  I&apos;m your capture manager, proposal writer, and compliance auditor. Tell me about
+                  the opportunity, and we&apos;ll go from solicitation to submission together.
+                </p>
+
+                {/* Proposal Hub Quick Actions */}
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-3 w-full max-w-3xl mb-8">
+                  {quickActions.map(action => (
+                    <button
+                      key={action.title}
+                      onClick={() => (window.location.href = action.href)}
+                      className="group bg-slate-800/60 hover:bg-slate-700/70 border border-slate-700 hover:border-purple-500 rounded-xl p-4 text-left transition-all duration-200 hover:-translate-y-0.5"
+                    >
+                      <div className="text-2xl mb-2">{action.icon}</div>
+                      <div className="text-sm font-semibold text-white mb-1">{action.title}</div>
+                      <div className="text-xs text-gray-400 leading-snug">{action.desc}</div>
+                    </button>
+                  ))}
+                </div>
+
+                {/* Starter Prompts */}
+                <div className="flex flex-wrap gap-2 justify-center mb-8 max-w-3xl">
+                  {[
+                    'Help me write an executive summary for our next bid',
+                    'Summarize this solicitation and flag compliance risks',
+                    'Draft our win themes for the opportunity we are chasing',
+                    'Audit my draft against the compliance matrix',
+                  ].map(prompt => (
+                    <button
+                      key={prompt}
+                      onClick={() => setInput(prompt)}
+                      className="px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 text-gray-300 hover:text-white border border-slate-700 rounded-full transition-colors"
+                    >
+                      {prompt}
+                    </button>
+                  ))}
+                </div>
 
                 <div className="bg-slate-800/50 rounded-lg p-6 max-w-md text-left">
                   <MarkdownRenderer content={welcomeInstructions} />
-                </div>
-
-                <div className="flex gap-3 mt-6">
-                  <button
-                    onClick={() => setInput('What can you help me with?')}
-                    className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
-                  >
-                    What can you do?
-                  </button>
-                  <button
-                    onClick={() => setInput('Help me understand my documents')}
-                    className="px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors"
-                  >
-                    Document help
-                  </button>
                 </div>
               </div>
             ) : (

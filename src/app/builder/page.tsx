@@ -1,21 +1,10 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { useGlobalModel } from '@/lib/context/ModelContext';
-
-// ============ CANVAS TYPES ============
-interface CanvasLayout {
-  id: string;
-  columns: number;
-  rows: number;
-  gap: number;
-  components: any[];
-}
-
-interface TableInfo {
-  name: string;
-}
 
 // ============ FORMS TYPES ============
 interface TableSchema {
@@ -49,48 +38,65 @@ interface FormField {
 
 const templates = [
   {
-    name: 'Landing Page',
-    desc: 'A complete landing page with hero, features, pricing, testimonials, and CTA sections',
+    name: 'Cover Page',
+    desc: 'A professional proposal cover page with the solicitation number, agency name, proposal title, due date, and company name.',
   },
   {
-    name: 'SaaS Homepage',
-    desc: 'Software-as-a-Service homepage with hero, features grid, pricing tiers, and signup CTA',
+    name: 'Executive Summary',
+    desc: 'An executive summary that states our understanding of the requirement, our three win themes, and why [COMPANY NAME] is the right choice for this award.',
   },
   {
-    name: 'Product Page',
-    desc: 'Product landing page with hero image, feature highlights, pricing, and testimonials',
+    name: 'Introduction & Understanding',
+    desc: 'An introduction section that demonstrates our understanding of the agency mission, the problem being solved, and the requirement.',
   },
   {
-    name: 'Dashboard',
-    desc: 'A dashboard with metrics cards showing KPIs, total users, revenue with trends',
+    name: 'Technical Approach',
+    desc: 'A technical approach section describing how [COMPANY NAME] will perform the work, keyed to the statement of work with numbered subsections.',
   },
   {
-    name: 'Sales Pipeline',
-    desc: 'A CRM sales pipeline dashboard with deal stages, values, and probabilities',
+    name: 'Management Plan',
+    desc: 'A management plan covering project organization, roles and responsibilities, reporting structure, and quality assurance.',
   },
   {
-    name: 'Analytics Dashboard',
-    desc: 'Analytics dashboard with multiple charts, metrics, and data tables',
+    name: 'Past Performance',
+    desc: 'A past performance section with three relevant contracts, outcomes achieved, and lessons learned, with [GAP] placeholders for reference details.',
   },
   {
-    name: 'Hero Section',
-    desc: 'Hero section with headline, subheadline, CTA buttons, and hero image',
+    name: 'Staffing & Key Personnel',
+    desc: 'A staffing plan with key personnel roles, required qualifications, labor categories, and a staffing table with levels of effort.',
   },
-  { name: 'Features Grid', desc: 'Features section with icon cards showing product capabilities' },
-  { name: 'Pricing Table', desc: 'Three-tier pricing table with features list and CTA buttons' },
   {
-    name: 'Testimonials',
-    desc: 'Customer testimonial cards with quotes, avatars, and company info',
+    name: 'Win Themes',
+    desc: 'A win themes section that turns our discriminators into persuasive, evidence-backed themes tied to the agency needs.',
   },
-  { name: 'Data Table', desc: 'A searchable data table with sorting and pagination' },
-  { name: 'Charts', desc: 'Multiple charts showing bar chart and line chart for analytics' },
-  { name: 'Contact Form', desc: 'A contact form with name, email, subject, and message fields' },
-  { name: 'Login Form', desc: 'A login form with email, password, and remember me checkbox' },
-  { name: 'Form Wizard', desc: 'A multi-step form wizard with progress indicator' },
+  {
+    name: 'Compliance Matrix',
+    desc: 'A compliance matrix table mapping every solicitation requirement to the section where it is addressed, with a Complies status column.',
+  },
+  {
+    name: 'Work Plan / Schedule',
+    desc: 'A work plan with phases, milestones, and a schedule table showing task, owner, start, and duration.',
+  },
+  {
+    name: 'Risk Management',
+    desc: 'A risk management section identifying the top program risks with likelihood, impact, and mitigation strategy.',
+  },
+  {
+    name: 'Cost / Price Summary',
+    desc: 'A cost or price summary narrative with a pricing table and assumptions, noting [GAP] where actual figures are needed.',
+  },
+  {
+    name: 'Quad Chart',
+    desc: 'A one-page quad chart with Technical, Management, Past Performance, and Price quadrants formatted for a briefing.',
+  },
+  {
+    name: 'Quality Assurance',
+    desc: 'A quality assurance surveillance plan describing how we will measure, track, and report performance against the contract.',
+  },
 ];
 
 export default function BuilderPage() {
-  const [activeTab, setActiveTab] = useState<'visual' | 'forms'>('visual');
+  const [activeTab, setActiveTab] = useState<'sections' | 'forms'>('sections');
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
@@ -98,12 +104,24 @@ export default function BuilderPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-white">Builder</h1>
+            <h1 className="text-3xl font-bold text-white">Proposal Builder</h1>
             <p className="text-slate-400 mt-1">
-              Create visual components and database-connected forms
+              Generate submission-ready proposal sections with AI, then copy or download them as markdown
             </p>
           </div>
           <div className="flex gap-2 items-center">
+            <Link
+              href="/bid-workflow"
+              className="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600"
+            >
+              📋 Bid Workflow
+            </Link>
+            <Link
+              href="/writing-studio"
+              className="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600"
+            >
+              ✍️ Writing Studio
+            </Link>
             <Link
               href="/"
               className="px-4 py-2 bg-slate-700 text-white rounded-lg hover:bg-slate-600"
@@ -116,14 +134,14 @@ export default function BuilderPage() {
         {/* Tabs */}
         <div className="flex gap-2 mb-6">
           <button
-            onClick={() => setActiveTab('visual')}
+            onClick={() => setActiveTab('sections')}
             className={`px-6 py-3 rounded-lg font-medium transition-colors ${
-              activeTab === 'visual'
+              activeTab === 'sections'
                 ? 'bg-purple-600 text-white'
                 : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
             }`}
           >
-            🎨 Visual Builder
+            📄 Proposal Sections
           </button>
           <button
             onClick={() => setActiveTab('forms')}
@@ -133,97 +151,33 @@ export default function BuilderPage() {
                 : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
             }`}
           >
-            📋 Database Forms
+            🗄️ Data Forms
           </button>
         </div>
 
         {/* Tab Content */}
-        {activeTab === 'visual' ? <VisualBuilder /> : <FormBuilder />}
+        {activeTab === 'sections' ? <ProposalSectionBuilder /> : <FormBuilder />}
       </div>
     </div>
   );
 }
 
-// ============ VISUAL BUILDER COMPONENT ============
-function VisualBuilder() {
+// ============ PROPOSAL SECTION BUILDER COMPONENT ============
+function ProposalSectionBuilder() {
+  const { selectedModel } = useGlobalModel();
   const [description, setDescription] = useState('');
-  const [layout, setLayout] = useState<CanvasLayout | null>(null);
-  const [html, setHtml] = useState<string>('');
+  const [markdown, setMarkdown] = useState<string>('');
   const [loading, setLoading] = useState(false);
-  const [showRawHtml, setShowRawHtml] = useState(false);
-  const [useAI, setUseAI] = useState(true);
-  const [tables, setTables] = useState<TableInfo[]>([]);
-  const [selectedTable, setSelectedTable] = useState<string>('');
-  const [bindToTable, setBindToTable] = useState(false);
-  const [previewDevice, setPreviewDevice] = useState<'mobile' | 'tablet' | 'desktop'>('desktop');
-  const [isFullscreen, setIsFullscreen] = useState(false);
-  const canvasContainerRef = useRef<HTMLDivElement>(null);
+  const [showRawMarkdown, setShowRawMarkdown] = useState(false);
 
   useEffect(() => {
-    fetchTables();
-    generateCanvas('A dashboard with metrics cards and a chart');
+    generateSection(templates[1].desc);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const fetchTables = async () => {
-    try {
-      const res = await fetch('/api/canvas?action=tables');
-      const data = await res.json();
-      if (data.success) {
-        setTables(data.tables || []);
-      }
-    } catch (e) {
-      console.error('Failed to fetch tables:', e);
-    }
-  };
-
-  const generateCanvas = async (desc?: string) => {
+  const generateSection = async (desc?: string) => {
     const prompt = desc || description;
     if (!prompt.trim()) return;
-
-    setLoading(true);
-    try {
-      let endpoint = '/api/canvas';
-      let body: any = {};
-
-      if (useAI) {
-        body = {
-          action: bindToTable && selectedTable ? 'generateWithData' : 'generateWithAI',
-          description: prompt,
-          tableName: bindToTable ? selectedTable : undefined,
-          model: 'ollama/ornith:latest',
-        };
-      } else {
-        body = {
-          action: 'generateAndRender',
-          description: prompt,
-        };
-      }
-
-      const res = await fetch(endpoint, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setLayout(data.layout);
-        setHtml(data.html);
-      } else {
-        console.error('Canvas error:', data.error);
-        alert('Error: ' + data.error);
-      }
-    } catch (e) {
-      console.error('Failed to generate canvas:', e);
-      alert('Failed to generate. Check console for details.');
-    }
-    setLoading(false);
-  };
-
-  const generateForm = async () => {
-    if (!selectedTable) {
-      alert('Please select a table first');
-      return;
-    }
 
     setLoading(true);
     try {
@@ -231,151 +185,101 @@ function VisualBuilder() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'generateForm',
-          tableName: selectedTable,
+          action: 'generateProposal',
+          description: prompt,
+          model: selectedModel || 'ollama/ornith:latest',
         }),
       });
       const data = await res.json();
       if (data.success) {
-        setHtml(data.html);
-        setLayout(null);
+        setMarkdown(data.markdown || '');
       } else {
+        console.error('Proposal section error:', data.error);
         alert('Error: ' + data.error);
       }
     } catch (e) {
-      console.error('Failed to generate form:', e);
+      console.error('Failed to generate section:', e);
+      alert('Failed to generate. Check console for details.');
     }
     setLoading(false);
   };
 
-  const handleTemplate = (template: (typeof templates)[0]) => {
+  const handleTemplate = (template: (typeof templates)[number]) => {
     setDescription(template.desc);
-    generateCanvas(template.desc);
+    generateSection(template.desc);
   };
 
-  const toggleFullscreen = () => {
-    if (!isFullscreen) {
-      if (canvasContainerRef.current?.requestFullscreen) {
-        canvasContainerRef.current
-          .requestFullscreen()
-          .then(() => setIsFullscreen(true))
-          .catch(() => {});
-      }
-    } else {
-      if (document.exitFullscreen) {
-        document
-          .exitFullscreen()
-          .then(() => setIsFullscreen(false))
-          .catch(() => {});
-      }
-    }
+  const wordCount = markdown.trim() ? markdown.trim().split(/\s+/).length : 0;
+
+  const copyMarkdown = () => {
+    navigator.clipboard.writeText(markdown);
   };
 
-  useEffect(() => {
-    const handleFullscreenChange = () => setIsFullscreen(!!document.fullscreenElement);
-    document.addEventListener('fullscreenchange', handleFullscreenChange);
-    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
-  }, []);
+  const downloadMarkdown = () => {
+    const base =
+      (description || 'proposal-section')
+        .split('\n')[0]
+        .replace(/[^\w\s-]/g, '')
+        .trim()
+        .replace(/\s+/g, '-')
+        .toLowerCase()
+        .slice(0, 40) || 'proposal-section';
+    const blob = new Blob([markdown], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${base}.md`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {/* Controls */}
       <div className="space-y-4">
-        {/* AI Toggle */}
+        {/* Model Note */}
         <div className="bg-slate-800/50 backdrop-blur rounded-xl p-4">
           <div className="flex items-center justify-between">
             <div>
-              <h3 className="text-white font-medium">AI Contextualization</h3>
+              <h3 className="text-white font-medium">AI Section Generation</h3>
               <p className="text-slate-400 text-sm">
-                LLM generates custom HTML based on your description
+                Written by Proposal Genie in your voice, using the model selected in the top bar
               </p>
             </div>
-            <button
-              onClick={() => setUseAI(!useAI)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                useAI ? 'bg-purple-600' : 'bg-slate-600'
-              }`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  useAI ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </button>
+            <span className="text-xs px-2 py-1 bg-purple-900/50 text-purple-300 rounded">
+              {selectedModel ? selectedModel.split('/').pop() : 'Model'}
+            </span>
           </div>
-        </div>
-
-        {/* Database Table Binding */}
-        <div className="bg-slate-800/50 backdrop-blur rounded-xl p-4">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="text-white font-medium">Bind to Database Table</h3>
-            <button
-              onClick={() => setBindToTable(!bindToTable)}
-              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                bindToTable ? 'bg-green-600' : 'bg-slate-600'
-              }`}
-            >
-              <span
-                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                  bindToTable ? 'translate-x-6' : 'translate-x-1'
-                }`}
-              />
-            </button>
-          </div>
-          {bindToTable && (
-            <>
-              <select
-                value={selectedTable}
-                onChange={e => setSelectedTable(e.target.value)}
-                className="w-full bg-slate-900 text-white p-2 rounded border border-slate-700"
-              >
-                <option value="">Select a table...</option>
-                {tables.map((t, index) => (
-                  <option key={t.name || `table-${index}`} value={t.name}>
-                    {t.name}
-                  </option>
-                ))}
-              </select>
-              {selectedTable && (
-                <button
-                  onClick={generateForm}
-                  disabled={loading}
-                  className="mt-3 w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
-                >
-                  {loading ? 'Generating...' : 'Generate Form from Table'}
-                </button>
-              )}
-            </>
-          )}
         </div>
 
         {/* Description Input */}
         <div className="bg-slate-800/50 backdrop-blur rounded-xl p-4">
-          <h2 className="text-lg font-semibold text-white mb-3">Describe Your UI</h2>
+          <h2 className="text-lg font-semibold text-white mb-3">Describe Your Section</h2>
           <textarea
             value={description}
             onChange={e => setDescription(e.target.value)}
             className="w-full h-32 bg-slate-900 text-slate-200 p-3 rounded-lg border border-slate-700 focus:border-purple-500 focus:outline-none resize-none"
-            placeholder="Describe the UI you want to create...&#10;&#10;Examples:&#10;- A sales pipeline with deal stages&#10;- A user management form&#10;- A dashboard showing revenue metrics&#10;- A contact form with email validation"
+            placeholder="Describe the proposal section you want to write...&#10;&#10;Examples:&#10;- An executive summary for an RFP from the VA&#10;- A technical approach for an OTA prototype&#10;- A compliance matrix for an SBIR Phase II&#10;- A past performance section with three contracts"
           />
           <button
-            onClick={() => generateCanvas()}
+            onClick={() => generateSection()}
             disabled={loading || !description.trim()}
             className="mt-3 w-full px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {loading ? 'Generating...' : useAI ? 'Generate with AI' : 'Generate UI'}
+            {loading ? 'Generating...' : 'Generate Section'}
           </button>
         </div>
 
         {/* Templates */}
         <div className="bg-slate-800/50 backdrop-blur rounded-xl p-4">
-          <h2 className="text-lg font-semibold text-white mb-3">Quick Templates</h2>
-          <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto">
+          <h2 className="text-lg font-semibold text-white mb-3">Proposal Section Templates</h2>
+          <div className="grid grid-cols-2 gap-2 max-h-72 overflow-y-auto">
             {templates.map(t => (
               <button
                 key={t.name}
                 onClick={() => handleTemplate(t)}
-                className="px-3 py-2 bg-slate-700 text-slate-300 rounded-lg hover:bg-slate-600 text-left text-sm"
+                disabled={loading}
+                className="px-3 py-2 bg-slate-700 text-slate-300 rounded-lg hover:bg-slate-600 text-left text-sm disabled:opacity-50"
               >
                 {t.name}
               </button>
@@ -391,72 +295,76 @@ function VisualBuilder() {
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-lg font-semibold text-white">Preview</h2>
             <div className="flex gap-2">
-              {(['desktop', 'tablet', 'mobile'] as const).map(device => (
-                <button
-                  key={device}
-                  onClick={() => setPreviewDevice(device)}
-                  className={`px-3 py-1 rounded text-sm ${
-                    previewDevice === device
-                      ? 'bg-purple-600 text-white'
-                      : 'bg-slate-700 text-slate-300'
-                  }`}
-                >
-                  {device}
-                </button>
-              ))}
               <button
-                onClick={toggleFullscreen}
-                className="px-3 py-1 bg-slate-700 text-slate-300 rounded text-sm hover:bg-slate-600"
-              >
-                ⛶ Fullscreen
-              </button>
-              <button
-                onClick={() => setShowRawHtml(!showRawHtml)}
+                onClick={() => setShowRawMarkdown(!showRawMarkdown)}
                 className={`px-3 py-1 rounded text-sm ${
-                  showRawHtml ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300'
+                  showRawMarkdown ? 'bg-blue-600 text-white' : 'bg-slate-700 text-slate-300'
                 }`}
               >
-                {showRawHtml ? 'Show Rendered' : 'Show HTML'}
+                {showRawMarkdown ? 'Show Rendered' : 'Show Markdown'}
+              </button>
+              <button
+                onClick={copyMarkdown}
+                disabled={!markdown}
+                className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700 disabled:opacity-50"
+              >
+                📋 Copy
+              </button>
+              <button
+                onClick={downloadMarkdown}
+                disabled={!markdown}
+                className="px-3 py-1 bg-slate-700 text-slate-300 rounded text-sm hover:bg-slate-600 disabled:opacity-50"
+              >
+                ⬇ .md
               </button>
             </div>
           </div>
+          <div className="flex items-center justify-between">
+            <p className="text-xs text-slate-500">
+              Generated with {selectedModel ? selectedModel.split('/').pop() : 'the selected model'}
+            </p>
+            {wordCount > 0 && (
+              <span className="text-xs text-slate-400">
+                {wordCount.toLocaleString()} words
+              </span>
+            )}
+          </div>
         </div>
 
-        {/* Preview Area */}
+        {/* Document Preview */}
         <div
-          ref={canvasContainerRef}
-          className={`bg-white rounded-xl overflow-hidden ${
-            previewDevice === 'mobile'
-              ? 'max-w-sm mx-auto'
-              : previewDevice === 'tablet'
-                ? 'max-w-2xl mx-auto'
-                : ''
-          }`}
+          className="bg-white rounded-xl overflow-hidden shadow-2xl"
           style={{ minHeight: '500px' }}
         >
-          {showRawHtml ? (
-            <pre className="text-sm text-slate-800 p-4 whitespace-pre-wrap overflow-auto max-h-[600px]">
-              {html || 'No HTML generated yet'}
+          {showRawMarkdown ? (
+            <pre className="text-sm text-slate-800 p-6 whitespace-pre-wrap overflow-auto max-h-[640px] font-mono">
+              {markdown || 'Generate a section to see the markdown'}
             </pre>
           ) : (
-            <div
-              className="prose max-w-none p-4"
-              dangerouslySetInnerHTML={{
-                __html: html || '<p class="text-slate-400">Generate a component to see preview</p>',
-              }}
-            />
+            <div className="p-8 max-h-[640px] overflow-y-auto">
+              {markdown ? (
+                <div className="prose prose-sm max-w-none">
+                  <ReactMarkdown remarkPlugins={[remarkGfm]}>{markdown}</ReactMarkdown>
+                </div>
+              ) : (
+                <div className="text-slate-400 text-center py-16">
+                  Generate a section to see a rendered preview
+                </div>
+              )}
+            </div>
           )}
         </div>
 
-        {/* Copy HTML */}
-        {html && (
+        {/* Copy Hint */}
+        {markdown && (
           <div className="bg-slate-800/50 backdrop-blur rounded-xl p-4">
-            <button
-              onClick={() => navigator.clipboard.writeText(html)}
-              className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-            >
-              📋 Copy HTML to Clipboard
-            </button>
+            <p className="text-sm text-slate-400">
+              💡 Paste this markdown into the{' '}
+              <Link href="/writing-studio" className="text-purple-400 hover:text-purple-300 underline">
+                Writing Studio
+              </Link>{' '}
+              to refine it, or export it straight to Word from there.
+            </p>
           </div>
         )}
       </div>

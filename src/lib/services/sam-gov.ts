@@ -19,12 +19,17 @@ export interface SAMOpportunity {
 }
 
 export interface SAMSearchParams {
-  keyword: string;
+  /** Title search term. Optional when naicsCode/pscCode filters are used. */
+  keyword?: string;
   limit?: number;
   offset?: number;
   postedFrom?: string; // MM/dd/yyyy format
   postedTo?: string; // MM/dd/yyyy format
   agency?: string;
+  /** Comma-separated NAICS codes — targets opportunities in these industries. */
+  naicsCode?: string;
+  /** Comma-separated PSC codes (product/service codes). */
+  pscCode?: string;
 }
 
 export class SamGovService {
@@ -79,6 +84,8 @@ export class SamGovService {
       postedFrom,
       postedTo,
       agency,
+      naicsCode,
+      pscCode,
     } = params;
 
     // Build URL with parameters
@@ -86,22 +93,45 @@ export class SamGovService {
       api_key: this.apiKey,
       limit: limit.toString(),
       offset: offset.toString(),
-      title: keyword,
     });
 
+    if (keyword) urlParams.set('title', keyword);
     if (postedFrom) urlParams.set('postedFrom', postedFrom);
     if (postedTo) urlParams.set('postedTo', postedTo);
     if (agency) urlParams.set('agency', agency);
+    if (naicsCode) urlParams.set('naicsCode', naicsCode);
+    if (pscCode) urlParams.set('pscCode', pscCode);
 
     const url = `${this.baseUrl}?${urlParams.toString()}`;
 
     const response = await fetch(url);
+    // Defensive: if the API rejects an unsupported filter param, retry without
+    // it so the scan still runs with keyword-only results.
+    if (response.status === 400 && (naicsCode || pscCode)) {
+      urlParams.delete('naicsCode');
+      urlParams.delete('pscCode');
+      const retry = await fetch(`${this.baseUrl}?${urlParams.toString()}`);
+      if (!retry.ok) {
+        const errorText = await retry.text();
+        throw new Error(`SAM.gov API error: ${retry.status} - ${errorText}`);
+      }
+      return this.mapSearchResponse(await retry.json(), keyword);
+    }
     if (!response.ok) {
       const errorText = await response.text();
       throw new Error(`SAM.gov API error: ${response.status} - ${errorText}`);
     }
 
-    const data = await response.json();
+    return this.mapSearchResponse(await response.json(), keyword);
+  }
+
+  /** Map a SAM.gov opportunities v2 search response into our record shape. */
+  private mapSearchResponse(data: any, keyword?: string): {
+    success: boolean;
+    count: number;
+    opportunities: SAMOpportunity[];
+    searchId?: string;
+  } {
     const opportunitiesData = data.opportunitiesData || [];
 
     // Map to our format
@@ -119,13 +149,13 @@ export class SamGovService {
       office: item.office,
       location: item.placeOfPerformance,
       url: item.uiLink,
-      keywords: [keyword],
-      matchedKeywords: [keyword],
+      keywords: keyword ? [keyword] : [],
+      matchedKeywords: keyword ? [keyword] : [],
     }));
 
     // Store search and opportunities in database
     const searchId = `search_${Date.now()}`;
-    sqlDatabase.addSAMSearch(searchId, [keyword], { limit, offset, postedFrom, postedTo, agency });
+    sqlDatabase.addSAMSearch(searchId, keyword ? [keyword] : [], { limit: opportunities.length });
     
     for (const opp of opportunities) {
       sqlDatabase.addSAMOpportunity(opp, searchId);
