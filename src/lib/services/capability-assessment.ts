@@ -17,6 +17,16 @@ export interface CapabilityItem {
   action: string;
 }
 
+/** One actionable item for closing a gap — the "what do we do about it" half. */
+export interface GapClosureItem {
+  gap: string;
+  action: string;
+  partnerType?: string;
+  evidenceNeeded?: string;
+  customerQuestion?: string;
+  priority: 'high' | 'medium' | 'low';
+}
+
 export interface CapabilityAssessment {
   assessedAt: number;
   readinessScore: number; // 0-100
@@ -25,6 +35,10 @@ export interface CapabilityAssessment {
   strengths: string[];
   gaps: string[];
   items: CapabilityItem[];
+  /** Gap-closure plan — one action per gap, generated in the same pass. */
+  plan: GapClosureItem[];
+  /** 3-5 ordered next steps for the team. */
+  nextSteps: string[];
   needCount: number;
 }
 
@@ -264,7 +278,18 @@ Return ONLY valid JSON with this exact shape:
       "gap": "what is missing, unproven, or would need a partner/subcontractor",
       "action": "one concrete action: prove it, partner, exclude from proposal, or flag for the human"
     }
-  ]
+  ],
+  "plan": [
+    {
+      "gap": "the gap this plan item closes (match a gap from the gaps list)",
+      "action": "one concrete action for the team",
+      "partnerType": "type of partner or subcontractor to pursue, or '' if not applicable",
+      "evidenceNeeded": "evidence to gather, generate, or get from a partner, or '' if not applicable",
+      "customerQuestion": "question to ask the customer / contracting officer to resolve this, or '' if not applicable",
+      "priority": "high | medium | low"
+    }
+  ],
+  "nextSteps": ["3-5 ordered steps for the team, most urgent first"]
 }
 
 Rules:
@@ -273,6 +298,7 @@ Rules:
 - Evidence must name something real from the capabilities list (a product, service, fact, vault doc, or profile line). NEVER invent capabilities.
 - The readiness score must be defensible from the items: count strong items, weight scoring factors and compliance. Compute it fresh; it is not an existing number.
 - recommendation: "go" only when most scored needs are strong; "no-go" when critical gaps exist; "bid-with-caveats" when winnable with targeted work.
+- The plan must give every gap a concrete way forward — even a no-go needs a "what would change this" answer (partner, evidence, or question to the customer).
 - If there are no customer needs at all, return items [] and a low readiness score with recommendation "no-go" and reason "no solicitation loaded yet".
 
 JSON:`;
@@ -385,6 +411,22 @@ JSON:`;
           .slice(0, 40)
       : [];
 
+    const plan: GapClosureItem[] = (Array.isArray(parsed.plan) ? parsed.plan : [])
+      .map((p: any) => ({
+        gap: String(p.gap || '').trim(),
+        action: String(p.action || '').trim(),
+        partnerType: p.partnerType ? String(p.partnerType).trim() : undefined,
+        evidenceNeeded: p.evidenceNeeded ? String(p.evidenceNeeded).trim() : undefined,
+        customerQuestion: p.customerQuestion
+          ? String(p.customerQuestion).trim()
+          : undefined,
+        priority: (['high', 'medium', 'low'].includes(p.priority)
+          ? p.priority
+          : 'medium') as GapClosureItem['priority'],
+      }))
+      .filter((p: GapClosureItem) => p.gap || p.action)
+      .slice(0, 12);
+
     return {
       assessedAt: Date.now(),
       readinessScore: clampScore(Number(parsed.readinessScore)),
@@ -399,6 +441,11 @@ JSON:`;
         .filter(Boolean)
         .slice(0, 12),
       items,
+      plan,
+      nextSteps: (Array.isArray(parsed.nextSteps) ? parsed.nextSteps : [])
+        .map((s: any) => String(s).trim())
+        .filter(Boolean)
+        .slice(0, 6),
       needCount,
     };
   }
@@ -458,6 +505,24 @@ JSON:`;
     if (a.gaps.length) {
       lines.push('## Where We Have Gaps', '');
       a.gaps.forEach(g => lines.push(`- ❌ ${g}`));
+      lines.push('');
+    }
+
+    if (a.plan.length) {
+      lines.push('## Gap-Closure Plan', '');
+      lines.push('| Gap | Action | Partner to pursue | Evidence needed | Ask the customer | Priority |', '| --- | --- | --- | --- | --- | --- |');
+      const cell = (s?: string) => (s || '').replace(/\|/g, '\\|').replace(/\n/g, ' ').slice(0, 160);
+      for (const p of a.plan) {
+        lines.push(
+          `| ${cell(p.gap)} | ${cell(p.action)} | ${cell(p.partnerType)} | ${cell(p.evidenceNeeded)} | ${cell(p.customerQuestion)} | ${p.priority} |`
+        );
+      }
+      lines.push('');
+    }
+
+    if (a.nextSteps.length) {
+      lines.push('## Next Steps', '');
+      a.nextSteps.forEach((s, i) => lines.push(`${i + 1}. ${s}`));
       lines.push('');
     }
 

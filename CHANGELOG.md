@@ -219,6 +219,40 @@ them to open the full matrix.
 
 ---
 
+### ⚡ The Assessment Now Works on Its Own
+
+**What changed.** The capability assessment went from "a button you have to
+remember to press" to a step the system does for you:
+
+1. **It runs itself.** The moment the solicitation is dissected (which happens
+   automatically when you upload the RFP), the assessment starts in the
+   background — no extra click. Within about 30 seconds, the go/no-go signal,
+   readiness score, and gap-closure plan are already on the project card when
+   you open it.
+2. **Every gap now comes with a way forward.** The assessment doesn't just
+   tell you what's wrong — it generates a **gap-closure plan** in the same
+   single AI pass (so it still costs nothing extra): for each gap, a concrete
+   action, the type of partner or subcontractor to pursue, the evidence to
+   gather, and a question to ask the customer. Plus **next steps**, ordered
+   most-urgent-first.
+3. **The card tells you what to do next.** Every bid card now shows a
+   **Next:** chip that reads your project's state and points you forward —
+   "Upload the solicitation…", "Run Assess Capabilities…", or "Review the
+   plan, build strategy in the partner chat, then Generate Proposal."
+4. **The plan is saved and shared.** The full closure plan is written into the
+   corporate-vault report, shown in the assessment preview, and included in
+   every strategy conversation and proposal draft.
+
+**Why it matters.** A tool you have to remember to use isn't a partner — it's
+an app. Now the flow is: upload the RFP → the system dissects it, scores the
+company against every requirement, and hands you an honest go/no-go with a
+"here's how we'd fix the gaps" plan, before you've done anything. Verified
+live: a test RFP was dissected and the assessment landed on its own ~30 seconds
+later, recommending a rad-hard electronics partner and naming the evidence to
+pull from past awards.
+
+---
+
 ## Version 2.6.5 (March 20, 2026) - Mermaid Diagrams & Rate Limiting
 
 ---

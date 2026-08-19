@@ -560,6 +560,22 @@ export class BidWorkflowService {
       console.error('[BidWorkflow] Customer knowledge update failed:', e);
     }
 
+    // Auto-run the capability assessment in the background (fire-and-forget)
+    // so the go/no-go, readiness score, and gap-closure plan are ready by the
+    // time the team opens the project — no extra click required.
+    try {
+      const { capabilityAssessmentService } = await import(
+        './capability-assessment'
+      );
+      capabilityAssessmentService
+        .assess(project.brandId, projectId, model)
+        .catch(e =>
+          console.error('[BidWorkflow] Auto capability assessment failed:', e)
+        );
+    } catch (e) {
+      console.error('[BidWorkflow] Auto capability assessment import failed:', e);
+    }
+
     return {
       complianceCount: (intel.compliance || []).length,
       scoringCount: (intel.scoring || []).length,

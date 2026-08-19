@@ -302,6 +302,33 @@ export default function BidWorkflowPage() {
       if (data.success) {
         await loadWorkflows(selectedBrandId);
         setError(null);
+        // The capability assessment auto-runs in the background after
+        // dissection — poll until it lands so the card updates itself.
+        const pollAssessment = async () => {
+          for (let i = 0; i < 12; i++) {
+            await new Promise(r => setTimeout(r, 6000));
+            try {
+              const res = await fetch('/api/bid-workflow', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  action: 'getCapabilities',
+                  projectId,
+                  brandId: selectedBrandId,
+                }),
+              });
+              const d = await res.json();
+              if (d.assessment) {
+                setAssessments(m => ({ ...m, [projectId]: d.assessment }));
+                await loadWorkflows(selectedBrandId);
+                break;
+              }
+            } catch {
+              /* keep polling */
+            }
+          }
+        };
+        void pollAssessment();
       } else {
         setError(data.error || 'Failed to dissect solicitation');
       }
@@ -547,12 +574,23 @@ export default function BidWorkflowPage() {
                     <div>
                       <h3 className="text-xl font-semibold">{project.name}</h3>
                       <p className="text-gray-400 text-sm mt-1">{project.description}</p>
-                      <div className="flex items-center gap-4 mt-3">
+                      <div className="flex items-center gap-4 mt-3 flex-wrap">
                         <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStageColor(workflow.stage)}`}>
                           {workflow.stage.charAt(0).toUpperCase() + workflow.stage.slice(1)}
                         </span>
                         <span className="text-gray-400 text-sm">
                           Updated: {new Date(workflow.updatedAt).toLocaleDateString()}
+                        </span>
+                        <span className="text-cyan-300 text-xs px-2 py-1 rounded-full bg-cyan-500/10 border border-cyan-500/30">
+                          Next: {(() => {
+                            if (!compliance && !capture) {
+                              return 'Upload the solicitation in the Company Workspace, then Dissect RFP';
+                            }
+                            if (!assessments[project.id]) {
+                              return 'Run Assess Capabilities for the go/no-go signal';
+                            }
+                            return 'Review the plan, build strategy in the partner chat, then Generate Proposal';
+                          })()}
                         </span>
                       </div>
                     </div>
@@ -827,6 +865,17 @@ export default function BidWorkflowPage() {
                 </div>
               </div>
 
+              {activeAssessment.assessment.nextSteps?.length > 0 && (
+                <div className="bg-cyan-500/10 border border-cyan-500/30 rounded-lg p-3 mb-4">
+                  <h4 className="text-sm font-medium text-cyan-300 mb-2">Next steps</h4>
+                  <ol className="list-decimal pl-5 space-y-1 text-sm text-slate-200">
+                    {activeAssessment.assessment.nextSteps.map((s: string, i: number) => (
+                      <li key={i}>{s}</li>
+                    ))}
+                  </ol>
+                </div>
+              )}
+
               {(activeAssessment.assessment.strengths?.length > 0 ||
                 activeAssessment.assessment.gaps?.length > 0) && (
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
@@ -900,6 +949,52 @@ export default function BidWorkflowPage() {
                   </tbody>
                 </table>
               </div>
+
+              {activeAssessment.assessment.plan?.length > 0 && (
+                <div className="mt-4">
+                  <h4 className="text-sm font-medium text-white mb-2">
+                    Gap-closure plan
+                  </h4>
+                  <div className="overflow-auto">
+                    <table className="w-full text-sm">
+                      <thead>
+                        <tr className="text-left text-gray-400 border-b border-slate-700">
+                          <th className="py-2 pr-3">Gap</th>
+                          <th className="py-2 pr-3">Action</th>
+                          <th className="py-2 pr-3">Partner to pursue</th>
+                          <th className="py-2 pr-3">Evidence needed</th>
+                          <th className="py-2 pr-3">Ask the customer</th>
+                          <th className="py-2">Priority</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(activeAssessment.assessment.plan || []).map((p: any, i: number) => (
+                          <tr key={i} className="border-b border-slate-800 align-top">
+                            <td className="py-2 pr-3 text-slate-200">{p.gap}</td>
+                            <td className="py-2 pr-3 text-white">{p.action}</td>
+                            <td className="py-2 pr-3 text-slate-300">{p.partnerType || '—'}</td>
+                            <td className="py-2 pr-3 text-slate-300">{p.evidenceNeeded || '—'}</td>
+                            <td className="py-2 pr-3 text-slate-300">{p.customerQuestion || '—'}</td>
+                            <td className="py-2">
+                              <span
+                                className={`px-2 py-0.5 rounded text-xs font-medium ${
+                                  p.priority === 'high'
+                                    ? 'bg-red-500/15 text-red-300'
+                                    : p.priority === 'medium'
+                                    ? 'bg-amber-500/15 text-amber-300'
+                                    : 'bg-slate-600/30 text-slate-300'
+                                }`}
+                              >
+                                {p.priority}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         )}
