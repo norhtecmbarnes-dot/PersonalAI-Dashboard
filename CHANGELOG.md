@@ -7,6 +7,32 @@
 *Written for everyone — no technical background needed. Each section says what
  the feature is, why it matters, and how to use it.*
 
+### 🎯 New Topics of Interest for digantara
+
+**What changed.** Four topics were added to the company's opportunity profile:
+**space domain awareness** (already tracked), **star tracker**, **CIS Lunar**,
+and **missile defense**. They now lead the list of search keywords, so the
+**daily SAM.gov scan searches for each one every day**, and the fit scoring
+credits anything found under those topics.
+
+**Two small fixes that make topics actually work:**
+1. The daily scan now covers more of your profile — previously only about two
+   keywords made it into each scan; now it searches up to ten targeted queries
+   (NAICS codes + your top topics).
+2. Opportunities found *under a topic* now count as matches even when the
+   notice's text doesn't repeat the exact phrase. Example: the NASA
+   "Extravehicular Activity and Human Surface Mobility" notice — found under
+   **CIS Lunar** — now appears in your matches with a clear "Found under profile
+   topic" note, instead of being silently dropped.
+
+**Verified live:** a keyless scan after the change found **91 opportunities**
+(up from 70) and **73 scored matches**, including missile-defense spares
+(Patriot, RTX sole sources, Minot AFB, White Sands) and the lunar-mobility
+notice. The Matches page shows the new topic chips and "Found under profile
+topic" reasons on each card.
+
+---
+
 ### 🧭 The Browser Agent — SAM.gov Search Without the Rotating Key
 
 **What changed.** SAM.gov rotates its API keys every 90 days, so any system

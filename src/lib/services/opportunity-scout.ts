@@ -397,7 +397,7 @@ Respond with STRICT JSON only, no markdown, no commentary:
 
     const rawQueries =
       opts?.queries && opts.queries.length > 0 ? opts.queries : this.generateQueries(profile);
-    const queries = rawQueries.slice(0, 8);
+    const queries = rawQueries.slice(0, 10);
     const displayQueries = queries.map(q =>
       typeof q === 'string' ? q : q.keyword || q.naicsCode || q.pscCode || ''
     );
@@ -520,10 +520,10 @@ Respond with STRICT JSON only, no markdown, no commentary:
     try {
       sqlDatabase.addSAMSearch(searchId, displayQueries, { brandId, limit: scored.length });
       for (const opp of scored.slice(0, 20)) {
-        sqlDatabase.addSAMOpportunity(
-          { ...opp, keywords: opp.matchedKeywords },
-          searchId
-        );
+      sqlDatabase.addSAMOpportunity(
+        { ...opp, keywords: unique([...(opp.keywords || []), ...(opp.matchedKeywords || [])]) },
+        searchId
+      );
       }
       sqlDatabase.updateSAMSearch(searchId, { resultsCount: scored.length, lastRun: Date.now() });
     } catch (e) {
@@ -697,6 +697,20 @@ Respond with STRICT JSON only, no markdown, no commentary:
       if (kw && text.includes(kw.toLowerCase())) {
         score += 6;
         matchedKeywords.push(kw);
+      }
+    }
+
+    // Credit the query topic that found this opportunity — being returned for
+    // a topic of interest IS a match, even if the synopsis doesn't repeat the
+    // exact keyword (e.g. a lunar-mobility posting found under "CIS Lunar").
+    for (const kw of opp.keywords || []) {
+      const topic = profile.keywords.find(
+        pk => pk.toLowerCase() === String(kw).toLowerCase()
+      );
+      if (topic) {
+        score += 10;
+        matchedKeywords.push(topic);
+        reasons.push(`Found under profile topic "${topic}"`);
       }
     }
 

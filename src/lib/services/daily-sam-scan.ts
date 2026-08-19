@@ -179,10 +179,12 @@ export class DailySamScanService {
       .sort((a, b) => b.weight - a.weight)
       .slice(0, 2)
       .map(k => k.keyword);
-    const core = profile.keywords.slice(0, 3);
+    // Cover the top profile keywords so every "topic of interest" gets
+    // searched daily (up to 3 NAICS + 2 learned + 5 core = 10 queries).
+    const core = profile.keywords.slice(0, 6);
 
     for (const kw of [...learned, ...core]) {
-      if (kw && queries.length < 7) queries.push(kw);
+      if (kw && queries.length < 10) queries.push(kw);
     }
 
     // De-duplicate (NAICS codes sometimes also appear as profile keywords)
