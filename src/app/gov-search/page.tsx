@@ -143,10 +143,6 @@ export default function GovSearchPage() {
   };
 
   const searchSAM = async () => {
-    if (!samApiKeyConfigured) {
-      setError('SAM.gov API key not configured. Add it in Settings.');
-      return;
-    }
     if (!samQuery.trim()) {
       setError('Please enter a search keyword');
       return;
@@ -241,21 +237,19 @@ export default function GovSearchPage() {
         </div>
 
         {!samApiKeyConfigured && (
-          <div className="bg-amber-900/30 border border-amber-500/50 rounded-lg p-4 mb-6">
+          <div className="bg-blue-900/30 border border-blue-500/50 rounded-lg p-4 mb-6">
             <div className="flex items-start gap-3">
-              <span className="text-amber-400 text-xl">⚠️</span>
+              <span className="text-blue-400 text-xl">🧭</span>
               <div>
-                <h3 className="text-amber-300 font-medium">SAM.gov API Key Required</h3>
-                <p className="text-amber-200/70 text-sm mt-1">
-                  To search SAM.gov opportunities, add your API key in{' '}
-                  <a href="/settings" className="text-amber-400 hover:text-amber-300 underline">
+                <h3 className="text-blue-300 font-medium">No API key — using the browser agent</h3>
+                <p className="text-blue-200/70 text-sm mt-1">
+                  Searches work without a key: the built-in browser agent searches SAM.gov
+                  through your installed Edge/Chrome browser with no login needed, so it keeps
+                  working even as SAM.gov rotates keys every 90 days. Adding your free key in{' '}
+                  <a href="/settings" className="text-blue-300 hover:text-blue-200 underline">
                     Settings
-                  </a>
-                  . Get a free key at{' '}
-                  <a href="https://sam.gov" target="_blank" rel="noopener noreferrer" className="text-amber-400 hover:text-amber-300 underline">
-                    sam.gov
-                  </a>
-                  .
+                  </a>{' '}
+                  makes searches faster and more structured.
                 </p>
               </div>
             </div>
@@ -336,7 +330,7 @@ export default function GovSearchPage() {
               </div>
               <button
                 onClick={handleSearch}
-                disabled={loading || !samApiKeyConfigured}
+                disabled={loading}
                 className="px-6 py-2 bg-purple-600 hover:bg-purple-700 disabled:bg-slate-600 disabled:cursor-not-allowed text-white rounded-lg font-medium transition-colors"
               >
                 {loading ? 'Searching...' : 'Search'}

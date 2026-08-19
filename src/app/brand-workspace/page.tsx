@@ -2080,9 +2080,11 @@ export default function BrandWorkspacePage() {
                       </div>
                       <div className="flex flex-wrap gap-2 text-xs">
                         <span
-                          className={`px-2 py-1 rounded ${scoutStatus?.apiConfigured ? 'bg-green-900/50 text-green-400' : 'bg-yellow-900/50 text-yellow-400'}`}
+                          className={`px-2 py-1 rounded ${scoutStatus?.apiConfigured ? 'bg-green-900/50 text-green-400' : 'bg-blue-900/50 text-blue-300'}`}
                         >
-                          {scoutStatus?.apiConfigured ? 'SAM.gov API ✓' : 'API key missing — SAM search disabled'}
+                          {scoutStatus?.apiConfigured
+                            ? 'SAM.gov API ✓'
+                            : 'Browser agent — SAM search (no key needed)'}
                         </span>
                         <span className="px-2 py-1 rounded bg-gray-700 text-gray-300">
                           {scoutStatus?.searchCount || 0} searches

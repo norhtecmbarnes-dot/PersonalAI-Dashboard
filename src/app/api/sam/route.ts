@@ -1,27 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { SamGovService } from '@/lib/services/sam-gov';
+import { agentBrowserService } from '@/lib/browser/agent-browser-service';
 
 /**
  * SAM.gov opportunities search.
  *
- * The SAM.gov API key is REQUIRED — there is no browser-scrape fallback.
- * Without a key the route returns a clear error pointing to Settings.
+ * Prefers the official SAM.gov API when a key is set (faster, structured).
+ * Without a key, a browser agent drives the system Edge/Chrome browser against
+ * SAM.gov's public search — no login, no key, immune to the 90-day key
+ * rotation. Returns 401 only when neither path is available.
  */
 export async function GET(request: NextRequest) {
   try {
     const service = SamGovService.getInstance();
     await service.initialize();
-
-    if (!service.getApiKey()) {
-      return NextResponse.json(
-        {
-          error:
-            'SAM.gov API key required — add your free key in Settings > API Keys (SAM.gov) to enable searching.',
-          keyRequired: true,
-        },
-        { status: 401 }
-      );
-    }
 
     const { searchParams } = new URL(request.url);
     const keyword = searchParams.get('keyword') || undefined;
@@ -43,22 +35,65 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const result = await service.search({
+    const apiKey = service.getApiKey();
+
+    // Preferred path: official API with the key.
+    if (apiKey) {
+      const result = await service.search({
+        keyword,
+        limit,
+        offset,
+        postedFrom,
+        postedTo,
+        agency,
+        naicsCode,
+        pscCode,
+      });
+      return NextResponse.json({
+        success: true,
+        mode: 'api',
+        count: result.count,
+        opportunities: result.opportunities,
+        searchId: result.searchId,
+      });
+    }
+
+    // Keyless path: the browser agent searches sam.gov without login.
+    if (!(await agentBrowserService.checkInstalled())) {
+      return NextResponse.json(
+        {
+          error:
+            'No SAM.gov API key and no browser available. Add your free key in Settings > API Keys (SAM.gov), or install Microsoft Edge / Google Chrome for browser search.',
+          keyRequired: true,
+        },
+        { status: 401 }
+      );
+    }
+
+    const browserResult = await agentBrowserService.searchSAMGov({
       keyword,
+      naics: naicsCode,
+      psc: pscCode,
       limit,
-      offset,
-      postedFrom,
-      postedTo,
-      agency,
-      naicsCode,
-      pscCode,
     });
+
+    if (!browserResult.success) {
+      return NextResponse.json(
+        {
+          error:
+            browserResult.message ||
+            'SAM.gov browser search failed. Try adding your free API key in Settings > API Keys (SAM.gov).',
+          keyRequired: true,
+        },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json({
       success: true,
-      count: result.count,
-      opportunities: result.opportunities,
-      searchId: result.searchId,
+      mode: 'browser',
+      count: browserResult.opportunities.length,
+      opportunities: browserResult.opportunities,
     });
   } catch (error) {
     console.error('[SAM API] Search error:', error);

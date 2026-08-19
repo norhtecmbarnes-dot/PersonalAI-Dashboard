@@ -31,7 +31,7 @@ interface ScanStatus {
   nextRun: number | null;
   stale: boolean;
   running: boolean;
-  mode: 'api' | 'blocked' | 'none' | null;
+  mode: 'api' | 'browser' | 'blocked' | 'none' | null;
   totalFound: number;
   matchCount: number;
   lastMessage: string | null;
@@ -40,7 +40,7 @@ interface ScanStatus {
 interface ScanSummary {
   ranAt: number;
   durationMs: number;
-  mode: 'api' | 'blocked' | 'none';
+  mode: 'api' | 'browser' | 'blocked' | 'none';
   queries: string[];
   totalFound: number;
   matchCount: number;
@@ -287,24 +287,31 @@ export default function OpportunitiesPage() {
                 className={`px-2 py-1 rounded-md text-xs font-medium ${
                   status?.configured
                     ? 'bg-emerald-500/15 text-emerald-300'
-                    : 'bg-red-500/15 text-red-300'
+                    : 'bg-blue-500/15 text-blue-300'
                 }`}
                 title={
                   status?.configured
                     ? 'SAM.gov API key is configured — searches use the official API'
-                    : 'SAM.gov API key required — searching is disabled until one is added'
+                    : 'No API key — the built-in browser agent searches SAM.gov without login (immune to the 90-day key rotation)'
                 }
               >
-                {status?.configured ? 'SAM API' : 'Key required'}
+                {status?.configured ? 'SAM API' : 'Browser agent'}
               </span>
               {status?.mode && (
                 <span className="px-2 py-1 rounded-md bg-slate-700 text-slate-300 text-xs">
-                  Last run: {status.mode === 'api' ? 'API' : status.mode === 'blocked' ? 'Blocked' : 'None'}
+                  Last run:{' '}
+                  {status.mode === 'api'
+                    ? 'API'
+                    : status.mode === 'browser'
+                    ? 'Browser agent'
+                    : status.mode === 'blocked'
+                    ? 'Blocked'
+                    : 'None'}
                 </span>
               )}
               {!status?.configured && (
                 <a href="/settings" className="text-purple-400 hover:text-purple-300 text-xs underline">
-                  Add API key
+                  Add API key (optional)
                 </a>
               )}
             </div>
@@ -339,10 +346,12 @@ export default function OpportunitiesPage() {
           )}
 
           {!status?.configured && (
-            <div className="mt-4 text-sm text-red-300/90 bg-red-500/10 border border-red-500/30 rounded-lg px-3 py-2 flex flex-wrap items-center gap-2">
+            <div className="mt-4 text-sm text-blue-300/90 bg-blue-500/10 border border-blue-500/30 rounded-lg px-3 py-2 flex flex-wrap items-center gap-2">
               <span>
-                ⛔ <strong>Searching requires a SAM.gov API key.</strong> The daily scan and all
-                SAM.gov searches are disabled until you add your free key.
+                🧭 <strong>No SAM.gov API key — using the built-in browser agent.</strong> The daily
+                scan and all SAM.gov searches are driven by your installed Edge/Chrome browser
+                with no login needed, so they keep working even as SAM.gov rotates keys every 90
+                days. Adding your free key makes searches faster and more structured.
               </span>
               <a
                 href="/settings"
@@ -353,7 +362,9 @@ export default function OpportunitiesPage() {
             </div>
           )}
 
-          {status?.lastMessage && !status.running && (
+          {status?.lastMessage &&
+            !status.running &&
+            !status.lastMessage.startsWith('No SAM.gov API key') && (
             <div className="mt-4 text-sm text-amber-300/90 bg-amber-500/10 border border-amber-500/30 rounded-lg px-3 py-2">
               {status.lastMessage}
             </div>

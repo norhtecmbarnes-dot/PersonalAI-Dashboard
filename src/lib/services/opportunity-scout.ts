@@ -16,11 +16,12 @@ import type { Project } from '@/types/brand-workspace';
  *     past performance) from the brand, its documents, and its proposals.
  *  2. Generates search queries from that profile — including "learned" keywords weighted
  *     by what has produced real bids and wins.
- *  3. Searches SAM.gov via the official API — the SAM.gov API key is REQUIRED
- *     (no browser-scrape fallback). It also searches customer-published sites
- *     depending on the target agencies in the profile: DIU (diu.mil), SSC Front
- *     Door (frontdoor.spaceforce.mil), AFWERX (afwerx.af.mil), and SBIR.gov / DoD
- *     SBIR.
+ *  3. Searches SAM.gov via the official API when a key is present, otherwise
+ *     via a browser agent that drives the system Edge/Chrome browser (no login,
+ *     no key — immune to SAM.gov's 90-day key rotations). It also searches
+ *     customer-published sites depending on the target agencies in the profile:
+ *     DIU (diu.mil), SSC Front Door (frontdoor.spaceforce.mil), AFWERX
+ *     (afwerx.af.mil), and SBIR.gov / DoD SBIR.
  *  4. Scores every opportunity against the profile and stores the best fits.
  *  5. Learns: after a proposal is written / won / lost, it adjusts keyword weights and
  *     records the agencies, NAICS codes, and products that actually mattered.
@@ -381,7 +382,7 @@ Respond with STRICT JSON only, no markdown, no commentary:
     }
   ): Promise<{
     success: boolean;
-    mode: 'api' | 'none';
+    mode: 'api' | 'browser' | 'none';
     queries: string[];
     opportunities: ScoredOpportunity[];
     profile: OpportunityProfile;
@@ -404,35 +405,69 @@ Respond with STRICT JSON only, no markdown, no commentary:
     const webSources = sources.filter(s => s.id !== 'sam');
 
     const all: SAMOpportunity[] = [];
-    let mode: 'api' | 'none' = 'none';
+    let mode: 'api' | 'browser' | 'none' = 'none';
     const apiKey = sqlDatabase.getApiKey('sam');
     const wantsSam = sources.some(s => s.id === 'sam');
 
-    // SAM.gov searching REQUIRES the official API key — no browser-scrape
-    // fallback. Without a key, SAM queries are skipped entirely and the
-    // response explains how to enable searching.
-    for (const query of queries) {
-      const keyword = typeof query === 'string' ? query : query.keyword;
-      const naicsCode = typeof query === 'string' ? undefined : query.naicsCode;
-      const pscCode = typeof query === 'string' ? undefined : query.pscCode;
-      const searchTerm = keyword || naicsCode || pscCode || '';
-      if (!apiKey) continue;
-      try {
-        const params: SAMSearchParams = {
-          ...(keyword ? { keyword } : {}),
-          limit: Math.min(opts?.limit || 15, 50),
-          ...(naicsCode ? { naicsCode } : {}),
-          ...(pscCode ? { pscCode } : {}),
+    const samQueries = queries
+      .map(query => {
+        const keyword = typeof query === 'string' ? query : query.keyword;
+        const naicsCode = typeof query === 'string' ? undefined : query.naicsCode;
+        const pscCode = typeof query === 'string' ? undefined : query.pscCode;
+        return {
+          keyword,
+          naicsCode,
+          pscCode,
+          searchTerm: keyword || naicsCode || pscCode || '',
         };
-        const res = await SamGovService.getInstance().search(params);
-        if (res.success && res.opportunities) {
-          all.push(
-            ...res.opportunities.map((o: SAMOpportunity) => ({ ...o, keywords: [searchTerm], source: 'sam' }))
-          );
-          mode = 'api';
+      })
+      .filter(q => q.searchTerm);
+
+    if (wantsSam && samQueries.length > 0) {
+      if (apiKey) {
+        // Preferred path: the official SAM.gov API (faster, structured).
+        mode = 'api';
+        for (const { keyword, naicsCode, pscCode, searchTerm } of samQueries) {
+          try {
+            const params: SAMSearchParams = {
+              ...(keyword ? { keyword } : {}),
+              limit: Math.min(opts?.limit || 15, 50),
+              ...(naicsCode ? { naicsCode } : {}),
+              ...(pscCode ? { pscCode } : {}),
+            };
+            const res = await SamGovService.getInstance().search(params);
+            if (res.success && res.opportunities) {
+              all.push(
+                ...res.opportunities.map((o: SAMOpportunity) => ({ ...o, keywords: [searchTerm], source: 'sam' }))
+              );
+            }
+          } catch (e) {
+            console.error(`[OpportunityScout] SAM API search failed for "${searchTerm}":`, e);
+          }
         }
-      } catch (e) {
-        console.error(`[OpportunityScout] SAM API search failed for "${searchTerm}":`, e);
+      } else {
+        // Keyless fallback: a real browser agent opens sam.gov (no login) and
+        // performs the same internal search the site's UI makes. This keeps
+        // searching alive through SAM.gov's 90-day key rotations.
+        mode = 'browser';
+        try {
+          const batch = await agentBrowserService.searchSAMGovBatch(
+            samQueries.map(q => ({
+              keyword: q.keyword,
+              naics: q.naicsCode,
+              psc: q.pscCode,
+            })),
+            { limit: Math.min(opts?.limit || 15, 50) }
+          );
+          for (const res of batch) {
+            all.push(
+              ...res.opportunities.map((o: SAMOpportunity) => ({ ...o, source: 'sam' }))
+            );
+          }
+        } catch (e) {
+          console.error('[OpportunityScout] Browser SAM search failed:', e);
+          mode = 'none';
+        }
       }
     }
 
@@ -460,12 +495,10 @@ Respond with STRICT JSON only, no markdown, no commentary:
         opportunities: [],
         profile,
         sourcesUsed: sources.map(s => s.id),
-        message: apiKey
-          ? wantsSam && queries.length > 0
+        message: wantsSam && queries.length > 0
+          ? apiKey
             ? 'No opportunities found. Try adding more keywords to the profile.'
-            : 'No opportunities found on the selected sources.'
-          : wantsSam
-          ? 'SAM.gov API key required — searching is disabled until you add your free key in Settings > API Keys (SAM.gov).'
+            : 'The browser agent found no SAM.gov opportunities for the current profile. Try adding more keywords to the profile.'
           : 'No opportunities found on the selected sources.',
       };
     }

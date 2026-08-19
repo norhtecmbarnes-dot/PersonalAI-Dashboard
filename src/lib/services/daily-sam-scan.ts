@@ -13,8 +13,10 @@
  *  - An in-process Set plus a DB timestamp guard against concurrent runs; a
  *    started-marker older than 10 minutes is treated as a crashed scan and the
  *    lock is released.
- *  - The SAM.gov API key is REQUIRED: without one the scan refuses to start and
- *    points the user to Settings > API Keys. There is no browser-scrape fallback.
+ *  - Searching prefers the SAM.gov API key when one is set. Without a key, a
+ *    browser agent drives the system Edge/Chrome browser against SAM.gov's
+ *    public search (no login, no key) — so scanning keeps working through
+ *    SAM.gov's 90-day key rotations.
  */
 
 import { sqlDatabase } from '@/lib/database/sqlite';
@@ -25,6 +27,7 @@ import {
 } from './opportunity-scout';
 import { brandWorkspace } from './brand-workspace';
 import { unifiedContext } from './unified-context';
+import { agentBrowserService } from '@/lib/browser/agent-browser-service';
 import type { SAMOpportunity } from './sam-gov';
 
 /** Once per day. */
@@ -43,7 +46,7 @@ export interface ScanSummary {
   brandName: string;
   ranAt: number;
   durationMs: number;
-  mode: 'api' | 'blocked' | 'none';
+  mode: 'api' | 'browser' | 'blocked' | 'none';
   queries: string[];
   totalFound: number;
   matchCount: number;
@@ -82,6 +85,11 @@ export class DailySamScanService {
   isConfigured(): boolean {
     sqlDatabase.initialize();
     return !!sqlDatabase.getApiKey('sam');
+  }
+
+  /** True when a key OR the browser agent is available to search with. */
+  async canScan(): Promise<boolean> {
+    return this.isConfigured() || (await agentBrowserService.checkInstalled());
   }
 
   getLastRun(brandId: string): number | null {
@@ -141,9 +149,11 @@ export class DailySamScanService {
       totalFound: summary?.totalFound || 0,
       matchCount: summary?.matchCount || 0,
       // When the key is missing the stored summary is stale — always surface
-      // the current key-required state instead.
+      // the current search state instead.
       lastMessage: configured
         ? summary?.message || null
+        : (await agentBrowserService.checkInstalled())
+        ? 'No SAM.gov API key — the built-in browser agent searches SAM.gov without login (immune to the 90-day key rotation). Add your free key in Settings for faster structured results.'
         : 'SAM.gov API key required — add your free key in Settings > API Keys to enable daily scanning.',
     };
   }
@@ -194,11 +204,11 @@ export class DailySamScanService {
     opts?: { force?: boolean; limit?: number }
   ): Promise<{ started: boolean; message: string }> {
     sqlDatabase.initialize();
-    if (!this.isConfigured()) {
+    if (!(await this.canScan())) {
       return {
         started: false,
         message:
-          'SAM.gov API key required — add your free key in Settings > API Keys to enable daily scanning.',
+          'SAM.gov API key required — add your free key in Settings > API Keys (or install Edge/Chrome) to enable daily scanning.',
       };
     }
     if (this.isRunning(brandId)) {
@@ -235,9 +245,9 @@ export class DailySamScanService {
     const errors: string[] = [];
     const brand = await brandWorkspace.getBrandById(brandId).catch(() => null);
 
-    // The key is required — without it the scan refuses to run (and last_run
-    // is never recorded, so the next visit retries after the key is added).
-    if (!this.isConfigured()) {
+    // Neither a key nor the browser agent is available — record a blocked
+    // summary and stop (last_run is NOT recorded, so the next visit retries).
+    if (!(await this.canScan())) {
       const summary: ScanSummary = {
         brandId,
         brandName: brand?.name || '',
@@ -248,9 +258,9 @@ export class DailySamScanService {
         totalFound: 0,
         matchCount: 0,
         topMatches: [],
-        errors: ['SAM.gov API key required'],
+        errors: ['No SAM.gov API key and no browser agent available'],
         message:
-          'SAM.gov API key required — add your free key in Settings > API Keys to enable daily scanning.',
+          'SAM.gov API key required — add your free key in Settings > API Keys (or install Edge/Chrome) to enable daily scanning.',
       };
       sqlDatabase.setSetting(lastSummaryKey(brandId), JSON.stringify(summary), 'daily_sam_scan');
       return;

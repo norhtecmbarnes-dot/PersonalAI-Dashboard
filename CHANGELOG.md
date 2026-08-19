@@ -7,6 +7,36 @@
 *Written for everyone — no technical background needed. Each section says what
  the feature is, why it matters, and how to use it.*
 
+### 🧭 The Browser Agent — SAM.gov Search Without the Rotating Key
+
+**What changed.** SAM.gov rotates its API keys every 90 days, so any system
+that depends on the key breaks three or four times a year until someone pastes
+in a new one. Proposal Genie now has a **browser agent** that searches SAM.gov
+without any key and without logging in: it opens a real browser session on your
+computer (your installed Microsoft Edge or Google Chrome — nothing to
+download), then performs the same search the SAM.gov website itself performs
+for any visitor.
+
+**Why it matters.** The daily matches scan, the opportunity scout, the manual
+search page, and the AI's own browser tool now keep working **forever**, even
+when a key expires. The key isn't gone — if you add one in Settings, the system
+still prefers the official API (faster and more structured) — but the key is
+now a speed upgrade, not a requirement.
+
+**What you'll see without a key:**
+- The **Matches** page shows a blue **Browser agent** badge instead of a red
+  "key required" warning, and the daily scan runs normally.
+- The manual SAM.gov search works as usual — it just says it searched via the
+  browser.
+- The Company Workspace scout shows **Browser agent — SAM search (no key
+  needed)**.
+
+**Verified live:** a real keyless scan of the digantara profile found 70 SAM.gov
+opportunities (10 scored matches) with titles, solicitation numbers, agencies,
+deadlines, and deep links — no key, no login, driven by the system browser.
+
+---
+
 ### 🎯 Daily SAM.gov Matches (new)
 
 **What it is.** Every government contract that becomes available is published on
@@ -253,7 +283,7 @@ pull from past awards.
 
 ---
 
-### 🔑 SAM.gov Searches Now Require an API Key
+### 🔑 SAM.gov Searches Now Require an API Key *(superseded — see the Browser Agent entry above)*
 
 **What changed.** Searching SAM.gov — the daily matches scan, the opportunity
 scout, and the manual search page — now **requires the free SAM.gov API key**.
