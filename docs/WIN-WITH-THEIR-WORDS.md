@@ -22,6 +22,8 @@ If the agency writes "we need resilient, survivable space capabilities," your pr
 
 This book teaches you the government buying process, walks you through the Proposal Genie workflow, and shows you — with real before-and-after examples — how to write the NLP way.
 
+Need the deeper reference on the market itself — contract types (SBIR, OTA, CSO, STTR), SAM.gov registration, NAICS and CAGE codes, and company classifications? That's **[Government Contracting 101](GOVERNMENT-CONTRACTING-101.md)**, the companion reference to this guide.
+
 ---
 
 ## Part 1 — How the Government Buys (The Basics)

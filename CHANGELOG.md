@@ -1,4 +1,117 @@
-# Change Log - AI Dashboard
+# Change Log — Proposal Genie (formerly AI Dashboard)
+
+---
+
+## ✨ What's New in Proposal Genie (August 2026)
+
+*Written for everyone — no technical background needed. Each section says what
+ the feature is, why it matters, and how to use it.*
+
+### 🎯 Daily SAM.gov Matches (new)
+
+**What it is.** Every government contract that becomes available is published on
+SAM.gov — the government's official "help wanted" board. Proposal Genie can now
+check that board automatically, once a day, using your company's own profile
+(your NAICS codes — the government's industry categories — and the keywords that
+describe what you do). Anything that looks like a good fit shows up on one page.
+
+**Why it matters.** Instead of remembering to go hunt for opportunities, you
+open one page and see a short list of "these look like they were written for
+you," each with a **fit score** (how well it matches your company), the agency
+posting it, the deadline, and a link straight to the full notice on SAM.gov.
+The system remembers what you win and lose, and slowly gets better at spotting
+the right opportunities.
+
+**How to use it.**
+1. Click **Matches** in the top menu (or visit `/opportunities`).
+2. The first time you open it each day, it automatically runs the day's scan.
+   You can also click **Run scan now** to force a fresh one.
+3. Optional but recommended: add a free SAM.gov API key in **Settings → API
+   Keys**. With the key, the scan uses the official government data feed (fast
+   and reliable). Without it, the app falls back to browsing the public SAM.gov
+   website on your behalf.
+
+---
+
+### 📄 The Proposal Builder (redesigned from "Builder")
+
+**What it is.** A tool that writes the individual sections of your proposal for
+you — the Executive Summary, Technical Approach, Management Plan, Past
+Performance, Compliance Matrix, and a dozen more. You pick a section, the app
+writes it in your company's voice, and you can copy it or download it as a
+Markdown file.
+
+**Why it matters.** Proposal sections are the hard, repetitive part of bidding.
+Instead of staring at a blank page, you get a strong first draft that follows
+proposal-writing best practices — written to the customer's priorities, with
+honest flags (`[GAP: …]`) where it notices something you haven't answered yet,
+rather than inventing claims.
+
+**How to use it.** Click **Proposal** in the top menu, pick a section template,
+and let it generate. Use the model selector in the top-right corner to choose
+which AI brain does the writing. The **Data Forms** tab inside the page still
+works as before.
+
+---
+
+### 🏠 A Home Page Built for Bidding
+
+**What it is.** The landing page is no longer a generic chat screen. It's now a
+"Government Contracting Studio" that greets you by name and gives you six big
+buttons: Start a Bid, Daily Matches, Build Sections, Write the Proposal,
+Company Vault, and Manage Documents — plus a set of ready-made starter prompts.
+
+**Why it matters.** Everything you need to go from "found an opportunity" to
+"submitted a proposal" is one click away, in the order you'd actually use it.
+
+---
+
+### 📚 A Plain-English Guide to Government Contracting
+
+**What it is.** A friendly reference guide
+(`docs/GOVERNMENT-CONTRACTING-101.md`) that explains the jargon of the federal
+marketplace:
+
+- **The contract types** — SBIR, STTR, OTA, CSO, RFI, RFP, and friends: what
+  each one is, who uses it, and whether you should chase it.
+- **SAM.gov** — what it is and a step-by-step walkthrough of registering
+  (Login.gov account → get your UEI number → complete your profile → annual
+  renewal), plus how to avoid registration scams.
+- **The codes** — NAICS (what industry you're in), CAGE (your DoD identity),
+  and UEI (your universal ID).
+- **Company classifications** — 8(a), HUBZone, WOSB, VOSB, and the others, and
+  what each one gets you.
+
+**Why it matters.** This is the vocabulary every solicitation is written in.
+Knowing it turns confusing government documents into a to-do list.
+
+---
+
+### 🎮 "Your First Program" — a New Chapter in the Book
+
+**What it is.** A new chapter for the *Building Your AI Dashboard* book
+(`book/Chapter-5B-Your-First-Program-One-Shot-Game.md`) that walks a complete
+beginner through their **very first program** — not by typing code by hand, but
+by asking an AI for a game in one shot.
+
+**Why it matters.** The chapter makes the book's central idea concrete: **the
+results depend on the model you use.** The proof is in the chapter itself — the
+same one-sentence request was given to two different AI models on this very
+computer, and their results were wildly different:
+- The smaller model produced a game that was broken (a frozen ball, paddles
+  stuck to the ball, and a scoreboard that could never be won).
+- The larger coding model produced a working, glowing neon Pong game.
+
+Both versions are saved as playable web pages in `book/demo/`, and the chapter
+includes the prompts, the results, and a "model bake-off" exercise so readers
+can try it themselves.
+
+**Bonus:** the game that started it all — **Neon Invaders** — is playable right
+here in the app at `/space-invaders` (the **Invaders** menu link), complete
+with scoring, high scores, sound effects, and endless levels. Screenshots of
+both games are saved in `screenshots/` for the book.
+
+---
 
 ## Version 2.6.5 (March 20, 2026) - Mermaid Diagrams & Rate Limiting
 
