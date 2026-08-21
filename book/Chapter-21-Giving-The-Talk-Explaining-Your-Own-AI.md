@@ -255,7 +255,7 @@ That rule protects you twice: it keeps your proposals honest, and it keeps *you*
 
 ## The Complete Presentation (Ready to Use)
 
-Everything in this chapter is compressed into a ready-to-use presentation: **`docs/PRESENTATION-BUILDING-YOUR-OWN-AI.md`** in this project. It has 19 slides covering exactly the arc above, written so you can paste the whole file into **Gemini** or **NotebookLM** and ask for a 20-slide deck with speaker notes — no further editing needed.
+Everything in this chapter is compressed into a ready-to-use presentation: **`docs/PRESENTATION-BUILDING-YOUR-OWN-AI.md`** in this project. It has 20 slides covering exactly the arc above, written so you can paste the whole file into **Gemini** or **NotebookLM** and ask for a 20-slide deck with speaker notes — no further editing needed.
 
 It also includes:
 

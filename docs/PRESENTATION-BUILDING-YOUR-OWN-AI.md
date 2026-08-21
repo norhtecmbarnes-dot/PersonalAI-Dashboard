@@ -23,6 +23,7 @@
 - Privacy — the part nobody tells you
 - How local AI actually works: GGUF, llama.cpp, MLX
 - A live demo: reading a government solicitation on your own machine
+- Proposal Genie in action: the SAM.gov browser agent finds and ranks opportunities — no keys, no logins
 - The workflow that wins — and the warning that matters most
 
 ---
@@ -171,7 +172,17 @@ Topics include: choosing and running open models, prompting techniques, RAG and 
 
 ---
 
-### Slide 15 — The Proposal Genie master prompt
+### Slide 15 — Proposal Genie in action: the SAM.gov browser agent
+
+- The daily scan opens a **real browser session on your machine** and searches SAM.gov — the government's official contracting board — using the same search the website itself performs for any visitor.
+- **No API key. No login.** SAM.gov rotates its keys every 90 days, which breaks key-based systems three or four times a year — the browser agent doesn't care. A key is optional, a speed upgrade only.
+- The AI then **reads every match against your company's profile** and ranks them high to low: a score (0–100), a one-line plain-English summary, a pursue / watch / skip call, and a link straight to the notice.
+- It **learns over time**: mark what's worth pursuing and what isn't, and the next ranking scores smarter.
+- **The takeaway:** the machine watches the board every day, so the human only looks at what matters.
+
+---
+
+### Slide 16 — The Proposal Genie master prompt
 A generic model becomes a specialist because of its **master prompt** — a carefully written set of instructions that define who the AI is and how it must behave. This is the actual prompt behind Proposal Genie:
 
 > *"You are Proposal Genie — a senior capture manager, proposal writer, and government contracting strategist with 20+ years of winning federal, state, and local contracts. You work for one company and your job is to help them win."*
@@ -187,7 +198,7 @@ Its rules include:
 
 ---
 
-### Slide 16 — Feeding the company brain
+### Slide 17 — Feeding the company brain
 The AI is only as good as what you give it. Company information comes from:
 
 - Your **website**
@@ -200,7 +211,7 @@ The most valuable layer is the **"invisible proposal"** — what you know about 
 
 ---
 
-### Slide 17 — The winning workflow: prompt + company + solicitation
+### Slide 18 — The winning workflow: prompt + company + solicitation
 Set up three things, and the AI becomes your capture team:
 
 1. **The master prompt** — who the AI is and how it behaves (the soul)
@@ -216,7 +227,7 @@ Feed it a solicitation and the AI can assist with:
 
 ---
 
-### Slide 18 — The most important slide: never let the AI write the whole response
+### Slide 19 — The most important slide: never let the AI write the whole response
 The AI is your **partner, not your replacement**.
 
 **The AI handles what machines are good at:** structure, compliance, consistency, completeness, formatting, speed.
@@ -231,7 +242,7 @@ The AI is your **partner, not your replacement**.
 
 ---
 
-### Slide 19 — Closing
+### Slide 20 — Closing
 - Cloud AI is powerful — and your data goes with it.
 - Open source + local AI is the only way to be certain your data stays yours.
 - The hardware question is solved: a laptop is enough.
