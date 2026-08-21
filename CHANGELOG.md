@@ -7,6 +7,11 @@
 *Written for everyone — no technical background needed. Each section says what
  the feature is, why it matters, and how to use it.*
 
+### 📖 Chapter 21 Added to the Book (new)
+
+**What it is.** A brand-new book chapter — `book/Chapter-21-Giving-The-Talk-Explaining-Your-Own-AI.md` — that turns the presentation into a full chapter of the *Building Your AI Dashboard* book, in the same style as the existing chapters: plain English, analogies, three Try-It-Yourself exercises, personalization tips, common pitfalls, and a summary. It covers the three ways to talk to an AI (API / CLI / MCP), foundation vs. open-source models, RAG, training vs. prompting, Ollama and llama.cpp, privacy, GGUF and MLX, the master prompt (quoting the real Proposal Genie soul), the company knowledge base, the winning proposal workflow, and the rule that wins contracts: never let the AI write the whole response. It points readers to the ready-made deck at `docs/PRESENTATION-BUILDING-YOUR-OWN-AI.md` for the slides and live demo script.
+
+---
 ### 📽️ A Presentation for Non-Technical Audiences (new)
 
 **What it is.** A complete, ready-to-use presentation — docs/PRESENTATION-BUILDING-YOUR-OWN-AI.md — that explains, in plain English, why cloud AI cannot keep your data private and how running your own open-source model changes the game. It was written to be pasted straight into **Gemini** or **NotebookLM** to generate the slides, and it covers: API / CLI / MCP, foundation vs. open-source models, RAG and why your AI needs your documents, training vs. prompting, Ollama and llama.cpp, privacy (the part nobody tells you), GGUF and MLX, the *Building Your AI Dashboard* book, and a step-by-step script for the live demo where Ollama reads a government document offline.
