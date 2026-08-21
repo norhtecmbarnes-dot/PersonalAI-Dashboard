@@ -7,6 +7,13 @@
 *Written for everyone — no technical background needed. Each section says what
  the feature is, why it matters, and how to use it.*
 
+### 📽️ A Presentation for Non-Technical Audiences (new)
+
+**What it is.** A complete, ready-to-use presentation — docs/PRESENTATION-BUILDING-YOUR-OWN-AI.md — that explains, in plain English, why cloud AI cannot keep your data private and how running your own open-source model changes the game. It was written to be pasted straight into **Gemini** or **NotebookLM** to generate the slides, and it covers: API / CLI / MCP, foundation vs. open-source models, RAG and why your AI needs your documents, training vs. prompting, Ollama and llama.cpp, privacy (the part nobody tells you), GGUF and MLX, the *Building Your AI Dashboard* book, and a step-by-step script for the live demo where Ollama reads a government document offline.
+
+**The message that matters most** (Slide 18): never let the AI write the entire response. The AI handles structure, compliance, completeness and consistency; the human verifies accuracy and supplies the win themes. It is not about getting a proposal done — it is about winning.
+
+---
 ### 🧠 The AI Now Learns From Your Choices and Gets Smarter Over Time
 
 **What it is.** The AI ranking doesn't just give you a list — it **learns from
