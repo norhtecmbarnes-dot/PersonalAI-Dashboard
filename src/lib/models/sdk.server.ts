@@ -969,10 +969,45 @@ export async function streamChatCompletion(params: {
         const errorText = await response.text().catch(() => 'No error details available');
         throw new Error(`Ollama Cloud error: ${response.status} ${response.statusText}. Details: ${errorText}`);
       }
+
+      // Transform OpenAI-format SSE chunks to {chunk, done} format
+      // and strip reasoning/thinking tokens
+      const encoder = new TextEncoder();
+      const decoder = new TextDecoder();
+      const transform = new TransformStream({
+        transform(chunk, controller) {
+          const text = decoder.decode(chunk, { stream: true });
+          const lines = text.split('\n');
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              const jsonStr = line.slice(6).trim();
+              if (jsonStr === '[DONE]') {
+                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true })}\n\n`));
+                continue;
+              }
+              try {
+                const data = JSON.parse(jsonStr);
+                const delta = data.choices?.[0]?.delta;
+                // Only emit content, skip reasoning/thinking tokens
+                if (delta?.content) {
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ chunk: delta.content, done: false })}\n\n`));
+                }
+                if (data.choices?.[0]?.finish_reason) {
+                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true })}\n\n`));
+                }
+              } catch (e) {
+                // Skip invalid JSON lines
+              }
+            }
+          }
+        },
+      });
+
+      const transformedStream = response.body!.pipeThrough(transform);
       return {
         message: { role: 'assistant', content: '' },
         done: false,
-        stream: response.body,
+        stream: transformedStream,
       } as any;
     } catch (error) {
       console.error('Ollama Cloud stream error:', error);
