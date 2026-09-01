@@ -355,6 +355,7 @@ You are ready to analyze and discuss uploaded documents in detail.`;
         const result = await streamChatCompletion({
           model: useModel,
           messages,
+          maxTokens: 16384,
         });
 
         // Check if we got a stream (Ollama) or a complete response (external APIs)

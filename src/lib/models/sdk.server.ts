@@ -801,6 +801,7 @@ export async function chatCompletion(params: {
         model: ollamaModel,
         messages: params.messages,
         temperature: params.temperature || 0.7,
+        max_tokens: params.maxTokens || 16384,
         stream: false,
       };
       if (params.tools && params.tools.length > 0) {
@@ -966,6 +967,7 @@ export async function streamChatCompletion(params: {
           model: ollamaModel,
           messages: params.messages,
           temperature: params.temperature || 0.7,
+          max_tokens: params.maxTokens || 16384,
           stream: true,
         }),
       });
