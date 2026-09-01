@@ -23,7 +23,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="bg-slate-900">
+    <html lang="en" className="bg-slate-900" suppressHydrationWarning>
       <body className={`${inter.variable} font-sans`}>
         <ModelProvider>
           <TopNav />
