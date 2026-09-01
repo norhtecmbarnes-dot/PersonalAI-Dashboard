@@ -784,7 +784,53 @@ export async function chatCompletion(params: {
     ? params.model.replace('ollama/', '')
     : params.model;
 
-  // Default: Try Ollama
+  // Check if this is a cloud model (from EXTERNAL_MODELS ollama-cloud list)
+  const cloudModels = getExternalModels().filter(m => m.provider === 'ollama-cloud');
+  const isCloudModel = cloudModels.some(m => m.id === ollamaModel);
+
+  // Cloud models go to ollama.com/v1 (OpenAI-compatible)
+  if (isCloudModel) {
+    const ollamaKey = getOllamaKey();
+    if (!ollamaKey) {
+      throw new Error('Ollama API key required for cloud models. Get one at https://ollama.com/settings/keys');
+    }
+    try {
+      const body: Record<string, any> = {
+        model: ollamaModel,
+        messages: params.messages,
+        temperature: params.temperature || 0.7,
+        stream: false,
+      };
+      if (params.tools && params.tools.length > 0) {
+        body.tools = params.tools;
+      }
+      const response = await fetchWithRetry('https://ollama.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${ollamaKey}`,
+        },
+        body: JSON.stringify(body),
+      });
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => 'No error details available');
+        throw new Error(`Ollama Cloud error: ${response.status} ${response.statusText}. Details: ${errorText}`);
+      }
+      const data = await response.json();
+      return {
+        message: {
+          role: 'assistant',
+          content: data.choices?.[0]?.message?.content || '',
+        },
+        done: true,
+      };
+    } catch (error) {
+      console.error('Ollama Cloud completion error:', error);
+      throw error;
+    }
+  }
+
+  // Default: Try local Ollama
   try {
     const body: Record<string, any> = {
       model: ollamaModel,
@@ -895,7 +941,46 @@ export async function streamChatCompletion(params: {
     ? params.model.replace('ollama/', '')
     : params.model;
 
-  // Default: Try Ollama with streaming
+  // Check if this is a cloud model (from EXTERNAL_MODELS ollama-cloud list)
+  const cloudModels = getExternalModels().filter(m => m.provider === 'ollama-cloud');
+  const isCloudModel = cloudModels.some(m => m.id === ollamaModel);
+
+  // Cloud models go to ollama.com/v1 (OpenAI-compatible)
+  if (isCloudModel) {
+    const ollamaKey = getOllamaKey();
+    if (!ollamaKey) {
+      throw new Error('Ollama API key required for cloud models. Get one at https://ollama.com/settings/keys');
+    }
+    try {
+      const response = await fetchWithRetry('https://ollama.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${ollamaKey}`,
+        },
+        body: JSON.stringify({
+          model: ollamaModel,
+          messages: params.messages,
+          temperature: params.temperature || 0.7,
+          stream: true,
+        }),
+      });
+      if (!response.ok) {
+        const errorText = await response.text().catch(() => 'No error details available');
+        throw new Error(`Ollama Cloud error: ${response.status} ${response.statusText}. Details: ${errorText}`);
+      }
+      return {
+        message: { role: 'assistant', content: '' },
+        done: false,
+        stream: response.body,
+      } as any;
+    } catch (error) {
+      console.error('Ollama Cloud stream error:', error);
+      throw error;
+    }
+  }
+
+  // Default: Try local Ollama with streaming
   try {
     const ollamaKey = getOllamaKey();
     const headers: Record<string, string> = {
