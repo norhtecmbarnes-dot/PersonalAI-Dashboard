@@ -1,3 +1,5 @@
+import { stripThinkingTags } from '@/lib/utils/clean-ai-response';
+
 export interface OllamaMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
@@ -817,10 +819,12 @@ export async function chatCompletion(params: {
         throw new Error(`Ollama Cloud error: ${response.status} ${response.statusText}. Details: ${errorText}`);
       }
       const data = await response.json();
+      const rawContent = data.choices?.[0]?.message?.content || '';
+      const content = stripThinkingTags(rawContent);
       return {
         message: {
           role: 'assistant',
-          content: data.choices?.[0]?.message?.content || '',
+          content,
         },
         done: true,
       };
@@ -990,7 +994,10 @@ export async function streamChatCompletion(params: {
                 const delta = data.choices?.[0]?.delta;
                 // Only emit content, skip reasoning/thinking tokens
                 if (delta?.content) {
-                  controller.enqueue(encoder.encode(`data: ${JSON.stringify({ chunk: delta.content, done: false })}\n\n`));
+                  const cleaned = stripThinkingTags(delta.content);
+                  if (cleaned) {
+                    controller.enqueue(encoder.encode(`data: ${JSON.stringify({ chunk: cleaned, done: false })}\n\n`));
+                  }
                 }
                 if (data.choices?.[0]?.finish_reason) {
                   controller.enqueue(encoder.encode(`data: ${JSON.stringify({ done: true })}\n\n`));

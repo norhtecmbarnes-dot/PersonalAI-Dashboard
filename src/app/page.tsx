@@ -643,6 +643,18 @@ export default function Home() {
       const decoder = new TextDecoder();
       let fullContent = '';
 
+      // Strip thinking/reasoning tags from AI responses
+      const stripThinkingTags = (text: string): string => {
+        let cleaned = text;
+        const answerMatch = cleaned.match(/<answer[^>]*>([\s\S]*?)<\/answer>/i);
+        if (answerMatch) cleaned = answerMatch[1].trim();
+        cleaned = cleaned.replace(/<think>[\s\S]*?<\/think>/gi, '');
+        cleaned = cleaned.replace(/<thinking>[\s\S]*?<\/thinking>/gi, '');
+        cleaned = cleaned.replace(/```thinking[\s\S]*?```/gi, '');
+        cleaned = cleaned.replace(/<\/?answer[^>]*>/gi, '');
+        return cleaned.trim();
+      };
+
       setMessages(prev => [...prev, { role: 'assistant', content: '', brandName: undefined }]);
 
       while (true) {
@@ -663,6 +675,8 @@ export default function Home() {
               }
               if (json.chunk) {
                 fullContent += json.chunk;
+                // Post-process to strip thinking tags that leaked through
+                fullContent = stripThinkingTags(fullContent);
               }
               if (json.done) {
                 // Stream complete
@@ -695,7 +709,7 @@ export default function Home() {
           const newMessages = [...prev];
           newMessages[newMessages.length - 1] = {
             role: 'assistant',
-            content: fullContent,
+            content: stripThinkingTags(fullContent),
             brandName: undefined,
           };
           return newMessages;
