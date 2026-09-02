@@ -30,7 +30,8 @@ const ModelContext = createContext<ModelContextType | null>(null);
 export { ModelContext };
 
 const STORAGE_KEY = 'globalSelectedModel';
-const FALLBACK_MODEL = 'ollama/llama3.2:latest';
+const FALLBACK_MODEL = 'ollama/glm-5.3:cloud';
+const PREFERRED_MODEL = 'ollama/glm-5.3:cloud';
 
 function getFallbackModels(): ModelInfo[] {
   return [
@@ -165,20 +166,26 @@ export function ModelProvider({ children }: { children: ReactNode }) {
       setError(null);
 
       if (!selectedModel) {
-        const stored = localStorage.getItem(STORAGE_KEY);
-        if (
-          stored &&
-          (allModels.some((m: ModelInfo) => m.id === stored) ||
-            getFallbackModels().some(m => m.id === stored))
-        ) {
-          setSelectedModelState(stored);
-        } else if (data.defaultModel) {
-          setSelectedModelState(data.defaultModel);
-        } else if (allModels.length > 0) {
-          const firstModel = findBestAvailable(allModels);
-          setSelectedModelState(firstModel);
+        // Always prefer PREFERRED_MODEL if available
+        if (allModels.some((m: ModelInfo) => m.id === PREFERRED_MODEL)) {
+          setSelectedModelState(PREFERRED_MODEL);
+          localStorage.setItem(STORAGE_KEY, PREFERRED_MODEL);
         } else {
-          setSelectedModelState(FALLBACK_MODEL);
+          const stored = localStorage.getItem(STORAGE_KEY);
+          if (
+            stored &&
+            (allModels.some((m: ModelInfo) => m.id === stored) ||
+              getFallbackModels().some(m => m.id === stored))
+          ) {
+            setSelectedModelState(stored);
+          } else if (data.defaultModel) {
+            setSelectedModelState(data.defaultModel);
+          } else if (allModels.length > 0) {
+            const firstModel = findBestAvailable(allModels);
+            setSelectedModelState(firstModel);
+          } else {
+            setSelectedModelState(FALLBACK_MODEL);
+          }
         }
       }
 

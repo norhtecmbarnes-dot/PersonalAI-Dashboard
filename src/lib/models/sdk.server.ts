@@ -781,6 +781,21 @@ export async function chatCompletion(params: {
     return callGLM(params.model, params.messages, params.tools);
   }
 
+  // Check if model matches an external model by ID (for models without prefix like 'glm-4.7-flash')
+  const externalModels = getExternalModels();
+  const matchedExternal = externalModels.find(m => m.id === params.model);
+  if (matchedExternal) {
+    const extProvider = matchedExternal.provider;
+    if (extProvider === 'glm' && glmKey) return callGLM(params.model, params.messages, params.tools);
+    if (extProvider === 'openai' && getOpenAIKey()) return callOpenAI(params.model, params.messages, params.tools);
+    if (extProvider === 'anthropic' && getAnthropicKey()) return callAnthropic(params.model, params.messages, params.tools);
+    if (extProvider === 'gemini' && getGeminiKey()) return callGemini(params.model, params.messages, params.tools);
+    if (extProvider === 'groq' && getGroqKey()) return callGroq(params.model, params.messages, params.tools);
+    if (extProvider === 'mistral' && getMistralKey()) return callMistral(params.model, params.messages, params.tools);
+    if (extProvider === 'deepseek' && getDeepSeekKey()) return callDeepSeek(params.model, params.messages, params.tools);
+    if (extProvider === 'openrouter' && getOpenRouterKey()) return callOpenRouter(params.model, params.messages, params.tools);
+  }
+
   // For Ollama models, remove the 'ollama/' prefix
   const ollamaModel = params.model.startsWith('ollama/')
     ? params.model.replace('ollama/', '')
@@ -939,6 +954,45 @@ export async function streamChatCompletion(params: {
       message: result.message,
       done: true,
     };
+  }
+
+  // Check if model matches an external model by ID (for models without prefix like 'glm-4.7-flash')
+  const externalModels = getExternalModels();
+  const matchedExternal = externalModels.find(m => m.id === params.model);
+  if (matchedExternal) {
+    const extProvider = matchedExternal.provider;
+    if (extProvider === 'glm' && glmKey) {
+      const result = await callGLM(params.model, params.messages);
+      return { message: result.message, done: true };
+    }
+    if (extProvider === 'openai' && getOpenAIKey()) {
+      const result = await callOpenAI(params.model, params.messages);
+      return { message: result.message, done: true };
+    }
+    if (extProvider === 'anthropic' && getAnthropicKey()) {
+      const result = await callAnthropic(params.model, params.messages);
+      return { message: result.message, done: true };
+    }
+    if (extProvider === 'gemini' && getGeminiKey()) {
+      const result = await callGemini(params.model, params.messages);
+      return { message: result.message, done: true };
+    }
+    if (extProvider === 'groq' && getGroqKey()) {
+      const result = await callGroq(params.model, params.messages);
+      return { message: result.message, done: true };
+    }
+    if (extProvider === 'mistral' && getMistralKey()) {
+      const result = await callMistral(params.model, params.messages);
+      return { message: result.message, done: true };
+    }
+    if (extProvider === 'deepseek' && deepSeekKey) {
+      const result = await callDeepSeek(params.model, params.messages);
+      return { message: result.message, done: true };
+    }
+    if (extProvider === 'openrouter' && openRouterKey) {
+      const result = await callOpenRouter(params.model, params.messages);
+      return { message: result.message, done: true };
+    }
   }
 
   // For Ollama models, remove the 'ollama/' prefix

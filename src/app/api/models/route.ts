@@ -15,7 +15,7 @@ export async function GET() {
 
     // Default model preferences (since database may not be available)
     const modelPrefs = {
-      defaultModel: 'glm-4.7-flash',
+      defaultModel: 'ollama/glm-5.3:cloud',
       autoRoute: false,
       preferLocal: true,
       cloudForChat: false,
@@ -95,7 +95,7 @@ export async function GET() {
         ollama: { available: false, models: [] },
         external: [],
         allModels: [],
-        defaultModel: 'glm-4.7-flash',
+        defaultModel: 'ollama/glm-5.3:cloud',
       },
       { status: 500 }
     );
