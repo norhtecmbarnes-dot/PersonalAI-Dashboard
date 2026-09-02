@@ -30,8 +30,8 @@ const ModelContext = createContext<ModelContextType | null>(null);
 export { ModelContext };
 
 const STORAGE_KEY = 'globalSelectedModel';
-const FALLBACK_MODEL = 'ollama/glm-5.3:cloud';
-const PREFERRED_MODEL = 'ollama/glm-5.3:cloud';
+const CLOUD_DEFAULT = 'ollama/glm-5.3:cloud';
+const LOCAL_PREFERRED = ['ollama/gemma4:latest', 'ollama/gemma3:27b', 'ollama/ornith-1.5:9b'];
 
 function getFallbackModels(): ModelInfo[] {
   return [
@@ -165,26 +165,34 @@ export function ModelProvider({ children }: { children: ReactNode }) {
       setOllamaHealthy(data.ollama?.available || false);
       setError(null);
 
+      // Smart default: user preference > best local > cloud fallback
       if (!selectedModel) {
-        // Always prefer PREFERRED_MODEL if available
-        if (allModels.some((m: ModelInfo) => m.id === PREFERRED_MODEL)) {
-          setSelectedModelState(PREFERRED_MODEL);
-          localStorage.setItem(STORAGE_KEY, PREFERRED_MODEL);
+        // 1. Check stored preference first
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored && allModels.some((m: ModelInfo) => m.id === stored)) {
+          setSelectedModelState(stored);
         } else {
-          const stored = localStorage.getItem(STORAGE_KEY);
-          if (
-            stored &&
-            (allModels.some((m: ModelInfo) => m.id === stored) ||
-              getFallbackModels().some(m => m.id === stored))
-          ) {
-            setSelectedModelState(stored);
-          } else if (data.defaultModel) {
-            setSelectedModelState(data.defaultModel);
-          } else if (allModels.length > 0) {
-            const firstModel = findBestAvailable(allModels);
-            setSelectedModelState(firstModel);
+          // 2. Pick best available local model
+          const localModels = allModels.filter(m => m.provider === 'ollama' && !m.id.includes(':cloud'));
+          let bestLocal: string | null = null;
+          for (const preferred of LOCAL_PREFERRED) {
+            if (localModels.some(m => m.id === preferred)) {
+              bestLocal = preferred;
+              break;
+            }
+          }
+          if (!bestLocal && localModels.length > 0) {
+            bestLocal = localModels[0].id;
+          }
+
+          if (bestLocal) {
+            // 3a. Local model available — use it
+            setSelectedModelState(bestLocal);
+            localStorage.setItem(STORAGE_KEY, bestLocal);
           } else {
-            setSelectedModelState(FALLBACK_MODEL);
+            // 3b. No local models — fall back to cloud
+            setSelectedModelState(CLOUD_DEFAULT);
+            localStorage.setItem(STORAGE_KEY, CLOUD_DEFAULT);
           }
         }
       }
@@ -195,7 +203,7 @@ export function ModelProvider({ children }: { children: ReactNode }) {
       setError(err instanceof Error ? err.message : 'Failed to load models');
       setModels(getFallbackModels());
       if (!selectedModel) {
-        setSelectedModelState(FALLBACK_MODEL);
+        setSelectedModelState(CLOUD_DEFAULT);
       }
       setInitialized(true);
     } finally {
@@ -264,7 +272,7 @@ function findBestAvailable(models: ModelInfo[]): string {
     if (found) return found.id;
   }
 
-  return models[0]?.id || FALLBACK_MODEL;
+  return models[0]?.id || CLOUD_DEFAULT;
 }
 
 export function useGlobalModel() {

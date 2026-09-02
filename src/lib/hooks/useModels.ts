@@ -27,8 +27,8 @@ export function useModels() {
   const [error, setError] = useState<string | null>(null);
 
   const STORAGE_KEY = 'globalSelectedModel';
-const FALLBACK_MODEL = 'ollama/glm-5.3:cloud';
-const PREFERRED_MODEL = 'ollama/glm-5.3:cloud';
+const CLOUD_DEFAULT = 'ollama/glm-5.3:cloud';
+const LOCAL_PREFERRED = ['ollama/gemma4:latest', 'ollama/gemma3:27b', 'ollama/ornith-1.5:9b'];
 
   const getFallbackModels = useCallback(
     (): ModelInfo[] => [
@@ -182,26 +182,34 @@ const PREFERRED_MODEL = 'ollama/glm-5.3:cloud';
         setModels(allModels);
       }
 
-      // Initialize selected model — always prefer PREFERRED_MODEL if available
+      // Smart default: user preference > best local > cloud fallback
       if (!selectedModel) {
-        if (allModels.some((m: ModelInfo) => m.id === PREFERRED_MODEL)) {
-          setSelectedModel(PREFERRED_MODEL);
-          localStorage.setItem(STORAGE_KEY, PREFERRED_MODEL);
+        // 1. Check stored preference first
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored && allModels.some((m: ModelInfo) => m.id === stored)) {
+          setSelectedModel(stored);
         } else {
-          const stored = localStorage.getItem(STORAGE_KEY);
-          if (
-            stored &&
-            (allModels.some((m: ModelInfo) => m.id === stored) ||
-              getFallbackModels().some(m => m.id === stored))
-          ) {
-            setSelectedModel(stored);
-          } else if (data.defaultModel) {
-            setSelectedModel(data.defaultModel);
-          } else if (allModels.length > 0) {
-            const bestModel = findBestModel(allModels);
-            setSelectedModel(bestModel);
+          // 2. Pick best available local model
+          const localModels = allModels.filter(m => m.provider === 'ollama' && !m.id.includes(':cloud'));
+          let bestLocal: string | null = null;
+          for (const preferred of LOCAL_PREFERRED) {
+            if (localModels.some(m => m.id === preferred)) {
+              bestLocal = preferred;
+              break;
+            }
+          }
+          if (!bestLocal && localModels.length > 0) {
+            bestLocal = localModels[0].id;
+          }
+
+          if (bestLocal) {
+            // 3a. Local model available — use it
+            setSelectedModel(bestLocal);
+            localStorage.setItem(STORAGE_KEY, bestLocal);
           } else {
-            setSelectedModel(FALLBACK_MODEL);
+            // 3b. No local models — fall back to cloud
+            setSelectedModel(CLOUD_DEFAULT);
+            localStorage.setItem(STORAGE_KEY, CLOUD_DEFAULT);
           }
         }
       }
@@ -213,7 +221,7 @@ const PREFERRED_MODEL = 'ollama/glm-5.3:cloud';
       setError(err instanceof Error ? err.message : 'Failed to load models');
       setModels(getFallbackModels());
       if (!selectedModel) {
-        setSelectedModel(FALLBACK_MODEL);
+        setSelectedModel(CLOUD_DEFAULT);
       }
     } finally {
       setLoading(false);
@@ -251,7 +259,7 @@ const PREFERRED_MODEL = 'ollama/glm-5.3:cloud';
       }
     }
 
-    return modelList[0]?.id || FALLBACK_MODEL;
+    return modelList[0]?.id || CLOUD_DEFAULT;
   };
 
   const getCapableModel = (): string => {
@@ -261,7 +269,7 @@ const PREFERRED_MODEL = 'ollama/glm-5.3:cloud';
       return sizeB - sizeA;
     });
 
-    return sortedModels[0]?.id || selectedModel || FALLBACK_MODEL;
+    return sortedModels[0]?.id || selectedModel || CLOUD_DEFAULT;
   };
 
   const extractModelSize = (name: string): number => {
