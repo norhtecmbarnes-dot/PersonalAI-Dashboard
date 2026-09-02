@@ -106,6 +106,15 @@ Open http://localhost:3000
 - **SQLite** + Vector Lake
 - **Tailwind** + modern UI
 
+## 🔗 Optional Integrations
+
+| Integration | Status | Description |
+|---|---|---|
+| **NinjaPipe CRM** | Optional | Connect pipeline data to daily briefings, intelligence reports, and Proposal Genie. See [NinjaPipe Integration Guide](docs/NINJAPIPE-INTEGRATION.md) |
+| **SAM.gov** | Built-in | Government contract opportunity scanning |
+| **Telegram** | Built-in | Mobile bot interface |
+| **ONLYOFFICE** | Built-in | Document editing and AI-powered Office tools |
+
 ## 🚀 The Model Message Bus — Core Innovation (Patent Pending)
 
 The **Model Message Bus** is the heart of the entire PersonalAI Dashboard architecture and Michael C. Barnes' most significant contribution.

@@ -103,6 +103,10 @@ book-output/*.pdf
 # Personal extensions (private customizations)
 personal-extensions/
 
+# Optional CRM integration (not committed — documented as option)
+src/lib/integrations/ninjapipe.ts
+src/app/api/ninjapipe/
+
 # Temporary documentation files
 COMPLETION_NOTICE.txt
 POST_TO_GITHUB.txt
