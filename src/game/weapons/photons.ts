@@ -28,7 +28,14 @@ export class PhotonPool {
     }
   }
 
-  spawn(friendly: boolean, pos: Vec3, dir: Vec3, speed: number, life: number): Projectile | null {
+  spawn(
+    friendly: boolean,
+    pos: Vec3,
+    dir: Vec3,
+    speed: number,
+    life: number,
+    damage?: { hull: number; energy: number; pierce?: number },
+  ): Projectile | null {
     // Linear scan from the rotating cursor so we always find a free slot fast.
     for (let i = 0; i < this.items.length; i++) {
       const index = (this.cursor + i) % this.items.length;
@@ -45,6 +52,7 @@ export class PhotonPool {
       bolt.vel.z = dir.z * speed;
       bolt.life = life;
       bolt.maxLife = life;
+      bolt.damage = damage;
       return bolt;
     }
     return null;

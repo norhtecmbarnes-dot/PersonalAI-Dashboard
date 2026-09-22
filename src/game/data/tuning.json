@@ -1,0 +1,244 @@
+{
+  "_note": "Every gameplay number lives here so iteration never requires a code change. Distances are in world units (1 unit ~= 1 metre). Times are in seconds. Energy costs are absolute energy points.",
+  "sector": {
+    "radius": 10000,
+    "gridWidth": 8,
+    "gridHeight": 4,
+    "dustCount": 420,
+    "starCount": 2600,
+    "droneCount": 1
+  },
+  "ship": {
+    "maxSpeed": 9,
+    "cruiseSpeed": 6,
+    "defaultSpeedAfterWarp": 6,
+    "unitsPerSpeed": 320,
+    "speedLerp": 1.6,
+    "pitchRate": 0.9,
+    "yawRate": 0.95,
+    "aftYawInvert": true,
+    "bankFactor": 0.4,
+    "mouseSensitivity": 0.0022,
+    "deadStickEngines": 2
+  },
+  "energy": {
+    "start": 9999,
+    "drainScale": 1,
+    "photon": 10,
+    "boltIntercept": 90,
+    "shieldsPerSecond": 2,
+    "computerPerSecond": 0.5,
+    "speedPerSecondBase": 0.8,
+    "speedPerSecondPerUnit": 0.4,
+    "warpPerDistance": 25,
+    "warpAbortFee": 40,
+    "baseRestore": 9999
+  },
+  "hull": {
+    "start": 100
+  },
+  "weapons": {
+    "photonSpeed": 4200,
+    "photonLife": 2.4,
+    "photonDamage": 40,
+    "tubeCooldown": 0.22,
+    "hitRadius": 55,
+    "interceptRadius": 70,
+    "damagedTubePenalty": 1.6,
+    "trackingAssist": 0.035,
+    "damagedTrackingAssist": 0.012
+  },
+  "damage": {
+    "unshieldedHitHull": [
+      55,
+      100
+    ],
+    "unshieldedHitEnergy": [
+      400,
+      900
+    ],
+    "shieldedHitEnergy": 160,
+    "asteroidHull": 35,
+    "asteroidEnergy": [
+      150,
+      400
+    ],
+    "systemDegradeChance": 0.35,
+    "systemKillChance": 0.4
+  },
+  "enemies": {
+    "dart": {
+      "hull": 100,
+      "speed": 1750,
+      "speedVariance": 250,
+      "turnRate": 1.5,
+      "engageRange": 3000,
+      "standoffRange": 1500,
+      "fireCooldown": [
+        0.9,
+        1.7
+      ],
+      "boltSpeed": 2600,
+      "boltLife": 2.6,
+      "boltHull": 55,
+      "boltEnergy": 300,
+      "accuracy": 0.7,
+      "leadFudge": 0.55,
+      "aftBias": 0.65,
+      "jinkInterval": [
+        1.1,
+        2.2
+      ],
+      "jinkStrength": 1.5,
+      "separation": 900
+    },
+    "maxDetailedAttackers": 2,
+    "queueSpawnDelay": [
+      1.2,
+      2.8
+    ],
+    "lance": {
+      "hull": 170,
+      "speed": 1500,
+      "speedVariance": 150,
+      "turnRate": 1.05,
+      "engageRange": 4200,
+      "standoffRange": 2800,
+      "fireCooldown": [
+        1.1,
+        2
+      ],
+      "boltSpeed": 3000,
+      "boltLife": 2.8,
+      "boltHull": 70,
+      "boltEnergy": 380,
+      "accuracy": 0.75,
+      "leadFudge": 0.7,
+      "separation": 1000
+    },
+    "anvil": {
+      "hull": 420,
+      "speed": 900,
+      "speedVariance": 80,
+      "turnRate": 0.55,
+      "engageRange": 4600,
+      "standoffRange": 3200,
+      "fireCooldown": [
+        1.8,
+        3
+      ],
+      "boltSpeed": 2700,
+      "boltLife": 3,
+      "boltHull": 110,
+      "boltEnergy": 520,
+      "accuracy": 0.8,
+      "leadFudge": 0.8,
+      "separation": 1200,
+      "shieldPierce": 0.45,
+      "volley": [
+        2,
+        3
+      ],
+      "volleySpread": 0.05
+    }
+  },
+  "asteroids": {
+    "count": 22,
+    "radiusMin": 170,
+    "radiusMax": 720,
+    "spinMax": 0.35
+  },
+  "base": {
+    "radius": 520,
+    "acquireDot": 0.9,
+    "dockRange": 2600,
+    "bracketSpeedMin": 3,
+    "bracketSpeedMax": 5,
+    "bracketFillSeconds": 1.4,
+    "transferSeconds": 3.5
+  },
+  "warp": {
+    "minSeconds": 2.2,
+    "maxSeconds": 3.8,
+    "gateDriftRate": 0.24,
+    "gateRadius": 0.17,
+    "alignTolerance": 0.055,
+    "missAdjacentChance": 0.6,
+    "tunnelStarStretch": 3.2
+  },
+  "scan": {
+    "range": 10000,
+    "ghostChanceDamaged": 0.35,
+    "ghostChanceDead": 0.9
+  },
+  "score": {
+    "kills": 6,
+    "energyDivisor": 100,
+    "secondsDivisor": 100,
+    "baseLostPenalty": 18,
+    "baseKilledPenalty": 3,
+    "outcome": {
+      "success": 200,
+      "abort": 40,
+      "destroyed": 0
+    }
+  },
+  "rank": [
+    {
+      "min": 0,
+      "title": "Space Dust"
+    },
+    {
+      "min": 15,
+      "title": "Cargo Hauler"
+    },
+    {
+      "min": 40,
+      "title": "Cadet"
+    },
+    {
+      "min": 70,
+      "title": "Ensign"
+    },
+    {
+      "min": 100,
+      "title": "Rookie"
+    },
+    {
+      "min": 130,
+      "title": "Pilot"
+    },
+    {
+      "min": 165,
+      "title": "Ace"
+    },
+    {
+      "min": 200,
+      "title": "Warrior"
+    },
+    {
+      "min": 250,
+      "title": "Commander"
+    },
+    {
+      "min": 310,
+      "title": "Star Commander Class 5"
+    },
+    {
+      "min": 380,
+      "title": "Star Commander Class 4"
+    },
+    {
+      "min": 460,
+      "title": "Star Commander Class 3"
+    },
+    {
+      "min": 550,
+      "title": "Star Commander Class 2"
+    },
+    {
+      "min": 650,
+      "title": "Star Commander Class 1"
+    }
+  ]
+}

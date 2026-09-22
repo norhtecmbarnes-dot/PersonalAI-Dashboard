@@ -85,9 +85,11 @@ export interface Projectile {
   vel: Vec3;
   life: number;
   maxLife: number;
+  /** Per-shooter damage (heavy classes hit harder, Anvil pierces shields). */
+  damage?: { hull: number; energy: number; pierce?: number };
 }
 
-export type EnemyKind = 'dart';
+export type EnemyKind = 'dart' | 'lance' | 'anvil';
 export type EnemyState = 'queue' | 'approach' | 'attack' | 'jink' | 'break';
 
 export interface EnemyShip {

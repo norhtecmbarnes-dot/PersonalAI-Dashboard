@@ -389,6 +389,79 @@ export class GameRenderer {
       emissive: enemy.drone ? 0x0a2a22 : 0x25050a,
     });
 
+    if (enemy.kind === 'anvil') {
+      // Heavy cruiser: a deep slab body, twin pods, a wide dorsal plate. It
+      // should read as "big" before it reads as "enemy" — that is the tell.
+      const body = new THREE.Mesh(new THREE.BoxGeometry(150, 60, 300), hull);
+      group.add(body);
+
+      const plate = new THREE.Mesh(new THREE.BoxGeometry(260, 10, 140), hull);
+      plate.position.z = 30;
+      group.add(plate);
+
+      const podGeometry = new THREE.CylinderGeometry(22, 22, 180, 8);
+      const podLeft = new THREE.Mesh(podGeometry, hull);
+      podLeft.rotation.x = Math.PI / 2;
+      podLeft.position.set(-95, -10, -20);
+      group.add(podLeft);
+
+      const podRight = new THREE.Mesh(podGeometry, hull);
+      podRight.rotation.x = Math.PI / 2;
+      podRight.position.set(95, -10, -20);
+      group.add(podRight);
+
+      const glow = new THREE.Mesh(
+        new THREE.SphereGeometry(26, 10, 10),
+        new THREE.MeshBasicMaterial({
+          color: new THREE.Color().setHSL(enemy.engineHue, 0.95, 0.55),
+          blending: THREE.AdditiveBlending,
+          transparent: true,
+          depthWrite: false,
+          toneMapped: false,
+        }),
+      );
+      glow.position.z = -170;
+      group.add(glow);
+
+      this.world.add(group);
+      this.enemyMeshes.set(enemy, group);
+      return group;
+    }
+
+    if (enemy.kind === 'lance') {
+      // Duelist: a long needle with a ring cowl and short swept fins — a
+      // spear in flight, instantly distinct from the Dart's delta planform.
+      const needleGeometry = new THREE.CylinderGeometry(9, 16, 200, 6);
+      needleGeometry.rotateX(Math.PI / 2);
+      const needle = new THREE.Mesh(needleGeometry, hull);
+      group.add(needle);
+
+      const cowl = new THREE.Mesh(new THREE.TorusGeometry(26, 7, 8, 18), hull);
+      cowl.position.z = 60;
+      group.add(cowl);
+
+      const fin = new THREE.Mesh(new THREE.BoxGeometry(70, 6, 44), hull);
+      fin.position.z = -40;
+      group.add(fin);
+
+      const glow = new THREE.Mesh(
+        new THREE.SphereGeometry(14, 10, 10),
+        new THREE.MeshBasicMaterial({
+          color: new THREE.Color().setHSL(enemy.engineHue, 0.95, 0.6),
+          blending: THREE.AdditiveBlending,
+          transparent: true,
+          depthWrite: false,
+          toneMapped: false,
+        }),
+      );
+      glow.position.z = -110;
+      group.add(glow);
+
+      this.world.add(group);
+      this.enemyMeshes.set(enemy, group);
+      return group;
+    }
+
     // Body points along +Z so Object3D.lookAt orients it correctly.
     const bodyGeometry = new THREE.ConeGeometry(26, 96, 5);
     bodyGeometry.rotateX(Math.PI / 2);

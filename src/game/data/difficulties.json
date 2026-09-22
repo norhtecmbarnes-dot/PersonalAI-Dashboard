@@ -1,0 +1,63 @@
+{
+  "_note": "Difficulty changes the GALAXY, not just enemy health: how many enemy groups exist, how aggressively they migrate toward your bases, how many bases you have, and how many fleets (4-ship groups) are seeded. autoAlign grants the Novice warp assist from the brief.",
+
+  "novice": {
+    "id": "novice",
+    "label": "Novice",
+    "tagline": "Learn the cockpit. The galaxy is patient.",
+    "skillFactor": 1,
+    "enemyGroups": 3,
+    "fleets": 0,
+    "baseCount": 3,
+    "migrationAggression": 0.3,
+    "starDateIntervalSeconds": 45,
+    "enemyHpScale": 0.8,
+    "enemyAccuracy": 0.55,
+    "autoAlign": true
+  },
+
+  "pilot": {
+    "id": "pilot",
+    "label": "Pilot",
+    "tagline": "The real game. Align your own warp.",
+    "skillFactor": 1.5,
+    "enemyGroups": 4,
+    "fleets": 1,
+    "baseCount": 3,
+    "migrationAggression": 0.5,
+    "starDateIntervalSeconds": 38,
+    "enemyHpScale": 1,
+    "enemyAccuracy": 0.7,
+    "autoAlign": false
+  },
+
+  "warrior": {
+    "id": "warrior",
+    "label": "Warrior",
+    "tagline": "They hunt in packs and they hunt your bases.",
+    "skillFactor": 2,
+    "enemyGroups": 6,
+    "fleets": 2,
+    "baseCount": 4,
+    "migrationAggression": 0.75,
+    "starDateIntervalSeconds": 32,
+    "enemyHpScale": 1.15,
+    "enemyAccuracy": 0.82,
+    "autoAlign": false
+  },
+
+  "commander": {
+    "id": "commander",
+    "label": "Commander",
+    "tagline": "More bases to save. Many more fleets to survive.",
+    "skillFactor": 3,
+    "enemyGroups": 8,
+    "fleets": 3,
+    "baseCount": 4,
+    "migrationAggression": 1,
+    "starDateIntervalSeconds": 26,
+    "enemyHpScale": 1.3,
+    "enemyAccuracy": 0.92,
+    "autoAlign": false
+  }
+}

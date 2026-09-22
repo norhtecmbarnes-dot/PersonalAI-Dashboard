@@ -3,6 +3,7 @@ import { Store } from './core/store';
 import { InputManager, type FrameInput } from './core/input';
 import {
   healthySystems,
+  type EnemyKind,
   type EnemyShip,
   type Galaxy,
   type GalaxyCell,
@@ -25,6 +26,8 @@ import {
 } from './galaxy/chart';
 import { buildSectorLayout, type SectorLayout } from './galaxy/sector';
 import { assignDetails, promoteQueued, spawnDart, updateDart } from './enemies/dart';
+import { spawnLance, updateLance } from './enemies/lance';
+import { spawnAnvil, updateAnvil } from './enemies/anvil';
 import { playerVelocity, updatePlayerShip, type ShipInput } from './ship/player';
 import { PhotonPool, findHit, resolveInterceptions } from './weapons/photons';
 import {
@@ -851,9 +854,29 @@ export class StarRaidersGame {
     for (const enemy of this.enemies) {
       if (!enemy.active) continue;
       if (!enemy.detail && !enemy.drone && enemy.state !== 'queue') continue;
-      const order = updateDart(enemy, this.player, this.playerVel, dt, this.difficulty, this.enemies);
-      if (!order) continue;
-      this.pool.spawn(false, order.pos, order.dir, order.speed, order.life);
+
+      // Per-class AI dispatch. Darts flank, Lances duel head-on, Anvils snipe.
+      let orders: { pos: Vec3; dir: Vec3; speed: number; life: number; damage?: { hull: number; energy: number; pierce?: number } }[] = [];
+      if (enemy.kind === 'lance') {
+        const lanceCfg = TUNING.enemies.lance;
+        const order = updateLance(enemy, this.player, this.playerVel, dt, this.difficulty);
+        if (order) orders = [{ ...order, damage: { hull: lanceCfg.boltHull, energy: lanceCfg.boltEnergy } }];
+      } else if (enemy.kind === 'anvil') {
+        const anvilCfg = TUNING.enemies.anvil;
+        orders = updateAnvil(enemy, this.player, this.playerVel, dt, this.difficulty).map(order => ({
+          ...order,
+          // Anvil bolts carry the shield-piercing payload.
+          damage: { hull: anvilCfg.boltHull, energy: anvilCfg.boltEnergy, pierce: anvilCfg.shieldPierce },
+        }));
+      } else {
+        // Darts use the classic generic damage path — their tuning IS the
+        // baseline the brief's drain table describes.
+        const order = updateDart(enemy, this.player, this.playerVel, dt, this.difficulty, this.enemies);
+        if (order) orders = [order];
+      }
+      for (const order of orders) {
+        this.pool.spawn(false, order.pos, order.dir, order.speed, order.life, order.damage);
+      }
     }
 
     this.spawnPendingReinforcements();
@@ -905,19 +928,34 @@ export class StarRaidersGame {
       const angle = (i / count) * Math.PI * 2 + Math.random();
       const direction = v3(Math.cos(angle), (Math.random() - 0.5) * 0.5, Math.sin(angle));
       normalize(direction, direction);
-      const enemy = spawnDart({
-        pos: v3(
-          direction.x * TUNING.sector.radius * 0.8,
-          direction.y * TUNING.sector.radius * 0.8,
-          direction.z * TUNING.sector.radius * 0.8,
-        ),
-        difficulty: this.difficulty,
-        seed: Math.floor(Math.random() * 1e9),
-      });
+      const enemy = this.spawnEnemy(this.reinforcementKind(count, i), v3(
+        direction.x * TUNING.sector.radius * 0.8,
+        direction.y * TUNING.sector.radius * 0.8,
+        direction.z * TUNING.sector.radius * 0.8,
+      ), Math.floor(Math.random() * 1e9));
       enemy.state = 'approach';
       this.enemies.push(enemy);
     }
     this.raiseAlert();
+  }
+
+  /** Fleet rule for mid-battle reinforcements: 3+ brings a Lance, 4+ an Anvil. */
+  private reinforcementKind(count: number, index: number): EnemyKind {
+    if (count >= 4 && index === count - 1) return 'anvil';
+    if (count >= 3 && index === 0) return 'lance';
+    return 'dart';
+  }
+
+  /** Single factory for enemy ships — keeps kind, seed and difficulty together. */
+  private spawnEnemy(kind: EnemyKind, pos: Vec3, seed: number): EnemyShip {
+    switch (kind) {
+      case 'lance':
+        return spawnLance({ pos, difficulty: this.difficulty, seed });
+      case 'anvil':
+        return spawnAnvil({ pos, difficulty: this.difficulty, seed });
+      default:
+        return spawnDart({ pos, difficulty: this.difficulty, seed });
+    }
   }
 
   private raiseAlert(): void {
@@ -1032,11 +1070,12 @@ export class StarRaidersGame {
       }
     }
 
-    // Hostile bolts against the player.
+    // Hostile bolts against the player. The bolt carries its shooter's damage
+    // profile — the Anvil's volley pierces shields by design.
     const playerHit = findHit(this.pool, false, this.player.pos, TUNING.weapons.hitRadius + 20);
     if (playerHit) {
       playerHit.active = false;
-      this.damagePlayer(false, playerHit.pos);
+      this.damagePlayer(false, playerHit.pos, playerHit.damage);
     }
 
     if (this.alert && this.liveEnemyCount() === 0) {
@@ -1045,8 +1084,13 @@ export class StarRaidersGame {
     }
   }
 
-  private damagePlayer(fromAsteroid: boolean, at?: Vec3): void {
-    const result = applyPlayerHit(this.player, fromAsteroid ? 'asteroid' : 'enemy-bolt');
+  private damagePlayer(fromAsteroid: boolean, at?: Vec3, bolt?: { hull: number; energy: number; pierce?: number }): void {
+    const result = applyPlayerHit(
+      this.player,
+      fromAsteroid ? 'asteroid' : 'enemy-bolt',
+      Math.random,
+      fromAsteroid ? undefined : bolt,
+    );
     this.hitFlash = 1;
 
     if (result.absorbedByShield) this.audio.shieldHit();
@@ -1340,11 +1384,7 @@ export class StarRaidersGame {
 
     this.enemies = [];
     for (const spawn of this.sector.enemySpawns) {
-      const enemy = spawnDart({
-        pos: v3(spawn.pos.x, spawn.pos.y, spawn.pos.z),
-        difficulty: this.difficulty,
-        seed: spawn.seed,
-      });
+      const enemy = this.spawnEnemy(spawn.kind, spawn.pos, spawn.seed);
       enemy.state = 'approach';
       this.enemies.push(enemy);
     }

@@ -55,6 +55,18 @@ export interface HitResult {
 }
 
 /**
+ * Per-shooter bolt damage. The engine fills this from the firing ship's
+ * tuning entry, so a Dart's bolt and an Anvil's bolt do not hit the same.
+ * `pierce` is the fraction of hull damage that bleeds through a live shield —
+ * the Anvil's whole identity, and zero for everyone else.
+ */
+export interface BoltDamage {
+  hull: number;
+  energy: number;
+  pierce?: number;
+}
+
+/**
  * Apply a hit to the player. A live shield eats the energy and protects the
  * hull; an unshielded hit is lethal in one or two strikes, exactly as the
  * brief specifies.
@@ -63,6 +75,7 @@ export function applyPlayerHit(
   player: PlayerState,
   kind: 'enemy-bolt' | 'asteroid',
   random: () => number = Math.random,
+  bolt?: BoltDamage,
 ): HitResult {
   const d = TUNING.damage;
   const shieldUp = player.shields && player.systems.shields !== 'dead';
@@ -73,6 +86,10 @@ export function applyPlayerHit(
   if (kind === 'asteroid') {
     energyLost = randRange(d.asteroidEnergy[0], d.asteroidEnergy[1]);
     hullLost = d.asteroidHull * (shieldUp ? 0.4 : 1);
+  } else if (bolt) {
+    // Per-shooter damage: the heavy classes carry their own numbers.
+    energyLost = bolt.energy;
+    hullLost = shieldUp ? bolt.hull * (bolt.pierce ?? 0) : bolt.hull;
   } else if (shieldUp) {
     energyLost = d.shieldedHitEnergy;
     hullLost = 0;

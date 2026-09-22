@@ -7,6 +7,15 @@
 *Written for everyone — no technical background needed. Each section says what
  the feature is, why it matters, and how to use it.*
 
+### 🛰️ Star Raiders Reborn Completed — Three Enemy Classes and a Player Guide (new)
+
+**What it is.** The game is finished to its full brief. Two new enemy classes join the Dart: the **Lance**, a duelist that comes straight down your nose and forces head-on photon fights, and the **Anvil**, a slow heavy sniper whose volleys are the only shots in the game that pierce shields and hurt hull directly. Enemy groups now compose by size — patrols are Darts, task forces add a Lance, fleets add an Anvil — and each class has a distinct silhouette and engine color so you can read a threat before you can name it. A complete **player guide** now lives at docs/STAR-RAIDERS-GUIDE.md: controls (keyboard, mouse, gamepad), the chart, docking ritual, the energy economy, enemy identification tables, scoring, and eight tips from the test pilots.
+
+**Why it matters.** The Lance makes fore-view combat mandatory and the Anvil makes shield management a real decision — together they turn the game from shoot-the-target into read-the-sky. The guide means a new player needs no wiki: everything from the 90-second first flight to the Star Commander rank chase is on one page.
+
+**How to verify.** The automated browser smoke test passes the full mission loop with zero errors, and a new sim-level check (scripts/star-raiders-simcheck.ts) proves the composition rules: 2 ships = 2 Darts, 3 = +Lance, 4 = +Anvil.
+
+---
 ### 🚀 Star Raiders Reborn — a Playable Space-Combat Game (new)
 
 **What it is.** A complete, playable 3D space-combat game built into the app at the **Raiders** tab (`/star-raiders`), inspired by the 8-bit space combat games of 1979 (an original homage — no Atari assets or names). You fly one ship against the Veydrim invaders: open the **galactic chart** (G), pick a threat or a base, run the **hyperwarp mini-game**, fight with **photon cannons** in first-person cockpit view (fore and aft), manage your **energy budget**, and **dock at Helion bases** to repair and refuel. Six ship systems (weapons, engines, shields, computer, scanner, radio) take damage and degrade, and every mission ends with a **rank and score recap** saved locally. Four difficulties (Novice through Commander) change the enemy count and aggression. Every gameplay number lives in `src/game/data/tuning.json`, so balance changes never touch code.

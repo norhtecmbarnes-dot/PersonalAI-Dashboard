@@ -80,6 +80,7 @@ Open http://localhost:3000
 ## 📖 Documentation
 
 - **[User Guide](docs/USER-GUIDE.md)** — Complete walkthrough
+- **[Star Raiders Reborn Guide](docs/STAR-RAIDERS-GUIDE.md)** — How to fly, fight, warp, dock, and win
 - **[Book (PDF)](book/Building_Your_AI_Dashboard.pdf)** — Full 384-page guide
 - **[Book (Online)](https://designrr.page/?id=493295&token=3520346906&type=FP&h=9144)** — Web version
 
@@ -96,7 +97,7 @@ Open http://localhost:3000
 - LLM Leaderboard with free token sources
 - Notes system (Kanban-style)
 - Self-reflection and system improvement suggestions
-- **Star Raiders Reborn** (`/star-raiders`) — a WebGL space-combat game inspired by the 8-bit classics of 1979: galactic chart, hyperwarp mini-game, cockpit photon combat, docking, energy management, and end-of-mission ranks
+- **Star Raiders Reborn** (`/star-raiders`) — a WebGL space-combat game inspired by the 8-bit classics of 1979: galactic chart, hyperwarp mini-game, cockpit photon combat against three enemy classes (Dart, Lance, Anvil), docking, energy management, and end-of-mission ranks
 - Full local-first design (your data never leaves your machine)
 
 ## Technologies

@@ -1,6 +1,6 @@
 import { TUNING } from '../data/schema';
 import { createRng, rngInt, rngRange, type Rng } from '../core/rng';
-import type { Asteroid, GalaxyCell } from '../core/types';
+import type { Asteroid, GalaxyCell, EnemyKind } from '../core/types';
 import { normalize, v3, type Vec3 } from '../core/vec';
 
 /**
@@ -12,11 +12,43 @@ import { normalize, v3, type Vec3 } from '../core/vec';
 export interface SectorLayout {
   seed: number;
   asteroids: Asteroid[];
-  enemySpawns: { pos: Vec3; seed: number }[];
+  enemySpawns: { pos: Vec3; seed: number; kind: EnemyKind }[];
   droneSpawns: { pos: Vec3; seed: number }[];
   base: { pos: Vec3; radius: number } | null;
   sun: { direction: Vec3; color: number; intensity: number };
+  /** Compositional identity of the enemy group in this sector. */
+  groupKind: EnemyKind;
   firstVisit: boolean;
+}
+
+/**
+ * Group composition — the fleet-in-motion rule from the brief: patrols are
+ * pure Darts; task forces pair Darts with a dueling Lance; fleets put a
+ * heavy Anvil on the field with its escorts. Composition is deterministic
+ * per cell (seeded), so the same sector always fights the same way.
+ */
+export function groupComposition(count: number, cell: GalaxyCell): EnemyKind[] {
+  if (count <= 0) return [];
+  const rng = createRng(cell.seed ^ 0x5157);
+  const kinds: EnemyKind[] = [];
+  if (count <= 2) {
+    for (let i = 0; i < count; i++) kinds.push('dart');
+    return kinds;
+  }
+
+  // Task force (3): the Anvil needs a fleet; the Lance leads from 3+.
+  kinds.push('lance');
+  for (let i = 1; i < count; i++) kinds.push('dart');
+  // Fleets (4+): swap the tail Darts for a heavy Anvil once, never two.
+  if (count >= 4) kinds[count - 1] = 'anvil';
+  // Seeded shuffle so the anvil/lance position varies per cell.
+  for (let i = kinds.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    const tmp = kinds[i];
+    kinds[i] = kinds[j];
+    kinds[j] = tmp;
+  }
+  return kinds;
 }
 
 export function generateAsteroids(rng: Rng, sectorRadius: number, countScale = 1): Asteroid[] {
@@ -38,6 +70,13 @@ export function generateAsteroids(rng: Rng, sectorRadius: number, countScale = 1
     });
   }
   return asteroids;
+}
+
+/** The composition's identity: the heaviest kind present. */
+function dominantKind(kinds: EnemyKind[]): EnemyKind {
+  if (kinds.includes('anvil')) return 'anvil';
+  if (kinds.includes('lance')) return 'lance';
+  return 'dart';
 }
 
 /** A point inside a shell of the given radius, biased away from the origin. */
@@ -80,7 +119,10 @@ export function buildSectorLayout({
       : [];
 
   // Enemy ships arrive from the outer edge and fly in — no popping into view.
-  const enemySpawns: { pos: Vec3; seed: number }[] = [];
+  // Composition follows the group rule: patrols are Darts, task forces add a
+  // dueling Lance, fleets add the heavy Anvil.
+  const composition = groupComposition(enemyShipCount, cell);
+  const enemySpawns: { pos: Vec3; seed: number; kind: EnemyKind }[] = [];
   for (let i = 0; i < enemyShipCount; i++) {
     const angle = (i / Math.max(1, enemyShipCount)) * Math.PI * 2 + rngRange(rng, -0.4, 0.4);
     const elevation = rngRange(rng, -0.45, 0.45);
@@ -90,6 +132,7 @@ export function buildSectorLayout({
     enemySpawns.push({
       pos: { x: dir.x * distance - distance * 0.0, y: dir.y * distance, z: dir.z * distance },
       seed: rngInt(rng, 1 << 30) + i * 977,
+      kind: composition[i] ?? 'dart',
     });
   }
 
@@ -124,6 +167,7 @@ export function buildSectorLayout({
     enemySpawns,
     droneSpawns,
     base,
+    groupKind: composition.length > 0 ? dominantKind(composition) : 'dart',
     sun: {
       direction: sunDir,
       color: warm ? 0xfff0d0 : 0xcfe4ff,

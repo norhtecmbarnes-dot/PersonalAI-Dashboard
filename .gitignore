@@ -22,8 +22,10 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Database and user data (contains secrets/API keys)
+# Database and user data (contains secrets/API keys) — root-anchored so the
+# game's src/game/data tuning files stay tracked
 data/
+!src/game/data/
 *.db
 *.sqlite
 *.sqlite3
