@@ -19,6 +19,7 @@
   "dependencies": {
     "@onlyoffice/document-editor-react": "^1.4.1",
     "@sqlite.org/sqlite-wasm": "^3.51.2-build6",
+    "@types/three": "^0.186.0",
     "better-sqlite3": "^12.6.2",
     "class-variance-authority": "^0.6.0",
     "clsx": "^2.0.0",
@@ -42,6 +43,7 @@
     "sql.js": "^1.10.3",
     "tailwind-merge": "^2.0.0",
     "tesseract.js": "^5.1.1",
+    "three": "^0.186.0",
     "uuid": "^9.0.1",
     "xlsx": "^0.18.5"
   },

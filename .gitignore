@@ -110,3 +110,6 @@ src/app/api/ninjapipe/
 # Temporary documentation files
 COMPLETION_NOTICE.txt
 POST_TO_GITHUB.txt
+
+# Smoke-test artifacts
+screenshots/

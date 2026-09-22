@@ -81,6 +81,7 @@ export function TopNav() {
             <NavLink href="/brand-workspace">Corporate vault</NavLink>
             <NavLink href="/canvas">Tracker</NavLink>
             <NavLink href="/space-invaders">Invaders</NavLink>
+            <NavLink href="/star-raiders">Raiders</NavLink>
             <NavLink href="/settings">Settings</NavLink>
           </div>
 

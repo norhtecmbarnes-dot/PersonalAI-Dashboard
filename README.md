@@ -96,6 +96,7 @@ Open http://localhost:3000
 - LLM Leaderboard with free token sources
 - Notes system (Kanban-style)
 - Self-reflection and system improvement suggestions
+- **Star Raiders Reborn** (`/star-raiders`) — a WebGL space-combat game inspired by the 8-bit classics of 1979: galactic chart, hyperwarp mini-game, cockpit photon combat, docking, energy management, and end-of-mission ranks
 - Full local-first design (your data never leaves your machine)
 
 ## Technologies

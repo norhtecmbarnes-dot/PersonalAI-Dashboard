@@ -7,6 +7,15 @@
 *Written for everyone — no technical background needed. Each section says what
  the feature is, why it matters, and how to use it.*
 
+### 🚀 Star Raiders Reborn — a Playable Space-Combat Game (new)
+
+**What it is.** A complete, playable 3D space-combat game built into the app at the **Raiders** tab (`/star-raiders`), inspired by the 8-bit space combat games of 1979 (an original homage — no Atari assets or names). You fly one ship against the Veydrim invaders: open the **galactic chart** (G), pick a threat or a base, run the **hyperwarp mini-game**, fight with **photon cannons** in first-person cockpit view (fore and aft), manage your **energy budget**, and **dock at Helion bases** to repair and refuel. Six ship systems (weapons, engines, shields, computer, scanner, radio) take damage and degrade, and every mission ends with a **rank and score recap** saved locally. Four difficulties (Novice through Commander) change the enemy count and aggression. Every gameplay number lives in `src/game/data/tuning.json`, so balance changes never touch code.
+
+**Why it matters.** It is a complete vertical slice of a real game — flight, combat, navigation, logistics, and scoring — verified end-to-end by an automated browser test (`scripts/star-raiders-smoke.mjs`) that flies, fights, warps, docks, dies, and reaches the rank screen in a real browser with zero errors. It also ships an app icon (finally no 404 favicon) and a docking ritual that is demanding but fair.
+
+**How to play.** Click **Raiders** in the top navigation, pick a difficulty, and fly: mouse or arrow keys to steer, number keys 0–9 for speed, left-click or Space to fire, V to flip fore/aft, G for the chart, H for hyperwarp, L for the scanner.
+
+---
 ### 📖 Chapter 21 Added to the Book (new)
 
 **What it is.** A brand-new book chapter — `book/Chapter-21-Giving-The-Talk-Explaining-Your-Own-AI.md` — that turns the presentation into a full chapter of the *Building Your AI Dashboard* book, in the same style as the existing chapters: plain English, analogies, three Try-It-Yourself exercises, personalization tips, common pitfalls, and a summary. It covers the three ways to talk to an AI (API / CLI / MCP), foundation vs. open-source models, RAG, training vs. prompting, Ollama and llama.cpp, privacy, GGUF and MLX, the master prompt (quoting the real Proposal Genie soul), the company knowledge base, the winning proposal workflow, and the rule that wins contracts: never let the AI write the whole response. It points readers to the ready-made deck at `docs/PRESENTATION-BUILDING-YOUR-OWN-AI.md` for the slides and live demo script.
