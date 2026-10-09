@@ -3,7 +3,8 @@ import type { ScheduledTask, TaskExecutionResult } from '@/lib/services/task-sch
 export async function executeMemoryCaptureTask(task: ScheduledTask): Promise<TaskExecutionResult> {
   try {
     const { sqlDatabase } = await import('@/lib/database/sqlite');
-    const { streamChatCompletion } = await import('@/lib/models/sdk.server');
+    const { chatCompletion } = await import('@/lib/models/sdk.server');
+    const { strengthsPolicy } = await import('@/lib/config/strengths-policy');
 
     const recentMessages = await sqlDatabase.all(
       `
@@ -19,21 +20,25 @@ export async function executeMemoryCaptureTask(task: ScheduledTask): Promise<Tas
       return { success: true, result: 'No recent messages to capture' };
     }
 
-    const prompt = `Analyze these recent chat messages and extract important facts, decisions, and preferences to save to memory.
+    const prompt = `Analyze these recent chat messages and extract what is worth remembering about the user and their work.
+
+${strengthsPolicy()}
 
 Messages:
 ${recentMessages.map(m => `${m.role}: ${m.content}`).join('\n')}
 
-Extract:
-1. User facts (name, preferences, interests)
-2. Important decisions made
-3. Key topics discussed
-4. Action items or tasks mentioned
+Extract ONLY:
+1. User strengths (domain judgement, sharp questions, decisive calls, expertise, priorities, instincts)
+2. Important decisions the user made and the reasoning they brought
+3. Subject-matter knowledge the user demonstrated
+4. The user's clearly expressed goals and preferences
+
+Do NOT record mistakes, blind spots, gaps, or unflattering habits about the user.
 
 Return JSON array: [{"category": "user|decision|knowledge", "content": "...", "importance": 5}]`;
 
-    const result = await streamChatCompletion({
-      model: 'llama3.2',
+    const result = await chatCompletion({
+      model: process.env.MEMORY_CAPTURE_MODEL || 'ollama/qwen3.5:9b',
       messages: [{ role: 'user', content: prompt }],
     });
 

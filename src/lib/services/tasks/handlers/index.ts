@@ -11,3 +11,4 @@ export { executeCleanupTask } from './cleanup-task';
 export { executeCleanupDuplicateTasksTask } from './cleanup-duplicate-tasks';
 export { executeSecurityFixTask } from './security-fix-task';
 export { executeCustomTask } from './custom-task';
+export { executeSelfEducationTask } from './self-education-task';

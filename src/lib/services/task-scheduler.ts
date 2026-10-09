@@ -15,6 +15,7 @@ import {
   executeCleanupDuplicateTasksTask,
   executeSecurityFixTask,
   executeCustomTask,
+  executeSelfEducationTask,
 } from './tasks/handlers';
 
 async function executeTaskInternal(task: ScheduledTask): Promise<TaskExecutionResult> {
@@ -61,6 +62,9 @@ async function executeTaskInternal(task: ScheduledTask): Promise<TaskExecutionRe
       case 'custom':
         result = await executeCustomTask(task);
         break;
+      case 'self_education':
+        result = await executeSelfEducationTask(task);
+        break;
       default:
         throw new Error(`Unknown task type: ${task.taskType}`);
     }
@@ -90,7 +94,8 @@ export interface ScheduledTask {
     | 'cleanup'
     | 'cleanup_duplicate_tasks'
     | 'security_fix'
-    | 'custom';
+    | 'custom'
+    | 'self_education';
   schedule: string;
   brandId?: string;
   projectId?: string;
@@ -143,6 +148,7 @@ const TASK_PRIORITIES: Record<ScheduledTask['taskType'], 'critical' | 'high' | '
   cleanup_duplicate_tasks: 'high', // Important for database hygiene
   security_fix: 'critical', // Security issues need immediate attention
   custom: 'normal',
+  self_education: 'low', // Background improvement research, pause during use
 };
 
 export const TASK_TEMPLATES: TaskTemplate[] = [
@@ -243,6 +249,15 @@ export const TASK_TEMPLATES: TaskTemplate[] = [
     promptTemplate:
       'Run a security scan, identify vulnerabilities, and automatically apply fixes where possible. For issues that cannot be auto-fixed, document them in the security report with recommended manual actions. Priority: fix API key exposure, SQL injection risks, and XSS vulnerabilities.',
   },
+  {
+    type: 'self_education',
+    name: 'Self-Education',
+    description:
+      'Check GitHub for updates to the tools and models we use, then write an improvement report for the Alpha model to review',
+    defaultSchedule: 'weekly',
+    promptTemplate:
+      'Run the self-education loop: fetch the latest releases for every tracked tool, rank them with a low-cost model, and have the Alpha model write an improvement report to data/improvements/. Queue proposals for human approval. Do not implement anything automatically.',
+  },
 ];
 
 class TaskScheduler {
@@ -285,6 +300,7 @@ class TaskScheduler {
     cleanup_duplicate_tasks: 5 * 60 * 1000, // 5 minutes - find and remove duplicate tasks
     security_fix: 10 * 60 * 1000, // 10 minutes - fix security issues
     custom: 10 * 60 * 1000, // 10 minutes
+    self_education: 20 * 60 * 1000, // 20 minutes - GitHub research + report
   };
 
   // Resource thresholds

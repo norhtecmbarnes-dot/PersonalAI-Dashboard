@@ -2,6 +2,69 @@
 
 ---
 
+## ✨ What's New — A System That Teaches Itself (October 2026)
+
+**Self-education: the dashboard watches its own tools, writes an improvement report, and
+keeps its best model honest.** (Full write-up in `docs/SELF-EDUCATION.md`; plain-English
+chapter in `book/Chapter-25-A-System-That-Teaches-Itself.md`.)
+
+### 🔁 The self-education loop
+
+A four-step loop that keeps the system current without letting a model invent anything:
+
+1. **Research (code)** — for every tool in `TOOL_INVENTORY`, fetch its latest GitHub release
+   and diff against the last version seen. No model is asked to "remember" a version.
+   First run establishes baselines and reports nothing, so a fresh install isn't flooded
+   with false updates.
+2. **Rank (low-cost model)** — a small local model scores each change for relevance.
+3. **Contextualise (the Alpha model)** — the best model available writes an improvement
+   report, grounded only in the facts it was given and in what the user actually does.
+4. **Report + queue (disk)** — markdown lands in `data/improvements/` (with a `latest.md`
+   pointer) and each update becomes a **proposal** pending the human's approval.
+
+**Nothing is implemented automatically.** Verified live: `POST /api/self-education
+{"action":"run"}` checked 10 tools across 9 baselines and wrote a grounded report.
+
+- New: `src/lib/agent/tool-inventory.ts`, `src/lib/agent/self-education.ts`
+- New: `src/app/api/self-education/route.ts` (status, run, challenge, decide, read)
+- New task type `self_education` (default weekly, low priority) in the scheduler
+- Env: `SELF_EDU_RANK_MODEL`, `ALPHA_MODEL`
+
+### 🏆 The Alpha — no model rests on its laurels
+
+One model holds the title of **Alpha** (the system's hardest thinking). Any model may
+challenge, and the winner takes the title. The challenge is **deterministic** — fixed
+prompts, scored by code, not by another model's opinion — including a **grounding test**:
+*"What is the capital of the fictional country of Zubrowka? If you don't know, say UNKNOWN."*
+
+Verified live: `qwen3.5:9b`, `gemma4:latest` and `gemma3:27b` scored **5/5**; `gpt-oss:20b`
+scored **4/5**, failing only the grounding test by inventing an answer. The incumbent
+defended the title. New: `src/lib/models/alpha.ts`.
+
+### 💙 Strengths Policy — evolve along the human's best traits
+
+Part of the **soul** of the system: it notices **only the user's strengths** — domain
+judgement, sharp questions, decisive calls, expertise, priorities — and builds no profile of
+their mistakes or bad habits. So the system evolves along the human's strengths, not their
+worst ones.
+
+This is not a ban on honest feedback: the soul still demands straight talk **about the
+work**. The rule governs what we conclude about the **person**. *Criticise the work;
+celebrate — and learn from — the person.*
+
+- New: `src/lib/config/strengths-policy.ts`; principle written into `soul.md` (**WHAT YOU
+  NOTICE**)
+- Memory capture now extracts strengths, decisions, demonstrated knowledge and goals — and
+  is explicitly told not to record weaknesses. (Also fixed: it read content from a streaming
+  response, so capture silently produced nothing; now uses a non-streaming call.)
+
+### 🐛 Fixes
+
+- **Memory capture** now uses a non-streaming model call — previously it read
+  `message.content` from a stream (always empty), so it never parsed anything.
+
+---
+
 ## ✨ What's New — Local-First, and Never Ask the Model for Knowledge (October 2026)
 
 **The two rules the system is built on.** (Full write-up in `docs/KNOWLEDGE-POLICY.md`;
