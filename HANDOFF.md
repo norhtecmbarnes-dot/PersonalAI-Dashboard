@@ -91,9 +91,36 @@ Complete at `C:\digantara_aop\Digantara_US_AOP_FY27-FY30.xlsx`:
 - Key partners: York Space, Honeywell, Northrop Grumman (FLOKI), Anduril, Penn State (STTR)
 - AOP streams: Software, GBS Telescope, Space Systems, Payloads, Onboard Processing, Data Services
 
+## ⚠️ Node version requirement (READ FIRST)
+
+The native module `better-sqlite3` is built for **Node 24.x** (ABI 137), which is
+the **system Node at `C:\Program Files\nodejs\node.exe`**. Other Node runtimes on
+this machine (e.g. the Node 26 bundled with tooling, ABI 147) will throw
+`ERR_DLOPEN_FAILED` / `NODE_MODULE_VERSION ... 137 ... 147` and **silently disable
+every database-backed feature** (chat history, brands, tasks, notes, memory,
+intelligence).
+
+**Always start the dev server with the system Node 24.** Confirm before starting:
+
+```bash
+node -v            # must be v24.x  (NOT v26.x)
+npm run dev -- -p 3000
+```
+
+If `node -v` shows v26, put Node 24 first: `export PATH="/c/Program Files/nodejs:$PATH"`.
+
+To repair a broken native build after a Node switch: from the project root run
+`"C:/Program Files/nodejs/npm.cmd" rebuild better-sqlite3` (needs the VS build
+tools; a plain `npm rebuild` under the wrong Node will delete the .node binary).
+
+Verify a healthy boot: `[SQLite] Loaded database from: ./data/assistant.db` in the
+log and no `Database not initialized` / `ERR_DLOPEN_FAILED` lines.
+
+---
+
 ## What to do next when resuming
 
-1. Start the dashboard: `cd C:\ai_assistant && npx next dev -p 3000`
+1. Start the dashboard (see Node note above): `cd "C:\ai\proposal genie\PersonalAI-Dashboard" && npm run dev -- -p 3000`
 2. Check GitHub for any new commits since last session
 3. Pending items from AOP/CRM work:
    - Contact field updates (military rank, title, phone/mobile) — schema ready, not applied
