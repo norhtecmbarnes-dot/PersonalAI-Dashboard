@@ -124,10 +124,20 @@ export function ModelProvider({ children }: { children: ReactNode }) {
   const refreshModels = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/models');
+      // Next.js dev compiles routes on demand, so /api/models can transiently
+      // return 404 while a compile is in flight. Retry a few times before giving up.
+      let response: Response | undefined;
+      const maxAttempts = 3;
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        response = await fetch('/api/models');
+        if (response.ok) break;
+        if (attempt < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, 400 * attempt));
+        }
+      }
 
-      if (!response.ok) {
-        throw new Error(`Failed to load models: ${response.status}`);
+      if (!response || !response.ok) {
+        throw new Error(`Failed to load models: ${response?.status ?? 'no response'}`);
       }
 
       const data = await response.json();

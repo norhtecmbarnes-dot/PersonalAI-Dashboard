@@ -105,6 +105,23 @@ export async function POST(request: NextRequest) {
     const conversationHistory = sanitizeObject(body.conversationHistory || []);
     const isSearchMode = body.searchMode === true;
     const media = body.media as { type: string; data: string; name: string } | undefined;
+    const brandId = body.brandId ? sanitizeString(body.brandId) : undefined;
+    const projectId = body.projectId ? sanitizeString(body.projectId) : undefined;
+
+    // Load company (brand) vault context so the assistant can answer with the
+    // selected company's documents, voice, and intelligence.
+    let brandContext = '';
+    if (brandId) {
+      try {
+        const { brandWorkspace } = await import('@/lib/services/brand-workspace');
+        const context = await brandWorkspace.buildContextForChat(brandId, projectId);
+        if (context?.systemPrompt) {
+          brandContext = context.systemPrompt;
+        }
+      } catch (e) {
+        console.error('[Chat Stream] Failed to load brand context:', e);
+      }
+    }
 
     const memoryContext = await getMemoryPrompt();
 
@@ -112,7 +129,13 @@ export async function POST(request: NextRequest) {
 
     const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [];
 
-    let systemPrompt = memoryContext;
+    let systemPrompt = '';
+
+    if (brandContext) {
+      systemPrompt += `\n\n=== COMPANY VAULT ===\n${brandContext}\n`;
+    }
+
+    systemPrompt += memoryContext;
 
     if (isSearchMode) {
       systemPrompt += `You are a helpful AI assistant with web search capabilities. 
