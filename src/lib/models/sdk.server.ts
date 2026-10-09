@@ -1,4 +1,5 @@
 import { stripThinkingTags } from '@/lib/utils/clean-ai-response';
+import { gateModel } from '@/lib/config/local-first';
 
 export interface OllamaMessage {
   role: 'user' | 'assistant' | 'system';
@@ -738,6 +739,10 @@ export async function chatCompletion(params: {
   maxTokens?: number;
   tools?: any[];
 }): Promise<ChatCompletionResponse> {
+  // Local-first gate: in LOCAL_ONLY mode no cloud model may be called.
+  const gate = gateModel(params.model);
+  if (!gate.allowed) throw new Error(gate.reason);
+
   await loadApiKeys();
   const openRouterKey = getOpenRouterKey();
   const deepSeekKey = getDeepSeekKey();
@@ -926,6 +931,10 @@ export async function streamChatCompletion(params: {
   temperature?: number;
   maxTokens?: number;
 }): Promise<ChatStreamChunk> {
+  // Local-first gate: in LOCAL_ONLY mode no cloud model may be called.
+  const gate = gateModel(params.model);
+  if (!gate.allowed) throw new Error(gate.reason);
+
   await loadApiKeys();
   const openRouterKey = getOpenRouterKey();
   const deepSeekKey = getDeepSeekKey();

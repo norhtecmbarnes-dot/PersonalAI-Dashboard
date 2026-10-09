@@ -65,6 +65,7 @@ Open http://localhost:3000
 ## 📖 Documentation
 
 - **[User Guide](docs/USER-GUIDE.md)** — Complete walkthrough
+- **[Knowledge Policy & Local-First](docs/KNOWLEDGE-POLICY.md)** — The two rules: run locally, and never ask the LLM for knowledge
 - **[Agent Integration](docs/AGENT-INTEGRATION.md)** — Giving the dashboard an agent (Hermes vs OpenMuse) and a browser (agentic browser vs its own computer)
 - **[Star Raiders Reborn Guide](docs/STAR-RAIDERS-GUIDE.md)** — How to fly, fight, warp, dock, and win
 - **[Book (PDF)](book/Building_Your_AI_Dashboard.pdf)** — Full 384-page guide

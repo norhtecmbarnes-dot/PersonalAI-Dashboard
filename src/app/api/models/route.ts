@@ -2,6 +2,7 @@ export const runtime = 'nodejs';
 
 import { NextResponse } from 'next/server';
 import { checkOllamaHealth, getOllamaModels, getExternalModels } from '@/lib/models/sdk.server';
+import { isLocalOnly, preferLocal, pickLocalModel, localFirstStatus } from '@/lib/config/local-first';
 
 export async function GET() {
   try {
@@ -46,27 +47,33 @@ export async function GET() {
       provider: 'ollama' as const,
     }));
 
-    // Determine default model based on preferences
+    // ---- Local-first posture -------------------------------------------------
+    // In LOCAL_ONLY mode nothing cloud is even offered. Otherwise a local model
+    // is preferred as the default whenever one is available.
+    const localOnly = isLocalOnly();
+    const cloudModels = localOnly ? [] : filteredExternalModels;
+    const localModelIds = allOllamaModels.map(m => `ollama/${m.name}`);
+
+    // Determine default model, local-first.
     let defaultModel = modelPrefs.defaultModel;
 
-    // If auto-routing is enabled and local models are preferred
-    if (modelPrefs.autoRoute && modelPrefs.preferLocal && allOllamaModels.length > 0) {
-      defaultModel = allOllamaModels[0].name;
+    const preferredLocal = pickLocalModel(localModelIds);
+    if (preferredLocal) {
+      defaultModel = preferredLocal;
+    } else if (localModelIds.length > 0) {
+      defaultModel = localModelIds[0];
+    } else if (!localOnly && cloudModels.length > 0) {
+      defaultModel = cloudModels[0].id;
     }
 
-    // If cloud for chat is enabled, use cloud model
-    if (modelPrefs.cloudForChat && filteredExternalModels.length > 0) {
-      defaultModel = filteredExternalModels[0].id;
+    // If Ollama is offline but cloud is allowed and available, use the first cloud.
+    if (!ollamaHealthy && !localOnly && cloudModels.length > 0) {
+      defaultModel = cloudModels[0].id;
     }
 
-    // If Ollama is offline but we have external models, use first external
-    if (!ollamaHealthy && filteredExternalModels.length > 0) {
-      defaultModel = filteredExternalModels[0].id;
-    }
-
-    // If no models at all, provide helpful defaults
-    if (allOllamaModels.length === 0 && filteredExternalModels.length === 0) {
-      defaultModel = 'glm-4.7-flash';
+    // If no models at all, provide helpful defaults.
+    if (allOllamaModels.length === 0 && cloudModels.length === 0) {
+      defaultModel = localOnly ? '' : 'glm-4.7-flash';
     }
 
     return NextResponse.json({
@@ -74,13 +81,14 @@ export async function GET() {
         available: ollamaHealthy,
         models: allOllamaModels,
       },
-      external: filteredExternalModels,
+      external: cloudModels,
       allModels: [
         ...allOllamaModels,
-        ...filteredExternalModels.map(m => ({ ...m, provider: m.provider })),
+        ...cloudModels.map(m => ({ ...m, provider: m.provider })),
       ],
       defaultModel,
-      preferences: modelPrefs,
+      preferences: { ...modelPrefs, preferLocal: preferLocal() },
+      localFirst: localFirstStatus(),
       timestamp: Date.now(),
       availableProviders: Object.entries(availableApiKeys)
         .filter(([, has]) => has)
@@ -95,7 +103,8 @@ export async function GET() {
         ollama: { available: false, models: [] },
         external: [],
         allModels: [],
-        defaultModel: 'ollama/glm-5.3:cloud',
+        defaultModel: isLocalOnly() ? '' : 'glm-4.7-flash',
+        localFirst: localFirstStatus(),
       },
       { status: 500 }
     );

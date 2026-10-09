@@ -12,6 +12,7 @@ import {
 import { ollamaWebSearch } from '@/lib/browser/web-search-tool';
 import { memoryFileService } from '@/lib/services/memory-file';
 import { sqlDatabase } from '@/lib/database/sqlite';
+import { withKnowledgePolicy } from '@/lib/config/knowledge-policy';
 
 const MAX_MESSAGE_LENGTH = 10000;
 const MAX_HISTORY_LENGTH = 50;
@@ -169,7 +170,7 @@ You are ready to analyze and discuss uploaded documents in detail.`;
       systemPrompt += documentContext;
     }
 
-    messages.push({ role: 'system', content: systemPrompt });
+    messages.push({ role: 'system', content: withKnowledgePolicy(systemPrompt) });
 
     const historyLimit = Math.min(conversationHistory.length, 10);
     for (

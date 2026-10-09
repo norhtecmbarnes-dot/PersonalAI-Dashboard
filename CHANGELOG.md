@@ -2,6 +2,42 @@
 
 ---
 
+## ✨ What's New — Local-First, and Never Ask the Model for Knowledge (October 2026)
+
+**The two rules the system is built on.** (Full write-up in `docs/KNOWLEDGE-POLICY.md`;
+plain-English chapter in `book/Chapter-24-Local-First-And-Never-Ask-For-Knowledge.md`.)
+
+### 🏠 Local-first, with a real off switch
+
+The dashboard runs entirely on the user's machine with Ollama; cloud models are opt-in.
+Two switches:
+
+- `PREFER_LOCAL` (default `true`) — pick a local model whenever one is available.
+- `LOCAL_ONLY` — a hard block: no cloud model is ever called. `/api/models` hides cloud
+  models entirely, and every model call passes through one gate (`gateModel`) that refuses
+  a cloud model with a plain-English reason. Verified: with `LOCAL_ONLY=true`, a request
+  for `ollama/glm-5.3:cloud` returns the refusal instead of an answer.
+
+The models endpoint now defaults to a **local** model (`gemma4:latest` / `qwen3.5:9b`)
+rather than a cloud one, so a fresh install works with no key and no account.
+
+### 🧠 Never ask the LLM for knowledge
+
+The LLM is treated as a **communications manager**, not a knowledge source: it supplies
+language and structure, never facts. Facts come from injected context and from tools/code.
+A canonical **knowledge policy** (`src/lib/config/knowledge-policy.ts`) is now attached to
+the chat and streaming paths via `withKnowledgePolicy(...)`. It instructs the model to
+never answer from its own memory, to use only the information it was given, to reach for a
+tool (or ask) when it lacks something, to never guess, and to attribute every specific
+claim.
+
+New/changed in this release: `src/lib/config/knowledge-policy.ts`,
+`src/lib/config/local-first.ts`, guards in `src/lib/models/sdk.server.ts`, local-first
+defaults + status in `src/app/api/models/route.ts`, policy wiring in
+`src/app/api/chat/route.ts` and `src/app/api/chat/stream/route.ts`.
+
+---
+
 ## ✨ What's New — Split from the Director, and an Agent Integration Plan (October 2026)
 
 ### 🔀 Proposal Genie and Director are now separate sub-projects

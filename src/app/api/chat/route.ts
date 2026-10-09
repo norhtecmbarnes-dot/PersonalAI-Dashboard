@@ -14,6 +14,7 @@ import {
 import { aiTools } from '@/lib/browser/ai-tools';
 import { mathTools } from '@/lib/utils/math-tools';
 import { SYSTEM_PROMPT, GREETING } from '@/lib/config/system-prompt';
+import { withKnowledgePolicy } from '@/lib/config/knowledge-policy';
 import { userPreferences } from '@/lib/config/user-preferences';
 import { memoryFileService } from '@/lib/services/memory-file';
 import {
@@ -789,13 +790,14 @@ Generate appropriate chart type (line, bar, pie, doughnut, etc.) based on the re
     const messages = [
       {
         role: 'system',
-        content:
+        content: withKnowledgePolicy(
           soulContext +
-          brandContext +
-          persistentMemoryContext +
-          memoryContext +
-          personalizedSystemPrompt +
-          documentContext,
+            brandContext +
+            persistentMemoryContext +
+            memoryContext +
+            personalizedSystemPrompt +
+            documentContext
+        ),
       },
       ...(conversationHistory as any[]),
       { role: 'user', content: context + message },
