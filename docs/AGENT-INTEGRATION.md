@@ -110,22 +110,66 @@ which is better handled by the browser tools.
 
 ## 4. Integration patterns with the dashboard
 
-Pick one (they compose):
+Three patterns; **the first two are implemented in this repo** and verified running.
 
-1. **Agent-as-operator (fastest).** Run Hermes alongside the app. The dashboard (or
-   you, from Telegram) hands Hermes a task — "search SAM.gov for X, draft the
-   capability statement" — and Hermes drives the browser/computer and reports back.
-   Lowest code change; the agent is a separate process.
-2. **Dashboard-as-tools (most integrated).** Expose dashboard capabilities
-   (opportunity search, document store, brand vault) as **MCP tools**; Hermes
-   discovers and calls them, so the agent acts with your data. Requires an MCP server
-   shim over the existing API routes.
-3. **Embedded agent UI (heaviest).** Adopt **OpenMuse/CopilotKit + AG-UI** inside the
-   Next.js app for an in-app agent pane. Most work, adds a CopilotKit dependency and
-   key; choose only if the in-app UX is the point.
+### Pattern 1 — Agent-as-operator ✅ implemented
 
-**Recommendation:** start at (1) to prove value, add (2) so the agent can *use* the
-dashboard's data, and treat (3) as a later product decision.
+The dashboard hands a plain-English task to the **Hermes CLI** and returns its answer.
+Hermes does the multi-step work with its own tools; the dashboard stays a dashboard.
+
+- Code: `src/lib/agent/hermes-operator.ts` (spawns `hermes chat -q <task> -Q --format
+  text`, bounded by a timeout, strips CLI noise, returns `{ ok, output, sessionId }`).
+- Endpoint: `src/app/api/agent/operator/route.ts`
+  - `GET /api/agent/operator` → `{ available, bin, defaultToolsets }`
+  - `POST /api/agent/operator` `{ task, toolsets?, model?, timeoutMs? }` → runs the task
+- Config: `HERMES_CLI` (path, if not on PATH), `HERMES_OPERATOR_TOOLSETS` (default
+  `web` — **widen deliberately**; this is how much power the operator gets).
+- Verified: `POST {"task":"Reply with exactly: OPERATOR_OK"}` →
+  `{"success":true,"output":"OPERATOR_OK","durationMs":7181}`.
+- Safety: the task is a single argv element (no shell → no command injection); the run
+  is killed on timeout; toolsets default to `web`.
+
+### Pattern 2 — Dashboard-as-tools (MCP server) ✅ implemented
+
+Expose the dashboard's own data as **MCP tools**, so any MCP-capable agent (Hermes,
+Claude Code, Cursor, …) can read what the dashboard knows.
+
+- Code: `scripts/dashboard-mcp-server.mjs` (MCP stdio server over
+  `@modelcontextprotocol/sdk`; calls the dashboard's HTTP API, does not touch the DB).
+- Tools: `dashboard_status`, `list_documents`, `list_brands`, `get_brand`,
+  `search_opportunities`.
+- Verified with a real MCP client: `initialize` → `tools/list` (all 5) →
+  `dashboard_status` (healthy) → `list_brands` (returned the `digantara` brand).
+- Register with Hermes (one line):
+
+  ```bash
+  hermes mcp add proposal_genie \
+    --command node \
+    --args "C:/ai/proposal genie/PersonalAI-Dashboard/scripts/dashboard-mcp-server.mjs" \
+    --env DASHBOARD_URL=http://localhost:3000
+  ```
+
+  or in `~/.hermes/config.yaml`:
+
+  ```yaml
+  mcp_servers:
+    proposal_genie:
+      command: "node"
+      args: ["C:/ai/proposal genie/PersonalAI-Dashboard/scripts/dashboard-mcp-server.mjs"]
+      env:
+        DASHBOARD_URL: "http://localhost:3000"
+  ```
+
+  Then `hermes mcp test proposal_genie` should connect and list the tools.
+
+### Pattern 3 — Embedded agent UI (not built)
+
+Adopt OpenMuse/CopilotKit + AG-UI inside the Next.js app for an in-app agent pane.
+Most work; adds a CopilotKit dependency and key. A later product decision.
+
+**Recommended path:** run Pattern 1 to prove value, add Pattern 2 so the agent can
+*use* the dashboard's data, and treat Pattern 3 as a later product decision. Chapter 23
+of the book walks through building both.
 
 ---
 

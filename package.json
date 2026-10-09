@@ -10,6 +10,7 @@
     "lint:fix": "next lint --fix",
     "typecheck": "tsc --noEmit",
     "db:init": "node src/lib/database/init.js",
+    "mcp:dashboard": "node scripts/dashboard-mcp-server.mjs",
     "review": "npm run typecheck && npm run lint && npm run build",
     "review:quick": "npm run typecheck && npm run lint",
     "security:audit": "npm audit --audit=moderate",
@@ -17,6 +18,7 @@
     "prepare": "husky"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1",
     "@onlyoffice/document-editor-react": "^1.4.1",
     "@sqlite.org/sqlite-wasm": "^3.51.2-build6",
     "@types/three": "^0.186.0",
