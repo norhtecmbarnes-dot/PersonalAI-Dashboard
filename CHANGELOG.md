@@ -2,6 +2,47 @@
 
 ---
 
+## ✨ What's New — Split from the Director, and an Agent Integration Plan (October 2026)
+
+### 🔀 Proposal Genie and Director are now separate sub-projects
+
+**What changed.** The project split into **two repos that share one base**:
+
+- **Proposal Genie** (this repo) — the government-contracting suite.
+- **Director Dashboard** — the MiniMax H3 AI video director — now its own repo:
+  `github.com/norhtecmbarnes-dot/Director-Dashboard`.
+
+They are deliberately **not overlaid on each other**: each is its own app with its own
+repo, and only one product's screens live in each. Both sit on the shared local-first
+base (chat, models, database, storage, documents, notes, tasks, calendar, writing,
+canvas, office, settings). See `..\README.md` for how the two relate and how to keep
+the shared base in sync.
+
+**Why it matters.** One repo holding two unrelated products was too large and too
+complex. Splitting them makes each easier to run, ship, and reason about.
+
+**A caveat worth repeating.** The app's native `better-sqlite3` module is built for the
+**system Node 24** (ABI 137). Launching under any other Node (e.g. a bundled Node 26 /
+ABI 147) makes every database-backed feature fail silently with `ERR_DLOPEN_FAILED`.
+See `HANDOFF.md` for the one-line check and repair.
+
+### 🤖 Agent Integration — a plan for giving the dashboard "hands"
+
+**What it is.** A decision note (`docs/AGENT-INTEGRATION.md`) comparing the two ways to
+build agent capabilities into the dashboard — **Hermes Agent** (Nous Research) vs
+**OpenMuse** (CopilotKit) — and the two honest ways to give an agent a browser: an
+**agentic browser** that uses your real logins (**BrowserOS neo**) versus **giving the
+agent its own computer** (the Docker-sandbox model OpenMuse uses). A new book chapter,
+`book/Chapter-22-Giving-Your-AI-Hands-Agents-And-Browsers.md`, explains it in plain
+English.
+
+**Recommendation in one line.** Use **Hermes** as the agent runtime; start with the
+**agentic browser** for logged-in work and Hermes's **Docker terminal backend** for the
+agent's own isolated computer; keep OpenMuse on the shortlist only if you want an agent
+pane embedded in the web app via AG-UI.
+
+---
+
 ## ✨ What's New in Proposal Genie (August 2026)
 
 *Written for everyone — no technical background needed. Each section says what

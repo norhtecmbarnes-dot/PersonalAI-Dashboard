@@ -65,6 +65,7 @@ Open http://localhost:3000
 ## 📖 Documentation
 
 - **[User Guide](docs/USER-GUIDE.md)** — Complete walkthrough
+- **[Agent Integration](docs/AGENT-INTEGRATION.md)** — Giving the dashboard an agent (Hermes vs OpenMuse) and a browser (agentic browser vs its own computer)
 - **[Star Raiders Reborn Guide](docs/STAR-RAIDERS-GUIDE.md)** — How to fly, fight, warp, dock, and win
 - **[Book (PDF)](book/Building_Your_AI_Dashboard.pdf)** — Full 384-page guide
 - **[Book (Online)](https://designrr.page/?id=493295&token=3520346906&type=FP&h=9144)** — Web version
