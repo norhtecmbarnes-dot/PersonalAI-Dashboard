@@ -16,6 +16,7 @@ The PersonalAI Dashboard has a full AI-powered writing pipeline. This document c
 8. [Export Pipeline](#8-export-pipeline)
 9. [Configuration](#9-configuration)
 10. [File Map](#10-file-map)
+11. [Building the Manuscript (combine + .docx)](#11-building-the-manuscript-combine--docx)
 
 ---
 
