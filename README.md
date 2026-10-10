@@ -67,6 +67,7 @@ Open http://localhost:3000
 - **[User Guide](docs/USER-GUIDE.md)** — Complete walkthrough
 - **[Knowledge Policy & Local-First](docs/KNOWLEDGE-POLICY.md)** — The two rules: run locally, and never ask the LLM for knowledge
 - **[Self-Education](docs/SELF-EDUCATION.md)** — How the system watches its own tools, writes an improvement report, and holds the Alpha challenge
+- **[Determining the Alpha & Self-Improvement](docs/ALPHA-AND-SELF-IMPROVEMENT.md)** — Why a leaderboard discovers and a controlled test decides; how the research loop improves models, tools, and the app
 - **[Strengths Policy](docs/STRENGTHS-POLICY.md)** — The system notices only your strengths, so it evolves along your best traits
 - **[Agent Integration](docs/AGENT-INTEGRATION.md)** — Giving the dashboard an agent (Hermes vs OpenMuse) and a browser (agentic browser vs its own computer)
 - **[Star Raiders Reborn Guide](docs/STAR-RAIDERS-GUIDE.md)** — How to fly, fight, warp, dock, and win
