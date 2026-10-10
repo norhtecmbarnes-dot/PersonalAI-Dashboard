@@ -1,30 +1,48 @@
+/**
+ * Assemble the book manuscript from the chapter sources in book/.
+ *
+ * Fixed: the old version matched /^chapter-\d+.*\.md$/ case-sensitively against files named
+ * `Chapter-21-…`, so it found ZERO chapters and wrote an empty book. Discovery now lives in
+ * scripts/lib/book-chapters.js (case-insensitive, understands the `5B` suffix).
+ *
+ * Run:  node scripts/combine-book.js          (or: npm run book:combine)
+ * Env:  INCLUDE_APPENDICES=1                  add placeholder appendix stubs (off by default —
+ *                                             stubs must never be mistaken for real content)
+ */
+
 const fs = require('fs');
 const path = require('path');
+const { DEFAULT_BOOK_DIR, discoverChapters, readChapter, chapterLabel } = require('./lib/book-chapters');
 
-const BOOK_DIR = path.join(process.cwd(), 'book');
+const BOOK_DIR = DEFAULT_BOOK_DIR;
 const OUTPUT_DIR = path.join(process.cwd(), 'book-output');
 
-// Ensure output directory exists
 if (!fs.existsSync(OUTPUT_DIR)) {
   fs.mkdirSync(OUTPUT_DIR, { recursive: true });
 }
 
-// Get all chapter files sorted numerically
-const chapters = fs.readdirSync(BOOK_DIR)
-  .filter(file => file.match(/^chapter-\d+.*\.md$/))
-  .sort((a, b) => {
-    const numA = parseInt(a.match(/\d+/)[0]);
-    const numB = parseInt(b.match(/\d+/)[0]);
-    return numA - numB;
-  });
+const chapters = discoverChapters(BOOK_DIR);
 
-console.log(`Found ${chapters.length} chapters:`);
-chapters.forEach(chapter => console.log(`  - ${chapter}`));
+if (chapters.length === 0) {
+  console.error(`No chapter files found in ${BOOK_DIR}.`);
+  console.error('Expected names like "Chapter-21-Giving-The-Talk…md" or "chapter-01-introduction.md".');
+  process.exit(1);
+}
 
-// Read and combine all chapters
-let combinedContent = `# PersonalAI Dashboard: The Complete Guide
+console.log(`Found ${chapters.length} chapter(s):`);
+chapters.forEach(c => console.log(`  - Chapter ${chapterLabel(c)}: ${c.title}  (${c.file})`));
 
-## Building Your Own AI Assistant - From Zero to Production
+const labels = chapters.map(chapterLabel);
+const firstNum = chapters[0].num;
+const missingEarlier = firstNum > 1;
+
+const toc = chapters
+  .map(c => `- **Chapter ${chapterLabel(c)}** — ${c.title}`)
+  .join('\n');
+
+let combinedContent = `# Building Your AI Dashboard
+
+## The Complete Beginner's Guide to Your Own AI Assistant — From Zero to Production
 
 *By Michael C. Barnes*
 
@@ -32,18 +50,16 @@ let combinedContent = `# PersonalAI Dashboard: The Complete Guide
 
 ---
 
-**Book Version:** 1.0  
-**Last Updated:** March 2026  
-**Pages:** ~500  
-**Reading Time:** 15-20 hours
-
+**Assembled from:** ${chapters.length} chapter source file${chapters.length === 1 ? '' : 's'} in \`book/\`
+**Chapters included:** ${labels.join(', ')}
+${missingEarlier ? `**Note:** chapter source for 1–${firstNum - 1} is not present in this repository, so this build is partial.\n` : ''}
 ---
 
 ## About This Book
 
 This book teaches you how to build a complete, production-ready AI assistant that runs on your own computer. Unlike cloud-based solutions like ChatGPT, your PersonalAI Dashboard keeps your data private, costs $0 per month to run, and works even without internet.
 
-**The Philosophy:** AI should be a manager of tools, not a repository of knowledge. This approach uses small, efficient models (2B-14B parameters) backed by databases, document stores, and search tools—outperforming large models alone.
+**The Philosophy:** AI should be a manager of tools, not a repository of knowledge. This approach uses small, efficient models backed by databases, document stores, and search tools — outperforming large models alone.
 
 **Dedication:** To Randolph (Randy) Hill, Founder & CTO of GovBotics, who first conceptualized the tool-based AI approach that makes this system possible.
 
@@ -61,7 +77,7 @@ This book teaches you how to build a complete, production-ready AI assistant tha
 
 ## Table of Contents
 
-${chapters.map((ch, i) => `${i + 1}. ${ch.replace(/^chapter-\d+-/, '').replace(/\.md$/, '').replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}`).join('\n')}
+${toc}
 
 ---
 
@@ -70,7 +86,7 @@ ${chapters.map((ch, i) => `${i + 1}. ${ch.replace(/^chapter-\d+-/, '').replace(/
 - A computer (Windows, Mac, or Linux)
 - 4GB+ RAM (8GB recommended)
 - Internet connection (for setup)
-- 10-20 hours of focused time
+- 10–20 hours of focused time
 - Curiosity and willingness to learn
 
 ---
@@ -78,74 +94,49 @@ ${chapters.map((ch, i) => `${i + 1}. ${ch.replace(/^chapter-\d+-/, '').replace(/
 *Let's begin building your AI assistant...*
 
 ---
-
 `;
 
-// Append each chapter
 chapters.forEach((chapter, index) => {
-  const content = fs.readFileSync(path.join(BOOK_DIR, chapter), 'utf-8');
-  
-  // Add page break before each chapter (except first)
+  const content = readChapter(BOOK_DIR, chapter);
   if (index > 0) {
     combinedContent += '\n\n<div style="page-break-after: always;"></div>\n\n';
   }
-  
-  // Add chapter content
   combinedContent += content;
   combinedContent += '\n\n';
-  
-  console.log(`✓ Added Chapter ${index + 1}: ${chapter}`);
+  console.log(`✓ Added Chapter ${chapterLabel(chapter)}: ${chapter.title}`);
 });
 
-// Appendices
-combinedContent += `\n\n---\n\n# Appendix A: Complete Prompt Library\n\n## Quick Reference\n
-
-[Prompt library content would go here]
-
----\n\n# Appendix B: Model Selection Guide\n\n## Choosing the Right Model\n
-
-| Task | Model Size | Recommended |
+if (process.env.INCLUDE_APPENDICES === '1') {
+  combinedContent += `\n\n---\n\n# Appendix A: Model Selection Guide\n\n| Task | Model Size | Recommended |
 |------|------------|-------------|
 | Quick Q&A | 2B | qwen3.5:2b |
-| Document Chat | 2B-7B | qwen3.5:2b, qwen2.5:7b |
-| Writing | 7B-14B | qwen2.5:14b, phi4:14b |
-| Code | 7B-14B | qwen2.5-coder:7b |
-| Analysis | 14B-27B | qwen3.5:14b, qwen3.5:27b |
+| Document Chat | 2B–7B | qwen3.5:2b, qwen2.5:7b |
+| Writing | 7B–14B | qwen2.5:14b, phi4:14b |
+| Code | 7B–14B | qwen2.5-coder:7b |
+| Analysis | 14B–27B | qwen3.5:14b, qwen3.5:27b |
 | Complex Reasoning | 27B+ | qwen3.5:27b (cloud) |
 
----\n\n# Appendix C: Troubleshooting\n\n## Common Issues and Solutions\n
+---
+`;
+}
 
-[Detailed troubleshooting guide would go here]
+combinedContent += `\n---\n\n# License
 
----\n\n# Appendix D: Enterprise Scaling\n\n## Scaling to v2.0\n
+**Code:** MIT License — free to use, modify, distribute
 
-### When to Upgrade to vLLM
+**Book Content:** CC BY-SA 4.0 — share and adapt with attribution
 
-Consider upgrading from Ollama to vLLM when you need:
-- 100+ concurrent users
-- API-grade reliability
-- Maximum throughput
-- Production enterprise deployment
+---
 
-### Migration Path
+*Thank you for reading. May your AI serve you well.*
 
-1. Keep your existing PersonalAI Dashboard
-2. Set up vLLM server (requires GPU)
-3. Configure connection to vLLM backend
-4. Same UI, faster backend
+**End of Book**
+`;
 
----\n\n# License\n
-**Code:** MIT License - Free to use, modify, distribute
-
-**Book Content:** CC BY-SA 4.0 - Share and adapt with attribution
-
----\n\n*Thank you for reading. May your AI serve you well.*\n\n**End of Book**\n`;
-
-// Write combined file
 const outputPath = path.join(OUTPUT_DIR, 'PersonalAI-Dashboard-Complete-Guide.md');
-fs.writeFileSync(outputPath, combinedContent);
+fs.writeFileSync(outputPath, combinedContent, 'utf-8');
 
-console.log(`\n✅ Complete book written to: ${outputPath}`);
-console.log(`📄 Total chapters: ${chapters.length}`);
-console.log(`📊 Estimated pages: ${Math.round(combinedContent.length / 3000)}`);
-console.log(`💾 File size: ${(fs.statSync(outputPath).size / 1024 / 1024).toFixed(2)} MB`);
+console.log(`\n✅ Manuscript written to: ${outputPath}`);
+console.log(`📄 Chapters: ${chapters.length} (${labels.join(', ')})`);
+console.log(`📊 Estimated pages: ~${Math.round(combinedContent.length / 3000)}`);
+console.log(`💾 File size: ${(fs.statSync(outputPath).size / 1024).toFixed(0)} KB`);

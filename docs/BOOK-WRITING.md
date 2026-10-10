@@ -778,3 +778,36 @@ console.log(`Score: ${result.originalScore.toFixed(1)} → ${result.revisedScore
 console.log(`Changes:`, result.changes);
 console.log(result.revisedText);
 ```
+
+---
+
+## 11. Building the manuscript (combine + .docx)
+
+The chapter sources in `book/` are assembled into a manuscript and Word documents by two
+scripts, both driven by a shared chapter index (`scripts/lib/book-chapters.js`).
+
+```bash
+npm run book:combine   # book/*.md  ->  book-output/PersonalAI-Dashboard-Complete-Guide.md
+npm run book:docx      # book/*.md  ->  per-chapter .docx + AI-Dashboard-Complete-Book.docx
+npm run book:build     # both, in order
+```
+
+**Naming rule.** Chapter files must match `chapter-<num><suffix>-<slug>.md` — the match is
+case-insensitive, so `Chapter-21-…` and `chapter-01-…` both work, and an optional letter
+suffix is understood for inserted chapters (`Chapter-5B-…`). Sorting is by number, then
+suffix. Add a chapter file with the right name and it is picked up automatically — there is
+no hardcoded list to update.
+
+**Output** goes to `book-output/`, which is gitignored (it is build output, not source).
+The combined `.docx` gets a generated title page and a table of contents. `INCLUDE_APPENDICES=1`
+appends the model-selection appendix; it is off by default so placeholder stubs are never
+mistaken for real content.
+
+**Why this was rewritten.** The previous scripts hardcoded a lowercase `chapter-01`–`chapter-16`
+list and matched `/^chapter-\d+.*\.md$/` case-sensitively, so against the real files
+(`Chapter-21-…`) they found **zero** chapters and wrote an empty book. Discovery now lives in
+one place and is case-insensitive.
+
+**Partial builds are labelled.** If the lowest chapter number present is above 1, the
+manuscript front matter says so explicitly — a build is never silently passed off as
+complete.
