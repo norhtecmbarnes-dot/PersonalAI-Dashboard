@@ -4,27 +4,28 @@ This workspace contains separate Git repositories nested under `C:\ai\Proposal G
 
 ## Projects and GitHub repositories
 
-| Local folder | Repository |
-|---|---|
-| `C:\ai\Proposal Genie\PersonalAI-Dashboard` | `https://github.com/norhtecmbarnes-dot/PersonalAI-Dashboard.git` |
-| `C:\ai\Proposal Genie\Director-Dashboard` | `https://github.com/norhtecmbarnes-dot/Director-Dashboard.git` |
-| `C:\ai\Proposal Genie\You-Are-Using-AI-Wrong` (book project) | `https://github.com/norhtecmbarnes-dot/You-Are-Using-AI-Wrong.git` |
+| Local folder | Repository | Notes |
+|---|---|---|
+| `C:\ai\Proposal Genie\PersonalAI-Dashboard` | `https://github.com/norhtecmbarnes-dot/PersonalAI-Dashboard.git` | Proposal Genie dashboard |
+| `C:\ai\Proposal Genie\Director-Dashboard` | `https://github.com/norhtecmbarnes-dot/Director-Dashboard.git` | Separate project |
+| `C:\ai\Proposal Genie\You-Are-Using-AI-Wrong` | `https://github.com/norhtecmbarnes-dot/You-Are-Using-AI-Wrong.git` | Your book in progress; intentionally here for now and planned to move out of this workspace when complete |
 
-Each is its own repository. Other projects should likewise have their own repo and remote.
+The book has its own GitHub repository and history. Its current location under this workspace is temporary; moving its local folder later does not require combining histories or changing its remote.
 
 ## First-time setup on another computer
 
-Install Git for Windows and sign in using Git Credential Manager. Never place a GitHub token in a remote URL. Then clone each repository:
+Install Git for Windows and sign in using Git Credential Manager. Never place a GitHub token in a remote URL. Clone the repositories you want to work with:
 
 ```powershell
 New-Item -ItemType Directory -Force 'C:\ai\Proposal Genie' | Out-Null
 Set-Location 'C:\ai\Proposal Genie'
 git clone https://github.com/norhtecmbarnes-dot/PersonalAI-Dashboard.git
 git clone https://github.com/norhtecmbarnes-dot/Director-Dashboard.git
+# Optional while the book is being written here:
 git clone https://github.com/norhtecmbarnes-dot/You-Are-Using-AI-Wrong.git
 ```
 
-Install each app’s dependencies as described in its README. Recreate machine-specific environment files from sanitized examples. Do not copy secrets into GitHub.
+When the book is complete and moved, clone it into its new location instead. Each clone retains the same GitHub remote. Install each app’s dependencies as described in its README. Recreate machine-specific environment files from sanitized examples; do not copy secrets into GitHub.
 
 ## Routine sync (run inside each repository separately)
 
@@ -32,7 +33,7 @@ Before working:
 
 ```powershell
 Set-Location 'C:\ai\Proposal Genie\PersonalAI-Dashboard' # change to the repo you are syncing
-git status --short --branch
+ git status --short --branch
 git pull --ff-only
 ```
 
